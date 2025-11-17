@@ -1,0 +1,427 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User/Account model - for event creators and family members
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  phone         String?
+  passwordHash  String?   // For future auth
+  image         String?   // Profile picture
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  events        Event[]
+  familyMembers FamilyMember[]
+  interactions  Interaction[]
+  mediaAssets   MediaAsset[]
+
+  @@index([email])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// Family/Account grouping - allows multiple family members to manage events
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique // For custom URLs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  members   FamilyMember[]
+  events    Event[]
+
+  @@index([slug])
+}
+
+// Family membership - links users to families with roles
+model FamilyMember {
+  id        String         @id @default(cuid())
+  userId    String
+  familyId  String
+  role      FamilyRole     @default(MEMBER)
+  createdAt DateTime       @default(now())
+
+  // Relations
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family    Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, familyId])
+  @@index([familyId])
+}
+
+enum FamilyRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// Event Theme/Template
+model Theme {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // e.g., "wedding", "birthday", "corporate"
+  config      Json     // Theme configuration (colors, fonts, layouts)
+  preview     String?  // Preview image URL
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  events      Event[]
+
+  @@index([category])
+}
+
+// Main Event - parent event (e.g., "Wedding Celebration")
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  slug        String      @unique // For public URLs
+  type        EventType   @default(CELEBRATION)
+  status      EventStatus @default(DRAFT)
+  
+  // Theme and styling
+  themeId     String?
+  customTheme Json?       // Custom theme overrides
+  
+  // Owner and family
+  ownerId     String
+  familyId    String?
+  
+  // Event metadata
+  startDate   DateTime?
+  endDate     DateTime?
+  location    String?
+  timezone    String      @default("UTC")
+  
+  // Settings
+  isPublic    Boolean     @default(false)
+  allowGuestUploads Boolean @default(true)
+  allowComments    Boolean @default(true)
+  allowReactions   Boolean @default(true)
+  
+  // QR Code and sharing
+  qrCode      String?     @unique
+  shareLink   String?     @unique
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  family      Family?     @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  theme       Theme?      @relation(fields: [themeId], references: [id], onDelete: SetNull)
+  ceremonies  Ceremony[]
+  invitees    Invitee[]
+  mediaAssets MediaAsset[]
+  invites     Invite[]
+  interactions Interaction[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@index([familyId])
+  @@index([status])
+}
+
+enum EventType {
+  CELEBRATION
+  WEDDING
+  BIRTHDAY
+  CORPORATE
+  CONFERENCE
+  OTHER
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+// Ceremony - multiple ceremonies per event (e.g., Traditional, White Wedding)
+model Ceremony {
+  id          String   @id @default(cuid())
+  eventId     String
+  name        String   // e.g., "Traditional Marriage", "White Wedding"
+  description String?
+  order       Int      // Order of ceremonies
+  date        DateTime
+  startTime   DateTime?
+  endTime     DateTime?
+  location    String?
+  venue       String?
+  dressCode   String?
+  notes       String?
+  
+  // Streaming
+  streamUrl   String?
+  streamKey   String?
+  isStreaming Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  scheduleItems ScheduleItem[]
+  mediaAssets MediaAsset[]
+  interactions Interaction[]
+
+  @@index([eventId])
+  @@index([eventId, order])
+}
+
+// Schedule Item - order of events within a ceremony
+model ScheduleItem {
+  id          String   @id @default(cuid())
+  ceremonyId  String
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime?
+  order       Int
+  type        String?  // e.g., "ceremony", "reception", "dinner"
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ceremony    Ceremony @relation(fields: [ceremonyId], references: [id], onDelete: Cascade)
+
+  @@index([ceremonyId])
+  @@index([ceremonyId, order])
+}
+
+// Invitee/Guest
+model Invitee {
+  id          String      @id @default(cuid())
+  eventId     String
+  name        String
+  email       String?
+  phone       String?
+  role        String?     // e.g., "bride", "groom", "guest", "vendor"
+  group       String?     // e.g., "bride's family", "groom's family"
+  
+  // RSVP tracking
+  rsvpStatus  RSVPStatus  @default(PENDING)
+  rsvpDate    DateTime?
+  rsvpNotes   String?
+  
+  // Attendance tracking
+  attendedCeremonies String[] // Array of ceremony IDs
+  
+  // Contact preferences
+  preferredChannel String? // "email", "whatsapp", "sms"
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invites     Invite[]
+
+  @@index([eventId])
+  @@index([email])
+  @@index([phone])
+}
+
+enum RSVPStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  MAYBE
+}
+
+// Invitation tracking
+model Invite {
+  id          String        @id @default(cuid())
+  eventId     String
+  inviteeId   String?
+  email       String?
+  phone       String?
+  channel     InviteChannel
+  status      InviteStatus  @default(PENDING)
+  sentAt      DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  error       String?
+  token       String        @unique // For tracking
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitee     Invitee?      @relation(fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([token])
+  @@index([email])
+  @@index([phone])
+}
+
+enum InviteChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  FACEBOOK_MESSENGER
+  INSTAGRAM_DM
+  LINK
+  QR_CODE
+}
+
+enum InviteStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  BOUNCED
+}
+
+// Media Assets - photos and videos
+model MediaAsset {
+  id          String        @id @default(cuid())
+  eventId     String
+  ceremonyId  String?
+  uploadedById String?
+  
+  // Media info
+  type        MediaType
+  url         String        // Storage URL
+  thumbnailUrl String?
+  filename    String
+  mimeType    String
+  size        Int           // Size in bytes
+  width       Int?
+  height      Int?
+  duration    Int?          // For videos, in seconds
+  
+  // Metadata
+  caption     String?
+  tags        String[]      // Array of tags
+  source      MediaSource   @default(UPLOAD)
+  sourceUrl   String?       // Original source if from social media
+  
+  // Social media integration
+  socialMediaId String?     // ID from social platform
+  socialPlatform String?    // "whatsapp", "instagram", "facebook"
+  
+  // Engagement
+  viewCount   Int           @default(0)
+  likeCount   Int           @default(0)
+  
+  // Moderation
+  isApproved  Boolean       @default(true)
+  isFeatured  Boolean       @default(false)
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ceremony    Ceremony?     @relation(fields: [ceremonyId], references: [id], onDelete: SetNull)
+  uploadedBy  User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  interactions Interaction[]
+
+  @@index([eventId])
+  @@index([ceremonyId])
+  @@index([uploadedById])
+  @@index([source])
+  @@index([isApproved])
+  @@index([isFeatured])
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum MediaSource {
+  UPLOAD
+  WHATSAPP
+  INSTAGRAM
+  FACEBOOK
+  EMAIL
+  LINK
+}
+
+// Interactions - comments, reactions, guestbook entries
+model Interaction {
+  id          String          @id @default(cuid())
+  eventId     String
+  ceremonyId  String?
+  mediaAssetId String?
+  userId      String?
+  
+  // Interaction details
+  type        InteractionType
+  content     String?         // For comments/guestbook
+  reaction    ReactionType?   // For reactions
+  
+  // Guest info (for non-registered users)
+  guestName   String?
+  guestEmail  String?
+  
+  // Moderation
+  isApproved  Boolean         @default(true)
+  isPinned    Boolean         @default(false)
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ceremony    Ceremony?       @relation(fields: [ceremonyId], references: [id], onDelete: Cascade)
+  mediaAsset  MediaAsset?     @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  user        User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([ceremonyId])
+  @@index([mediaAssetId])
+  @@index([type])
+  @@index([isApproved])
+}
+
+enum InteractionType {
+  COMMENT
+  REACTION
+  GUESTBOOK
+  BLESSING
+  WISH
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  CELEBRATE
+  CLAP
+  THUMBS_UP
+  HEART
+  FIRE
+}
