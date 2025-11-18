@@ -13,7 +13,6 @@ export { PhotoGallery } from './organisms/PhotoGallery'
 export { ProgrammeList } from './organisms/ProgrammeList'
 export { VendorSection } from './organisms/VendorSection'
 export { EventHeader } from './organisms/EventHeader'
-export { InvitationManager } from './organisms/InvitationManager'
 export { QRCodeUpload } from './organisms/QRCodeUpload'
 
 // Layout
