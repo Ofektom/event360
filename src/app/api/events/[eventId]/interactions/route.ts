@@ -8,9 +8,10 @@ const interactionService = new InteractionService()
 // GET /api/events/[eventId]/interactions - Get all interactions for an event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const { eventId } = await params
     const searchParams = request.nextUrl.searchParams
     const ceremonyId = searchParams.get('ceremonyId')
     const mediaAssetId = searchParams.get('mediaAssetId')
@@ -23,7 +24,7 @@ export async function GET(
     if (type) filters.type = type as InteractionType
     if (isApproved !== null) filters.isApproved = isApproved === 'true'
 
-    const interactions = await interactionService.getInteractionsByEventId(params.eventId, filters)
+    const interactions = await interactionService.getInteractionsByEventId(eventId, filters)
     return NextResponse.json(interactions)
   } catch (error) {
     console.error('Error fetching interactions:', error)
@@ -37,9 +38,10 @@ export async function GET(
 // POST /api/events/[eventId]/interactions - Create an interaction
 export async function POST(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const { eventId } = await params
     const body = await request.json()
     const interactionData: CreateInteractionDto = {
       ceremonyId: body.ceremonyId,
@@ -52,7 +54,7 @@ export async function POST(
       guestEmail: body.guestEmail,
     }
 
-    const interaction = await interactionService.createInteraction(params.eventId, interactionData)
+    const interaction = await interactionService.createInteraction(eventId, interactionData)
     return NextResponse.json(interaction, { status: 201 })
   } catch (error: any) {
     console.error('Error creating interaction:', error)

@@ -8,9 +8,10 @@ const mediaService = new MediaService()
 // GET /api/events/[eventId]/media - Get all media assets for an event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const { eventId } = await params
     const searchParams = request.nextUrl.searchParams
     const ceremonyId = searchParams.get('ceremonyId')
     const isApproved = searchParams.get('isApproved')
@@ -23,7 +24,7 @@ export async function GET(
     if (isFeatured !== null) filters.isFeatured = isFeatured === 'true'
     if (type) filters.type = type as MediaType
 
-    const mediaAssets = await mediaService.getMediaByEventId(params.eventId, filters)
+    const mediaAssets = await mediaService.getMediaByEventId(eventId, filters)
     return NextResponse.json(mediaAssets)
   } catch (error) {
     console.error('Error fetching media assets:', error)
@@ -37,9 +38,10 @@ export async function GET(
 // POST /api/events/[eventId]/media - Create a media asset
 export async function POST(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const { eventId } = await params
     const body = await request.json()
     const mediaData: CreateMediaAssetDto = {
       ceremonyId: body.ceremonyId,
@@ -61,7 +63,7 @@ export async function POST(
       socialPlatform: body.socialPlatform,
     }
 
-    const mediaAsset = await mediaService.createMediaAsset(params.eventId, mediaData)
+    const mediaAsset = await mediaService.createMediaAsset(eventId, mediaData)
     return NextResponse.json(mediaAsset, { status: 201 })
   } catch (error: any) {
     console.error('Error creating media asset:', error)

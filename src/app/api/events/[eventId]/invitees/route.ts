@@ -8,9 +8,10 @@ const inviteeService = new InviteeService()
 // GET /api/events/[eventId]/invitees - Get all invitees for an event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const { eventId } = await params
     const searchParams = request.nextUrl.searchParams
     const rsvpStatus = searchParams.get('rsvpStatus')
 
@@ -18,7 +19,7 @@ export async function GET(
       ? { rsvpStatus: rsvpStatus as RSVPStatus }
       : undefined
 
-    const invitees = await inviteeService.getInviteesByEventId(params.eventId, filters)
+    const invitees = await inviteeService.getInviteesByEventId(eventId, filters)
     return NextResponse.json(invitees)
   } catch (error) {
     console.error('Error fetching invitees:', error)
@@ -32,9 +33,10 @@ export async function GET(
 // POST /api/events/[eventId]/invitees - Add invitees (bulk or single)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const { eventId } = await params
     const body = await request.json()
     
     // Check if it's bulk or single invitee
@@ -43,7 +45,7 @@ export async function POST(
       const bulkData: BulkCreateInviteesDto = {
         invitees: body.invitees,
       }
-      const result = await inviteeService.bulkCreateInvitees(params.eventId, bulkData)
+      const result = await inviteeService.bulkCreateInvitees(eventId, bulkData)
       return NextResponse.json(
         { message: `Added ${result.count} invitees` },
         { status: 201 }
@@ -58,7 +60,7 @@ export async function POST(
         group: body.group,
         preferredChannel: body.preferredChannel,
       }
-      const invitee = await inviteeService.createInvitee(params.eventId, inviteeData)
+      const invitee = await inviteeService.createInvitee(eventId, inviteeData)
       return NextResponse.json(invitee, { status: 201 })
     }
   } catch (error: any) {

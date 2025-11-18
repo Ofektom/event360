@@ -7,10 +7,11 @@ const eventService = new EventService()
 // GET /api/events/[eventId] - Get a specific event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const event = await eventService.getEventById(params.eventId)
+    const { eventId } = await params
+    const event = await eventService.getEventById(eventId)
     return NextResponse.json(event)
   } catch (error: any) {
     console.error('Error fetching event:', error)
@@ -32,9 +33,10 @@ export async function GET(
 // PATCH /api/events/[eventId] - Update an event
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const { eventId } = await params
     const body = await request.json()
     const updateData: UpdateEventDto = {
       title: body.title,
@@ -53,7 +55,7 @@ export async function PATCH(
       allowReactions: body.allowReactions,
     }
 
-    const event = await eventService.updateEvent(params.eventId, updateData)
+    const event = await eventService.updateEvent(eventId, updateData)
     return NextResponse.json(event)
   } catch (error: any) {
     console.error('Error updating event:', error)
@@ -75,10 +77,11 @@ export async function PATCH(
 // DELETE /api/events/[eventId] - Delete an event
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    await eventService.deleteEvent(params.eventId)
+    const { eventId } = await params
+    await eventService.deleteEvent(eventId)
     return NextResponse.json({ message: 'Event deleted successfully' })
   } catch (error: any) {
     console.error('Error deleting event:', error)
