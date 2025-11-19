@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/atoms/Button'
 
 interface NavbarProps {
@@ -10,9 +11,14 @@ interface NavbarProps {
 
 export function Navbar({ variant = 'dashboard' }: NavbarProps) {
   const pathname = usePathname()
+  const { data: session } = useSession()
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
+  }
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/' })
   }
 
   if (variant === 'public') {
@@ -90,16 +96,31 @@ export function Navbar({ variant = 'dashboard' }: NavbarProps) {
               Media
             </Link>
             <div className="h-6 w-px bg-gray-300"></div>
-            <Link href="/login">
-              <Button variant="outline" size="sm">
-                Login
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button variant="primary" size="sm">
-                Sign Up
-              </Button>
-            </Link>
+            {session ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-700">
+                    {session.user?.name || session.user?.email}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/signin">
+                  <Button variant="outline" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button variant="primary" size="sm">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

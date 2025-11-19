@@ -14,6 +14,8 @@ export { ProgrammeList } from './organisms/ProgrammeList'
 export { VendorSection } from './organisms/VendorSection'
 export { EventHeader } from './organisms/EventHeader'
 export { QRCodeUpload } from './organisms/QRCodeUpload'
+export { LoginForm } from './organisms/LoginForm'
+export { SignupForm } from './organisms/SignupForm'
 
 // Layout
 export { Navbar } from './layout/Navbar'
