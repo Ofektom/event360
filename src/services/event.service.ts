@@ -1,5 +1,6 @@
 import { EventRepository } from '@/repositories/event.repository'
 import { CreateEventDto, UpdateEventDto, GetEventsFilters } from '@/types/event.types'
+import { EventStatus } from '@/types/enums'
 
 type Event = Awaited<ReturnType<EventRepository['findById']>>
 
@@ -45,7 +46,7 @@ export class EventService {
       slug: uniqueSlug,
       qrCode,
       shareLink,
-      status: 'DRAFT',
+      status: EventStatus.DRAFT,
     })
   }
 

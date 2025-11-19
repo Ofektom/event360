@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { CreateEventDto, UpdateEventDto, GetEventsFilters } from '@/types/event.types'
+import { EventStatus } from '@/types/enums'
 import { Prisma } from '@prisma/client'
 
 export class EventRepository {
@@ -72,14 +73,14 @@ export class EventRepository {
     })
   }
 
-  async create(data: CreateEventDto & { slug: string; qrCode: string; shareLink: string; status: string }) {
+  async create(data: CreateEventDto & { slug: string; qrCode: string; shareLink: string; status: EventStatus }) {
     return prisma.event.create({
       data: {
         title: data.title,
         description: data.description,
         slug: data.slug,
         type: data.type || 'CELEBRATION',
-        status: data.status,
+        status: data.status as EventStatus,
         ownerId: data.ownerId,
         familyId: data.familyId,
         themeId: data.themeId,
