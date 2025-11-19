@@ -106,7 +106,13 @@ export class EventRepository {
     if (data.description !== undefined) updateData.description = data.description
     if (data.type !== undefined) updateData.type = data.type
     if (data.status !== undefined) updateData.status = data.status
-    if (data.themeId !== undefined) updateData.themeId = data.themeId
+    if (data.themeId !== undefined) {
+      if (data.themeId === null) {
+        updateData.theme = { disconnect: true }
+      } else {
+        updateData.theme = { connect: { id: data.themeId } }
+      }
+    }
     if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null
     if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null
     if (data.location !== undefined) updateData.location = data.location
