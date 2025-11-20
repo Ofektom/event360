@@ -64,6 +64,12 @@ MUX_TOKEN_SECRET=""
 # Authentication
 NEXTAUTH_SECRET=""
 NEXTAUTH_URL="http://localhost:3000"
+
+# OAuth Providers
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+FACEBOOK_CLIENT_ID=""
+FACEBOOK_CLIENT_SECRET=""
 ```
 
 ## Installation Steps

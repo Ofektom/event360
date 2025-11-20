@@ -1,6 +1,8 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
+import FacebookProvider from "next-auth/providers/facebook"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import type { NextAuthConfig } from "next-auth"
@@ -9,6 +11,14 @@ import { UserRole } from "@/types/enums"
 export const authConfig = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID!,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -56,10 +66,51 @@ export const authConfig = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account }) {
+      // For OAuth providers, ensure user exists in database
+      if (account?.provider !== 'credentials' && user?.email) {
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email }
+          })
+          
+          // If user doesn't exist, create with default role
+          // The adapter will handle the account creation
+          if (!existingUser) {
+            await prisma.user.create({
+              data: {
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                emailVerified: new Date(),
+                role: UserRole.USER,
+              }
+            })
+          }
+        } catch (error) {
+          // User might already exist, continue
+          console.error('Error in signIn callback:', error)
+        }
+      }
+      return true
+    },
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
-        token.role = user.role as UserRole
+        // Get user role from database for OAuth users
+        if (account?.provider !== 'credentials' && user.email) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              select: { role: true }
+            })
+            token.role = (dbUser?.role as UserRole) || UserRole.USER
+          } catch (error) {
+            token.role = UserRole.USER
+          }
+        } else {
+          token.role = (user as any).role as UserRole || UserRole.USER
+        }
       }
       return token
     },
