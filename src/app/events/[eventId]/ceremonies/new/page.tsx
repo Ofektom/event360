@@ -1,39 +1,60 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { DashboardLayout } from "@/components/templates/DashboardLayout";
+import { Card } from "@/components/atoms/Card";
+import { Button } from "@/components/atoms/Button";
+import { Input } from "@/components/atoms/Input";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 export default function NewCeremonyPage() {
-  const params = useParams()
-  const router = useRouter()
-  const eventId = params.eventId as string
-  const [loading, setLoading] = useState(false)
+  const params = useParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const eventId = params.eventId as string;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    location: '',
-    venue: '',
-    dressCode: '',
-    notes: '',
-  })
+    name: "",
+    description: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    location: "",
+    venue: "",
+    dressCode: "",
+    notes: "",
+  });
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push(`/auth/signin?callbackUrl=/events/${eventId}/ceremonies/new`);
+    }
+  }, [status, router, eventId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    if (!session?.user) {
+      setError("You must be signed in to create a ceremony");
+      setLoading(false);
+      return;
+    }
 
     try {
       // Combine date and startTime for the date field
       const ceremonyDate = formData.date
-        ? new Date(`${formData.date}T${formData.startTime || '00:00'}`)
-        : new Date()
+        ? new Date(`${formData.date}T${formData.startTime || "00:00"}`)
+        : new Date();
 
       const response = await fetch(`/api/events/${eventId}/ceremonies`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
@@ -50,21 +71,26 @@ export default function NewCeremonyPage() {
           dressCode: formData.dressCode,
           notes: formData.notes,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to create ceremony')
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create ceremony");
       }
 
-      const ceremony = await response.json()
-      router.push(`/events/${eventId}/ceremonies/${ceremony.id}`)
+      const ceremony = await response.json();
+      router.push(`/events/${eventId}`);
     } catch (error) {
-      console.error('Error creating ceremony:', error)
-      alert('Failed to create ceremony. Please try again.')
+      console.error("Error creating ceremony:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create ceremony. Please try again."
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -72,35 +98,42 @@ export default function NewCeremonyPage() {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    })
+    });
+  };
+
+  if (status === "loading") {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return null; // Will redirect
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 py-12">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Add Ceremony</h1>
+    <DashboardLayout>
+      <div className="max-w-3xl mx-auto">
+        <Card className="p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">
+            Add Ceremony
+          </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Ceremony Name */}
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Ceremony Name *
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="e.g., Traditional Marriage, White Wedding"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
+            <Input
+              label="Ceremony Name"
+              type="text"
+              name="name"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="e.g., Traditional Marriage, White Wedding"
+            />
 
             {/* Description */}
             <div>
@@ -117,119 +150,65 @@ export default function NewCeremonyPage() {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Describe this ceremony..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
               />
             </div>
 
             {/* Date and Time */}
             <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="date"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Date *
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  required
-                  value={formData.date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="startTime"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  id="startTime"
-                  name="startTime"
-                  value={formData.startTime}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="endTime"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  End Time
-                </label>
-                <input
-                  type="time"
-                  id="endTime"
-                  name="endTime"
-                  value={formData.endTime}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
+              <Input
+                label="Date"
+                type="date"
+                name="date"
+                required
+                value={formData.date}
+                onChange={handleChange}
+              />
+              <Input
+                label="Start Time"
+                type="time"
+                name="startTime"
+                value={formData.startTime}
+                onChange={handleChange}
+              />
+              <Input
+                label="End Time"
+                type="time"
+                name="endTime"
+                value={formData.endTime}
+                onChange={handleChange}
+              />
             </div>
 
             {/* Location and Venue */}
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="location"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Location
-                </label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder="e.g., Lagos, Nigeria"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="venue"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Venue
-                </label>
-                <input
-                  type="text"
-                  id="venue"
-                  name="venue"
-                  value={formData.venue}
-                  onChange={handleChange}
-                  placeholder="e.g., Grand Ballroom"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
+              <Input
+                label="Location"
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="e.g., Lagos, Nigeria"
+              />
+              <Input
+                label="Venue"
+                type="text"
+                name="venue"
+                value={formData.venue}
+                onChange={handleChange}
+                placeholder="e.g., Grand Ballroom"
+              />
             </div>
 
             {/* Dress Code */}
-            <div>
-              <label
-                htmlFor="dressCode"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Dress Code
-              </label>
-              <input
-                type="text"
-                id="dressCode"
-                name="dressCode"
-                value={formData.dressCode}
-                onChange={handleChange}
-                placeholder="e.g., Traditional Attire, Formal"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
+            <Input
+              label="Dress Code"
+              type="text"
+              name="dressCode"
+              value={formData.dressCode}
+              onChange={handleChange}
+              placeholder="e.g., Traditional Attire, Formal"
+            />
 
             {/* Notes */}
             <div>
@@ -246,31 +225,39 @@ export default function NewCeremonyPage() {
                 value={formData.notes}
                 onChange={handleChange}
                 placeholder="Any special instructions or notes..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
               />
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
             {/* Submit Buttons */}
             <div className="flex gap-4 pt-4">
-              <button
+              <Button
                 type="submit"
+                variant="primary"
+                className="flex-1"
+                isLoading={loading}
                 disabled={loading}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Creating...' : 'Create Ceremony'}
-              </button>
-              <button
+                Create Ceremony
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => router.back()}
-                className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </Card>
       </div>
-    </div>
-  )
+    </DashboardLayout>
+  );
 }
-

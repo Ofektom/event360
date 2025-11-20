@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { DashboardLayout } from '@/components/templates/DashboardLayout'
+import { Card } from '@/components/atoms/Card'
+import { Button } from '@/components/atoms/Button'
+import { EventHeader } from '@/components/organisms/EventHeader'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { ErrorMessage } from '@/components/shared/ErrorMessage'
 
 interface Event {
   id: string
@@ -34,18 +41,31 @@ interface Ceremony {
 export default function EventDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { data: session, status } = useSession()
   const eventId = params.eventId as string
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchEvent()
-  }, [eventId])
+    if (status === 'unauthenticated') {
+      router.push(`/auth/signin?callbackUrl=/events/${eventId}`)
+      return
+    }
+    if (status === 'authenticated') {
+      fetchEvent()
+    }
+  }, [eventId, status, router])
 
   const fetchEvent = async () => {
     try {
       const response = await fetch(`/api/events/${eventId}`)
-      if (!response.ok) throw new Error('Failed to fetch event')
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push('/auth/signin')
+          return
+        }
+        throw new Error('Failed to fetch event')
+      }
       const data = await response.json()
       setEvent(data)
     } catch (error) {
@@ -55,64 +75,77 @@ export default function EventDetailPage() {
     }
   }
 
-  if (loading) {
+  if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner />
+        </div>
+      </DashboardLayout>
     )
+  }
+
+  if (status === 'unauthenticated') {
+    return null // Will redirect
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-red-600">Event not found</div>
-      </div>
+      <DashboardLayout>
+        <ErrorMessage message="Event not found" />
+      </DashboardLayout>
     )
   }
 
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 py-12">
-      <div className="container mx-auto px-4 max-w-6xl">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/"
-            className="text-purple-600 hover:text-purple-700 mb-4 inline-block"
-          >
-            ← Back to Home
-          </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{event.title}</h1>
-          {event.description && (
-            <p className="text-lg text-gray-600">{event.description}</p>
-          )}
-        </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Back Button */}
+        <Link href="/dashboard">
+          <Button variant="ghost" size="sm">
+            ← Back to Dashboard
+          </Button>
+        </Link>
+
+        {/* Event Header */}
+        <EventHeader
+          title={event.title}
+          description={event.description || undefined}
+          date={event.startDate ? new Date(event.startDate) : undefined}
+          location={event.location || undefined}
+        />
 
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-purple-600">{event.ceremonies.length}</div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="p-6">
+            <div className="text-2xl font-bold text-[var(--theme-primary)]">
+              {event.ceremonies.length}
+            </div>
             <div className="text-sm text-gray-600">Ceremonies</div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-pink-600">{event._count.invitees}</div>
+          </Card>
+          <Card className="p-6">
+            <div className="text-2xl font-bold text-pink-600">
+              {event._count.invitees}
+            </div>
             <div className="text-sm text-gray-600">Guests</div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-blue-600">{event._count.mediaAssets}</div>
+          </Card>
+          <Card className="p-6">
+            <div className="text-2xl font-bold text-blue-600">
+              {event._count.mediaAssets}
+            </div>
             <div className="text-sm text-gray-600">Photos</div>
-          </div>
+          </Card>
         </div>
 
         {/* Ceremonies Section */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+        <Card className="p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Ceremonies</h2>
-            <Link
-              href={`/events/${eventId}/ceremonies/new`}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-colors"
-            >
-              + Add Ceremony
+            <Link href={`/events/${eventId}/ceremonies/new`}>
+              <Button variant="primary">
+                + Add Ceremony
+              </Button>
             </Link>
           </div>
 
@@ -127,59 +160,58 @@ export default function EventDetailPage() {
                 <Link
                   key={ceremony.id}
                   href={`/events/${eventId}/ceremonies/${ceremony.id}`}
-                  className="block p-6 border-2 border-gray-200 rounded-xl hover:border-purple-300 transition-colors"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        {ceremony.name}
-                      </h3>
-                      {ceremony.description && (
-                        <p className="text-gray-600 mb-2">{ceremony.description}</p>
-                      )}
-                      <div className="flex gap-4 text-sm text-gray-500">
-                        {ceremony.date && (
-                          <span>
-                            📅 {new Date(ceremony.date).toLocaleDateString()}
-                          </span>
+                  <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          {ceremony.name}
+                        </h3>
+                        {ceremony.description && (
+                          <p className="text-gray-600 mb-2">{ceremony.description}</p>
                         )}
-                        {ceremony.location && (
-                          <span>📍 {ceremony.location}</span>
-                        )}
-                        {ceremony.venue && (
-                          <span>🏛️ {ceremony.venue}</span>
-                        )}
+                        <div className="flex gap-4 text-sm text-gray-500">
+                          {ceremony.date && (
+                            <span>
+                              📅 {new Date(ceremony.date).toLocaleDateString()}
+                            </span>
+                          )}
+                          {ceremony.location && (
+                            <span>📍 {ceremony.location}</span>
+                          )}
+                          {ceremony.venue && (
+                            <span>🏛️ {ceremony.venue}</span>
+                          )}
+                        </div>
                       </div>
+                      <span className="text-[var(--theme-primary)]">→</span>
                     </div>
-                    <span className="text-purple-600">→</span>
-                  </div>
+                  </Card>
                 </Link>
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Quick Actions */}
         <div className="grid md:grid-cols-2 gap-4">
-          <Link
-            href={`/events/${eventId}/invitees`}
-            className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow border-2 border-transparent hover:border-purple-300"
-          >
-            <div className="text-3xl mb-3">👥</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Manage Guests</h3>
-            <p className="text-sm text-gray-600">Add invitees and track RSVPs</p>
+          <Link href={`/events/${eventId}/invitees`}>
+            <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="text-3xl mb-3">👥</div>
+              <h3 className="font-semibold text-gray-900 mb-2">Manage Guests</h3>
+              <p className="text-sm text-gray-600">Add invitees and track RSVPs</p>
+            </Card>
           </Link>
-          <Link
-            href={`/events/${eventId}/gallery`}
-            className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow border-2 border-transparent hover:border-pink-300"
-          >
-            <div className="text-3xl mb-3">📸</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Photo Gallery</h3>
-            <p className="text-sm text-gray-600">View and manage event photos</p>
+          <Link href={`/events/${eventId}/gallery`}>
+            <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="text-3xl mb-3">📸</div>
+              <h3 className="font-semibold text-gray-900 mb-2">Photo Gallery</h3>
+              <p className="text-sm text-gray-600">View and manage event photos</p>
+            </Card>
           </Link>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

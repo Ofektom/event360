@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import type { NextAuthConfig } from "next-auth"
+import { UserRole } from "@/types/enums"
 
 export const authConfig = {
   adapter: PrismaAdapter(prisma) as any,
@@ -41,7 +42,7 @@ export const authConfig = {
           email: user.email,
           name: user.name,
           image: user.image,
-          role: user.role,
+          role: user.role as UserRole,
         }
       }
     })
@@ -58,14 +59,14 @@ export const authConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as any).role
+        token.role = user.role as UserRole
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.role = token.role as UserRole
       }
       return session
     },

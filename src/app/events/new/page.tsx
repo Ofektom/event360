@@ -1,11 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { DashboardLayout } from '@/components/templates/DashboardLayout'
+import { Card } from '@/components/atoms/Card'
+import { Button } from '@/components/atoms/Button'
+import { Input } from '@/components/atoms/Input'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 export default function NewEventPage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,14 +24,24 @@ export default function NewEventPage() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   })
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin?callbackUrl=/events/new')
+    }
+  }, [status, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
+
+    if (!session?.user) {
+      setError('You must be signed in to create an event')
+      setLoading(false)
+      return
+    }
 
     try {
-      // TODO: Replace with actual user ID from auth
-      const ownerId = 'temp-user-id'
-
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: {
@@ -31,19 +49,19 @@ export default function NewEventPage() {
         },
         body: JSON.stringify({
           ...formData,
-          ownerId,
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create event')
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to create event')
       }
 
       const event = await response.json()
       router.push(`/events/${event.id}`)
     } catch (error) {
       console.error('Error creating event:', error)
-      alert('Failed to create event. Please try again.')
+      setError(error instanceof Error ? error.message : 'Failed to create event. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -56,29 +74,37 @@ export default function NewEventPage() {
     })
   }
 
+  if (status === 'loading') {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (status === 'unauthenticated') {
+    return null // Will redirect
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 py-12">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+    <DashboardLayout>
+      <div className="max-w-3xl mx-auto">
+        <Card className="p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Event</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Event Title */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Title *
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                required
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g., Our Wedding Celebration"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
+            <Input
+              label="Event Title"
+              type="text"
+              name="title"
+              required
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="e.g., Our Wedding Celebration"
+            />
 
             {/* Event Type */}
             <div>
@@ -91,7 +117,7 @@ export default function NewEventPage() {
                 required
                 value={formData.type}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
               >
                 <option value="WEDDING">Wedding</option>
                 <option value="CELEBRATION">Celebration</option>
@@ -114,77 +140,68 @@ export default function NewEventPage() {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Tell us about your event..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
               />
             </div>
 
             {/* Date Range */}
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date
-                </label>
-                <input
-                  type="datetime-local"
-                  id="startDate"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date
-                </label>
-                <input
-                  type="datetime-local"
-                  id="endDate"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              <input
-                type="text"
-                id="location"
-                name="location"
-                value={formData.location}
+              <Input
+                label="Start Date"
+                type="datetime-local"
+                name="startDate"
+                value={formData.startDate}
                 onChange={handleChange}
-                placeholder="e.g., Lagos, Nigeria"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <Input
+                label="End Date"
+                type="datetime-local"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleChange}
               />
             </div>
 
+            {/* Location */}
+            <Input
+              label="Location"
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="e.g., Lagos, Nigeria"
+            />
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
             {/* Submit Buttons */}
             <div className="flex gap-4 pt-4">
-              <button
+              <Button
                 type="submit"
+                variant="primary"
+                className="flex-1"
+                isLoading={loading}
                 disabled={loading}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Creating...' : 'Create Event'}
-              </button>
-              <button
+                Create Event
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => router.back()}
-                className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </Card>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
 
