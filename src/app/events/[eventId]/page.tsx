@@ -112,7 +112,8 @@ export default function EventDetailPage() {
         <EventHeader
           title={event.title}
           description={event.description || undefined}
-          date={event.startDate ? new Date(event.startDate) : undefined}
+          startDate={event.startDate ? new Date(event.startDate) : undefined}
+          endDate={event.endDate ? new Date(event.endDate) : undefined}
           location={event.location || undefined}
         />
 
