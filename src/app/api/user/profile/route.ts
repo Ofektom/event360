@@ -47,7 +47,26 @@ type InteractionWithEvent = Prisma.InteractionGetPayload<{
 // GET /api/user/profile - Get current user's profile data
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth()
+    const sessionUser = await requireAuth()
+    
+    // Fetch full user from database to get all fields including phone
+    const user = await prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        image: true,
+        role: true,
+        createdAt: true,
+      },
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const include = searchParams.get('include')?.split(',') || []
 
