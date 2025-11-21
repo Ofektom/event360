@@ -101,7 +101,7 @@ export default async function ProfilePage() {
         phone: user.phone,
         image: user.image,
         role: user.role,
-        createdAt: user.createdAt,
+        createdAt: user.createdAt.toISOString(),
       },
       stats: {
         eventsCreated: stats[0],
