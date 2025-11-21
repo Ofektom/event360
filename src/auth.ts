@@ -8,18 +8,37 @@ import bcrypt from "bcryptjs"
 import type { NextAuthConfig } from "next-auth"
 import { UserRole } from "@/types/enums"
 
-export const authConfig = {
-  adapter: PrismaAdapter(prisma) as any,
-  providers: [
+// Build providers array conditionally
+const providers = []
+
+// Add Google provider if credentials are available
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    })
+  )
+}
+
+// Add Facebook provider if credentials are available
+if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
+  providers.push(
     FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-    }),
-    CredentialsProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope: "public_profile", // Email is automatically included, don't request it as a scope
+        },
+      },
+    })
+  )
+}
+
+// Always add credentials provider
+providers.push(
+  CredentialsProvider({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -56,7 +75,12 @@ export const authConfig = {
         }
       }
     })
-  ],
+)
+
+export const authConfig = {
+  adapter: PrismaAdapter(prisma) as any,
+  providers,
+  trustHost: true, // Required for Vercel deployment
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signout",
