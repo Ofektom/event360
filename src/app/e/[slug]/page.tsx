@@ -11,6 +11,7 @@ import { JoinEventBanner } from '@/components/organisms/JoinEventBanner'
 import { RequestAccessBanner } from '@/components/organisms/RequestAccessBanner'
 import { EventService } from '@/services/event.service'
 import { canAccessEvent } from '@/lib/access-control'
+import { ThemeConfig, defaultTheme } from '@/types/theme.types'
 
 const eventService = new EventService()
 
@@ -53,15 +54,29 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
       order: ceremony.order,
     }))
 
-    // Get theme colors if available
+    // Get theme colors if available and merge with default theme
     const themeColors = event.customTheme
       ? (event.customTheme as any)?.colors
       : event.theme
       ? (event.theme.config as any)?.colors
       : undefined
 
+    // Merge theme colors with default theme if colors are available
+    const theme: ThemeConfig | undefined = themeColors
+      ? {
+          ...defaultTheme,
+          colors: {
+            primary: themeColors.primary || defaultTheme.colors.primary,
+            secondary: themeColors.secondary || defaultTheme.colors.secondary,
+            background: themeColors.background || defaultTheme.colors.background,
+            text: themeColors.text || defaultTheme.colors.text,
+            accent: themeColors.accent || defaultTheme.colors.accent,
+          },
+        }
+      : undefined
+
     return (
-      <PublicEventLayout theme={themeColors ? { colors: themeColors } : undefined}>
+      <PublicEventLayout theme={theme}>
         <div className="space-y-8">
           {/* Event Header */}
           <EventHeader
