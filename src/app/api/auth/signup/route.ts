@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { linkUserToInvitees } from '@/lib/invitee-linking'
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,9 +49,18 @@ export async function POST(request: NextRequest) {
         id: true,
         name: true,
         email: true,
+        phone: true,
         createdAt: true,
       },
     })
+
+    // Auto-link user to any matching invitees
+    try {
+      await linkUserToInvitees(user.id, user.email, user.phone || undefined)
+    } catch (linkError) {
+      // Non-critical error, log but don't fail signup
+      console.error('Error auto-linking invitees during signup:', linkError)
+    }
 
     return NextResponse.json(
       { message: 'Account created successfully', user },

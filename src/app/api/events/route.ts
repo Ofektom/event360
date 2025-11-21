@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       )
     }
-
+    
     if (error instanceof Error && error.message === 'User ID is required') {
       return NextResponse.json(
         { error: error.message },

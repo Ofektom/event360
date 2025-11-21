@@ -29,6 +29,7 @@ model User {
 
   // Relations
   events        Event[]
+  invitees      Invitee[]      // Events they're invited to (as guests)
   familyMembers FamilyMember[]
   interactions  Interaction[]
   mediaAssets   MediaAsset[]
@@ -224,6 +225,7 @@ model ScheduleItem {
 model Invitee {
   id          String      @id @default(cuid())
   eventId     String
+  userId      String?     // Link to User when they register
   name        String
   email       String?
   phone       String?
@@ -241,16 +243,23 @@ model Invitee {
   // Contact preferences
   preferredChannel String? // "email", "whatsapp", "sms"
   
+  // Registration tracking
+  registeredAt DateTime?  // When they registered/linked account
+  
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   // Relations
   event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   invites     Invite[]
 
   @@index([eventId])
+  @@index([userId])
   @@index([email])
   @@index([phone])
+  @@unique([eventId, email])  // One invitee per email per event
+  @@unique([eventId, phone])  // One invitee per phone per event
 }
 
 enum RSVPStatus {

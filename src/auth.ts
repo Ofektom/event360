@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import type { NextAuthConfig } from "next-auth"
 import { UserRole } from "@/types/enums"
+import { linkUserToInvitees } from "@/lib/invitee-linking"
 
 // Build providers array conditionally
 const providers = []
@@ -126,14 +127,37 @@ export const authConfig = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { email: user.email },
-              select: { role: true }
+              select: { role: true, phone: true }
             })
             token.role = (dbUser?.role as UserRole) || UserRole.USER
+            
+            // Auto-link user to invitees after authentication
+            if (dbUser && user.id) {
+              try {
+                await linkUserToInvitees(user.id, user.email, dbUser.phone || undefined)
+              } catch (linkError) {
+                // Non-critical error, log but don't fail auth
+                console.error('Error auto-linking invitees:', linkError)
+              }
+            }
           } catch (error) {
             token.role = UserRole.USER
           }
         } else {
           token.role = (user as any).role as UserRole || UserRole.USER
+          
+          // Auto-link for credentials provider
+          if (user.id && user.email) {
+            try {
+              const dbUser = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: { phone: true }
+              })
+              await linkUserToInvitees(user.id, user.email, dbUser?.phone || undefined)
+            } catch (linkError) {
+              console.error('Error auto-linking invitees:', linkError)
+            }
+          }
         }
       }
       return token

@@ -26,6 +26,14 @@ export class EventService {
     return event
   }
 
+  async getEventBySlug(slug: string) {
+    const event = await this.eventRepository.findBySlug(slug)
+    if (!event) {
+      throw new Error('Event not found')
+    }
+    return event
+  }
+
   async createEvent(data: CreateEventDto) {
     // Business logic validation
     if (!data.title || !data.ownerId) {

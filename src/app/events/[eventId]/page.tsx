@@ -52,7 +52,7 @@ export default function EventDetailPage() {
       return
     }
     if (status === 'authenticated') {
-      fetchEvent()
+    fetchEvent()
     }
   }, [eventId, status, router])
 
@@ -80,7 +80,7 @@ export default function EventDetailPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <LoadingSpinner />
-        </div>
+      </div>
       </DashboardLayout>
     )
   }
@@ -106,7 +106,7 @@ export default function EventDetailPage() {
           <Button variant="ghost" size="sm">
             ← Back to Dashboard
           </Button>
-        </Link>
+          </Link>
 
         {/* Event Header */}
         <EventHeader
@@ -128,13 +128,13 @@ export default function EventDetailPage() {
           <Card className="p-6">
             <div className="text-2xl font-bold text-pink-600">
               {event._count.invitees}
-            </div>
+          </div>
             <div className="text-sm text-gray-600">Guests</div>
           </Card>
           <Card className="p-6">
             <div className="text-2xl font-bold text-blue-600">
               {event._count.mediaAssets}
-            </div>
+          </div>
             <div className="text-sm text-gray-600">Photos</div>
           </Card>
         </div>
@@ -145,7 +145,7 @@ export default function EventDetailPage() {
             <h2 className="text-2xl font-bold text-gray-900">Ceremonies</h2>
             <Link href={`/events/${eventId}/ceremonies/new`}>
               <Button variant="primary">
-                + Add Ceremony
+              + Add Ceremony
               </Button>
             </Link>
           </div>
@@ -163,30 +163,30 @@ export default function EventDetailPage() {
                   href={`/events/${eventId}/ceremonies/${ceremony.id}`}
                 >
                   <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                          {ceremony.name}
-                        </h3>
-                        {ceremony.description && (
-                          <p className="text-gray-600 mb-2">{ceremony.description}</p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        {ceremony.name}
+                      </h3>
+                      {ceremony.description && (
+                        <p className="text-gray-600 mb-2">{ceremony.description}</p>
+                      )}
+                      <div className="flex gap-4 text-sm text-gray-500">
+                        {ceremony.date && (
+                          <span>
+                            📅 {new Date(ceremony.date).toLocaleDateString()}
+                          </span>
                         )}
-                        <div className="flex gap-4 text-sm text-gray-500">
-                          {ceremony.date && (
-                            <span>
-                              📅 {new Date(ceremony.date).toLocaleDateString()}
-                            </span>
-                          )}
-                          {ceremony.location && (
-                            <span>📍 {ceremony.location}</span>
-                          )}
-                          {ceremony.venue && (
-                            <span>🏛️ {ceremony.venue}</span>
-                          )}
-                        </div>
+                        {ceremony.location && (
+                          <span>📍 {ceremony.location}</span>
+                        )}
+                        {ceremony.venue && (
+                          <span>🏛️ {ceremony.venue}</span>
+                        )}
                       </div>
-                      <span className="text-[var(--theme-primary)]">→</span>
                     </div>
+                      <span className="text-[var(--theme-primary)]">→</span>
+                  </div>
                   </Card>
                 </Link>
               ))}
@@ -198,16 +198,16 @@ export default function EventDetailPage() {
         <div className="grid md:grid-cols-2 gap-4">
           <Link href={`/events/${eventId}/invitees`}>
             <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="text-3xl mb-3">👥</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Manage Guests</h3>
-              <p className="text-sm text-gray-600">Add invitees and track RSVPs</p>
+            <div className="text-3xl mb-3">👥</div>
+            <h3 className="font-semibold text-gray-900 mb-2">Manage Guests</h3>
+            <p className="text-sm text-gray-600">Add invitees and track RSVPs</p>
             </Card>
           </Link>
           <Link href={`/events/${eventId}/gallery`}>
             <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="text-3xl mb-3">📸</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Photo Gallery</h3>
-              <p className="text-sm text-gray-600">View and manage event photos</p>
+            <div className="text-3xl mb-3">📸</div>
+            <h3 className="font-semibold text-gray-900 mb-2">Photo Gallery</h3>
+            <p className="text-sm text-gray-600">View and manage event photos</p>
             </Card>
           </Link>
         </div>

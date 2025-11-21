@@ -99,9 +99,11 @@ export function Navbar({ variant = 'dashboard' }: NavbarProps) {
             {session ? (
               <>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-700">
-                    {session.user?.name || session.user?.email}
-                  </span>
+                  <Link href="/profile">
+                    <span className="text-sm text-gray-700 hover:text-[var(--theme-primary)] cursor-pointer">
+                      {session.user?.name || session.user?.email}
+                    </span>
+                  </Link>
                   <Button variant="outline" size="sm" onClick={handleSignOut}>
                     Sign Out
                   </Button>
@@ -110,15 +112,15 @@ export function Navbar({ variant = 'dashboard' }: NavbarProps) {
             ) : (
               <>
                 <Link href="/auth/signin">
-                  <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm">
                     Sign In
-                  </Button>
-                </Link>
+              </Button>
+            </Link>
                 <Link href="/auth/signup">
-                  <Button variant="primary" size="sm">
-                    Sign Up
-                  </Button>
-                </Link>
+              <Button variant="primary" size="sm">
+                Sign Up
+              </Button>
+            </Link>
               </>
             )}
           </div>

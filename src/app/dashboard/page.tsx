@@ -55,13 +55,15 @@ export default async function DashboardPage() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-2">Settings</h2>
+            <h2 className="text-xl font-semibold mb-2">Profile</h2>
             <p className="text-gray-600 mb-4">
-              Manage your account settings
+              View and manage your profile
             </p>
-            <Button variant="outline" size="sm" disabled>
-              Coming Soon
-            </Button>
+            <Link href="/profile">
+              <Button variant="outline" size="sm">
+                View Profile
+              </Button>
+            </Link>
           </Card>
         </div>
       </div>

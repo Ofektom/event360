@@ -98,13 +98,13 @@ export default function NewEventPage() {
             {/* Event Title */}
             <Input
               label="Event Title"
-              type="text"
-              name="title"
-              required
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="e.g., Our Wedding Celebration"
-            />
+                type="text"
+                name="title"
+                required
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g., Our Wedding Celebration"
+              />
 
             {/* Event Type */}
             <div>
@@ -148,35 +148,35 @@ export default function NewEventPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <Input
                 label="Start Date"
-                type="datetime-local"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-              />
+                  type="datetime-local"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                />
               <Input
                 label="End Date"
-                type="datetime-local"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleChange}
-              />
+                  type="datetime-local"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                />
             </div>
 
             {/* Location */}
             <Input
               label="Location"
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="e.g., Lagos, Nigeria"
-            />
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="e.g., Lagos, Nigeria"
+              />
 
             {/* Error Message */}
             {error && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600">{error}</p>
-              </div>
+            </div>
             )}
 
             {/* Submit Buttons */}

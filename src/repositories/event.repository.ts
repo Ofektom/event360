@@ -70,6 +70,37 @@ export class EventRepository {
   async findBySlug(slug: string) {
     return prisma.event.findUnique({
       where: { slug },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        theme: true,
+        ceremonies: {
+          orderBy: { order: 'asc' },
+          include: {
+            scheduleItems: {
+              orderBy: { order: 'asc' },
+            },
+            _count: {
+              select: {
+                mediaAssets: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            invitees: true,
+            mediaAssets: true,
+            interactions: true,
+          },
+        },
+      },
     })
   }
 
