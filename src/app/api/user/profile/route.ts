@@ -3,8 +3,46 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { EventService } from '@/services/event.service'
 import { getUserInvitedEvents } from '@/lib/invitee-linking'
+import { Prisma } from '@prisma/client'
 
 const eventService = new EventService()
+
+type EventWithRelations = Prisma.EventGetPayload<{
+  include: {
+    theme: true
+    ceremonies: true
+    _count: {
+      select: {
+        invitees: true
+        mediaAssets: true
+      }
+    }
+  }
+}>
+
+type MediaAssetWithEvent = Prisma.MediaAssetGetPayload<{
+  include: {
+    event: {
+      select: {
+        id: true
+        title: true
+        slug: true
+      }
+    }
+  }
+}>
+
+type InteractionWithEvent = Prisma.InteractionGetPayload<{
+  include: {
+    event: {
+      select: {
+        id: true
+        title: true
+        slug: true
+      }
+    }
+  }
+}>
 
 // GET /api/user/profile - Get current user's profile data
 export async function GET(request: NextRequest) {
@@ -14,19 +52,19 @@ export async function GET(request: NextRequest) {
     const include = searchParams.get('include')?.split(',') || []
 
     // Get user's created events
-    let createdEvents = []
+    let createdEvents: EventWithRelations[] = []
     if (include.includes('events') || include.length === 0) {
       createdEvents = await eventService.getEvents({ ownerId: user.id })
     }
 
     // Get user's invited events
-    let invitedEvents = []
+    let invitedEvents: Awaited<ReturnType<typeof getUserInvitedEvents>> = []
     if (include.includes('invited') || include.length === 0) {
       invitedEvents = await getUserInvitedEvents(user.id)
     }
 
     // Get user's media uploads
-    let mediaAssets = []
+    let mediaAssets: MediaAssetWithEvent[] = []
     if (include.includes('media') || include.length === 0) {
       mediaAssets = await prisma.mediaAsset.findMany({
         where: {
@@ -49,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's interactions
-    let interactions = []
+    let interactions: InteractionWithEvent[] = []
     if (include.includes('interactions') || include.length === 0) {
       interactions = await prisma.interaction.findMany({
         where: {
