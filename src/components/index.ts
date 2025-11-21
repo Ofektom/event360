@@ -24,8 +24,6 @@ export { UserProfileHeader } from './organisms/UserProfileHeader'
 export { UserStats } from './organisms/UserStats'
 export { UserEventsList } from './organisms/UserEventsList'
 export { UserMediaGrid } from './organisms/UserMediaGrid'
-export { JoinEventBanner } from './organisms/JoinEventBanner'
-export { RequestAccessBanner } from './organisms/RequestAccessBanner'
 
 // Layout
 export { Navbar } from './layout/Navbar'
