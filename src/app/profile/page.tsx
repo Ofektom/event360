@@ -114,7 +114,10 @@ export default async function ProfilePage() {
         ...invitee.event,
         rsvpStatus: invitee.rsvpStatus,
       })),
-      mediaAssets,
+      mediaAssets: mediaAssets.map((asset) => ({
+        ...asset,
+        createdAt: asset.createdAt.toISOString(),
+      })),
       interactions,
     }
 
