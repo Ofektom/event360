@@ -13,13 +13,38 @@ import { getUserInvitedEvents } from '@/lib/invitee-linking'
 const eventService = new EventService()
 
 export default async function ProfilePage() {
-  const user = await getCurrentUser()
+  const sessionUser = await getCurrentUser()
 
-  if (!user) {
+  if (!sessionUser) {
     redirect('/auth/signin')
   }
 
   try {
+    // Fetch full user from database to get all fields including phone
+    const user = await prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        image: true,
+        role: true,
+        createdAt: true,
+      },
+    })
+
+    if (!user) {
+      return (
+        <DashboardLayout>
+          <Card className="p-8 text-center">
+            <h1 className="text-2xl font-bold mb-4">User Not Found</h1>
+            <p className="text-gray-600">Unable to load your profile.</p>
+          </Card>
+        </DashboardLayout>
+      )
+    }
+
     // Fetch profile data directly
     const [createdEvents, invitedEvents, mediaAssets, interactions, stats] = await Promise.all([
       eventService.getEvents({ ownerId: user.id }),
