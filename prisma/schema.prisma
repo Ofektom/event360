@@ -142,6 +142,7 @@ model Event {
   mediaAssets MediaAsset[]
   invites     Invite[]
   interactions Interaction[]
+  invitationDesigns InvitationDesign[]
 
   @@index([slug])
   @@index([ownerId])
@@ -477,4 +478,51 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Invitation Templates - Pre-designed templates for invitations
+model InvitationTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // e.g., "wedding", "birthday", "corporate"
+  preview     String?  // Preview image URL
+  config      Json     // Template configuration (layout, default colors, text fields, graphics)
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  designs     InvitationDesign[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+// Invitation Designs - User's customized invitations for events
+model InvitationDesign {
+  id          String   @id @default(cuid())
+  eventId     String
+  templateId  String?  // If using a template, null if custom upload
+  name        String?  // User's name for this design
+  
+  // Design data
+  designData  Json     // Customizations (text, colors, graphics, layout)
+  imageUrl    String?  // Final rendered image URL (if generated)
+  customImage String?  // If user uploaded custom image
+  
+  // Status
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false) // Default design for this event
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  template    InvitationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([templateId])
 }

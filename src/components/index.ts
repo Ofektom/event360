@@ -26,6 +26,9 @@ export { UserEventsList } from './organisms/UserEventsList'
 export { UserMediaGrid } from './organisms/UserMediaGrid'
 export { EventsList } from './organisms/EventsList'
 export { ShareEventModal } from './organisms/ShareEventModal'
+export { InvitationTemplateLibrary } from './organisms/InvitationTemplateLibrary'
+export { InvitationDesignEditor } from './organisms/InvitationDesignEditor'
+export { InvitationDesignsList } from './organisms/InvitationDesignsList'
 
 // Layout
 export { Navbar } from './layout/Navbar'
