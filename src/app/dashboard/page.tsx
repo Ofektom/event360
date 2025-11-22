@@ -35,7 +35,7 @@ export default async function DashboardPage() {
             <p className="text-gray-600 mb-4">
               View and manage all your events
             </p>
-            <Link href="/events">
+            <Link href="/dashboard/events">
               <Button variant="outline" size="sm">
                 View Events
               </Button>

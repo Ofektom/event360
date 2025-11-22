@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { EventService } from '@/services/event.service'
 import { UpdateEventDto } from '@/types/event.types'
+import { requireAuth } from '@/lib/auth'
 
 const eventService = new EventService()
 
@@ -36,7 +37,18 @@ export async function PATCH(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { eventId } = await params
+    
+    // Check if user owns the event
+    const event = await eventService.getEventById(eventId)
+    if (event.ownerId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
+    
     const body = await request.json()
     const updateData: UpdateEventDto = {
       title: body.title,
@@ -80,7 +92,18 @@ export async function DELETE(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { eventId } = await params
+    
+    // Check if user owns the event
+    const event = await eventService.getEventById(eventId)
+    if (event.ownerId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
+    
     await eventService.deleteEvent(eventId)
     return NextResponse.json({ message: 'Event deleted successfully' })
   } catch (error: any) {

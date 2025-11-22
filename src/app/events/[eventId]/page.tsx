@@ -8,6 +8,7 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { EventHeader } from '@/components/organisms/EventHeader'
+import { ShareEventModal } from '@/components/organisms/ShareEventModal'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 
@@ -17,6 +18,9 @@ interface Event {
   description: string | null
   type: string
   status: string
+  slug?: string | null
+  qrCode?: string | null
+  shareLink?: string | null
   startDate: string | null
   endDate: string | null
   location: string | null
@@ -45,6 +49,7 @@ export default function EventDetailPage() {
   const eventId = params.eventId as string
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -116,6 +121,96 @@ export default function EventDetailPage() {
           endDate={event.endDate ? new Date(event.endDate) : undefined}
           location={event.location || undefined}
         />
+
+        {/* Continue Setup Section */}
+        <Card className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Continue Setup</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Complete your event setup by adding these features
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Invite Guests */}
+            <Link href={`/events/${eventId}/invitees`}>
+              <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">📨</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Invite Guests</h3>
+                    <p className="text-xs text-gray-600">Add and send invitations</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Create Order of Events */}
+            <Link href={`/events/${eventId}/ceremonies/new`}>
+              <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">📅</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Create Programme</h3>
+                    <p className="text-xs text-gray-600">Add ceremonies & schedule</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Generate QR Code & Share Link */}
+            <Card 
+              className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white" 
+              onClick={() => setShowShareModal(true)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">🔗</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Share Event</h3>
+                  <p className="text-xs text-gray-600">Get QR code & share link</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Customize Theme */}
+            <Link href={`/events/${eventId}/theme`}>
+              <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">🎨</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Customize Theme</h3>
+                    <p className="text-xs text-gray-600">Design your event page</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Upload Media */}
+            <Link href={`/events/${eventId}/gallery`}>
+              <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">📸</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Upload Photos</h3>
+                    <p className="text-xs text-gray-600">Add event media</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            {/* View Public Page */}
+            {event.slug && (
+              <Link href={`/e/${event.slug}`} target="_blank">
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl">👁️</div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">View Public Page</h3>
+                      <p className="text-xs text-gray-600">Preview guest view</p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            )}
+          </div>
+        </Card>
 
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-4">
@@ -212,6 +307,16 @@ export default function EventDetailPage() {
           </Link>
         </div>
       </div>
+
+      {/* Share Event Modal */}
+      {showShareModal && (
+        <ShareEventModal
+          eventId={eventId}
+          shareLink={event.shareLink || null}
+          qrCode={event.qrCode || null}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </DashboardLayout>
   )
 }

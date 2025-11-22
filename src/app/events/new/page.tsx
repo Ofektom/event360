@@ -16,10 +16,8 @@ export default function NewEventPage() {
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     title: '',
-    description: '',
     type: 'WEDDING',
     startDate: '',
-    endDate: '',
     location: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   })
@@ -92,19 +90,24 @@ export default function NewEventPage() {
     <DashboardLayout>
       <div className="max-w-3xl mx-auto">
         <Card className="p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Event</h1>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Event</h1>
+            <p className="text-gray-600">
+              Start with the basics. You can add more details later.
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Event Title */}
             <Input
-              label="Event Title"
-                type="text"
-                name="title"
-                required
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g., Our Wedding Celebration"
-              />
+              label="Event Title *"
+              type="text"
+              name="title"
+              required
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="e.g., Our Wedding Celebration"
+            />
 
             {/* Event Type */}
             <div>
@@ -128,49 +131,32 @@ export default function NewEventPage() {
               </select>
             </div>
 
-            {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                rows={4}
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Tell us about your event..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              />
-            </div>
-
-            {/* Date Range */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <Input
-                label="Start Date"
-                  type="datetime-local"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                />
-              <Input
-                label="End Date"
-                  type="datetime-local"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                />
-            </div>
+            {/* Start Date */}
+            <Input
+              label="Start Date (Optional)"
+              type="datetime-local"
+              name="startDate"
+              value={formData.startDate}
+              onChange={handleChange}
+            />
 
             {/* Location */}
             <Input
-              label="Location"
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="e.g., Lagos, Nigeria"
-              />
+              label="Location (Optional)"
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="e.g., Lagos, Nigeria"
+            />
+
+            {/* Info Box */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Don't worry!</strong> You can add more details like description, 
+                programme, and guest list after creating your event.
+              </p>
+            </div>
 
             {/* Error Message */}
             {error && (

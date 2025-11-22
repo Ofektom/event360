@@ -46,7 +46,7 @@ export class EventService {
 
     // Generate QR code and share link
     const qrCode = `qr-${Date.now()}-${Math.random().toString(36).substring(7)}`
-    const shareLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/event/${uniqueSlug}`
+    const shareLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/e/${uniqueSlug}`
 
     // Create event
     return this.eventRepository.create({
