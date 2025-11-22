@@ -41,8 +41,8 @@ export async function PATCH(
     const { eventId } = await params
     
     // Check if user owns the event
-    const event = await eventService.getEventById(eventId)
-    if (event.ownerId !== user.id) {
+    const existingEvent = await eventService.getEventById(eventId)
+    if (existingEvent.ownerId !== user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -67,8 +67,8 @@ export async function PATCH(
       allowReactions: body.allowReactions,
     }
 
-    const event = await eventService.updateEvent(eventId, updateData)
-    return NextResponse.json(event)
+    const updatedEvent = await eventService.updateEvent(eventId, updateData)
+    return NextResponse.json(updatedEvent)
   } catch (error: any) {
     console.error('Error updating event:', error)
     
