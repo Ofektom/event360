@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { EventService } from '@/services/event.service'
 import { getUserInvitedEvents } from '@/lib/invitee-linking'
 import { Prisma } from '@prisma/client'
-
-const eventService = new EventService()
 
 type EventWithRelations = Prisma.EventGetPayload<{
   include: {
@@ -70,10 +67,55 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const include = searchParams.get('include')?.split(',') || []
 
-    // Get user's created events
+    // Get user's created events - using userId as foreign key, not eventService
     let createdEvents: EventWithRelations[] = []
     if (include.includes('events') || include.length === 0) {
-      createdEvents = await eventService.getEvents({ ownerId: user.id })
+      try {
+        createdEvents = await prisma.event.findMany({
+          where: { ownerId: user.id }, // userId is the foreign key
+          include: {
+            theme: true,
+            ceremonies: {
+              orderBy: { order: 'asc' },
+            },
+            _count: {
+              select: {
+                invitees: true,
+                mediaAssets: true,
+                ceremonies: true,
+                interactions: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        })
+      } catch (error: any) {
+        // If ceremonies orderBy fails, try without it
+        if (error?.message?.includes('order')) {
+          createdEvents = await prisma.event.findMany({
+            where: { ownerId: user.id },
+            include: {
+              theme: true,
+              ceremonies: true,
+              _count: {
+                select: {
+                  invitees: true,
+                  mediaAssets: true,
+                  ceremonies: true,
+                  interactions: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          })
+        } else {
+          throw error
+        }
+      }
     }
 
     // Get user's invited events

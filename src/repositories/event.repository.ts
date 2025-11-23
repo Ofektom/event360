@@ -5,30 +5,94 @@ import { Prisma } from '@prisma/client'
 
 export class EventRepository {
   async findAll(filters: GetEventsFilters) {
-    return prisma.event.findMany({
-      where: {
-        ownerId: filters.ownerId,
-        ...(filters.familyId && { familyId: filters.familyId }),
-        ...(filters.status && { status: filters.status }),
-      },
-      include: {
-        theme: true, // Optional - can be null
-        ceremonies: {
-          orderBy: { order: 'asc' },
-        }, // Optional - can be empty array
-        _count: {
-          select: {
-            invitees: true,
-            mediaAssets: true,
-            ceremonies: true,
-            interactions: true,
+    // Try with orderBy first, but fallback gracefully if it fails
+    try {
+      return await prisma.event.findMany({
+        where: {
+          ownerId: filters.ownerId,
+          ...(filters.familyId && { familyId: filters.familyId }),
+          ...(filters.status && { status: filters.status }),
+        },
+        include: {
+          theme: true, // Optional - can be null
+          ceremonies: {
+            orderBy: { order: 'asc' },
+          }, // Optional - can be empty array
+          _count: {
+            select: {
+              invitees: true,
+              mediaAssets: true,
+              ceremonies: true,
+              interactions: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+    } catch (error: any) {
+      // If ceremonies orderBy fails (e.g., if order field doesn't exist or schema issue), try without it
+      const errorMessage = error?.message || ''
+      if (
+        errorMessage.includes('order') || 
+        errorMessage.includes('Unknown column') ||
+        errorMessage.includes('does not exist') ||
+        errorMessage.includes('Invalid value')
+      ) {
+        console.log('Ceremonies orderBy failed, trying without order:', errorMessage)
+        try {
+          return await prisma.event.findMany({
+            where: {
+              ownerId: filters.ownerId,
+              ...(filters.familyId && { familyId: filters.familyId }),
+              ...(filters.status && { status: filters.status }),
+            },
+            include: {
+              theme: true,
+              ceremonies: true, // Without orderBy
+              _count: {
+                select: {
+                  invitees: true,
+                  mediaAssets: true,
+                  ceremonies: true,
+                  interactions: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          })
+        } catch (fallbackError: any) {
+          console.error('Fallback query also failed:', fallbackError)
+          // Last resort: minimal query without ceremonies
+          return prisma.event.findMany({
+            where: {
+              ownerId: filters.ownerId,
+              ...(filters.familyId && { familyId: filters.familyId }),
+              ...(filters.status && { status: filters.status }),
+            },
+            include: {
+              theme: true,
+              _count: {
+                select: {
+                  invitees: true,
+                  mediaAssets: true,
+                  ceremonies: true,
+                  interactions: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          })
+        }
+      }
+      // If it's a different error, throw it
+      throw error
+    }
   }
 
   async findById(id: string) {

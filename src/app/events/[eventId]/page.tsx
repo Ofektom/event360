@@ -208,8 +208,8 @@ export default function EventDetailPage() {
                   </div>
                 </Card>
               </Link>
-            )}
-          </div>
+          )}
+        </div>
         </Card>
 
         {/* Stats */}

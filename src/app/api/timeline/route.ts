@@ -85,12 +85,8 @@ export async function GET(request: NextRequest) {
 
     // Always show user's own events, even if no other posts exist
     // If user has created events, we should show them
-    if (eventIds.length === 0 && ownedEventIds.length === 0) {
-      return NextResponse.json({ posts: [] })
-    }
-
-    // If no eventIds but user has owned events, use owned events
-    const eventsToQuery = eventIds.length > 0 ? eventIds : ownedEventIds
+    // IMPORTANT: Always include owned events, even if eventIds is empty
+    const eventsToQuery = [...new Set([...ownedEventIds, ...eventIds])]
 
     if (eventsToQuery.length === 0) {
       return NextResponse.json({ posts: [] })
@@ -279,14 +275,21 @@ export async function GET(request: NextRequest) {
       })
       
       // Filter events: show published/live for all, draft only for owner
+      // IMPORTANT: Always show user's own events, regardless of status
       eventPosts = allUserEvents.filter((event: any) => {
         const status = event.status || 'DRAFT'
+        const isOwner = event.ownerId === user.id
+        
+        // Always show owner's events
+        if (isOwner) {
+          return true
+        }
+        
+        // Show published/live events for everyone
         if (status === 'PUBLISHED' || status === 'LIVE') {
           return true
         }
-        if (status === 'DRAFT' && event.ownerId === user.id) {
-          return true
-        }
+        
         return false
       })
     } catch (error: any) {

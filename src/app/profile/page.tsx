@@ -7,10 +7,7 @@ import { UserEventsList } from '@/components/organisms/UserEventsList'
 import { UserMediaGrid } from '@/components/organisms/UserMediaGrid'
 import { Card } from '@/components/atoms/Card'
 import { prisma } from '@/lib/prisma'
-import { EventService } from '@/services/event.service'
 import { getUserInvitedEvents } from '@/lib/invitee-linking'
-
-const eventService = new EventService()
 
 export default async function ProfilePage() {
   const sessionUser = await getCurrentUser()
@@ -45,9 +42,50 @@ export default async function ProfilePage() {
       )
     }
 
-    // Fetch profile data directly
+    // Fetch user-related data using userId as foreign key
+    // Profile should only fetch user data, events are separate entities
     const [createdEvents, invitedEvents, mediaAssets, interactions, stats] = await Promise.all([
-      eventService.getEvents({ ownerId: user.id }),
+      // Fetch events where user is owner (using userId foreign key)
+      prisma.event.findMany({
+        where: { ownerId: user.id }, // userId is the foreign key in Event
+        include: {
+          theme: true,
+          ceremonies: {
+            orderBy: { order: 'asc' },
+          },
+          _count: {
+            select: {
+              invitees: true,
+              mediaAssets: true,
+              ceremonies: true,
+              interactions: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }).catch(() => {
+        // If ceremonies orderBy fails, try without it
+        return prisma.event.findMany({
+          where: { ownerId: user.id },
+          include: {
+            theme: true,
+            ceremonies: true,
+            _count: {
+              select: {
+                invitees: true,
+                mediaAssets: true,
+                ceremonies: true,
+                interactions: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        })
+      }),
       getUserInvitedEvents(user.id),
       prisma.mediaAsset.findMany({
         where: {

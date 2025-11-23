@@ -26,29 +26,57 @@ export default async function EventsPage() {
       console.error('Error fetching events via service:', error)
       // Fallback: query directly with Prisma
       try {
-        events = await prisma.event.findMany({
-          where: { ownerId: user.id },
-          include: {
-            theme: true,
-            ceremonies: {
-              orderBy: { order: 'asc' },
-            },
-            _count: {
-              select: {
-                invitees: true,
-                mediaAssets: true,
-                ceremonies: true,
-                interactions: true,
+        // Try with ceremonies orderBy first
+        try {
+          events = await prisma.event.findMany({
+            where: { ownerId: user.id },
+            include: {
+              theme: true,
+              ceremonies: {
+                orderBy: { order: 'asc' },
+              },
+              _count: {
+                select: {
+                  invitees: true,
+                  mediaAssets: true,
+                  ceremonies: true,
+                  interactions: true,
+                },
               },
             },
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        })
+            orderBy: {
+              createdAt: 'desc',
+            },
+          })
+        } catch (orderError: any) {
+          // If orderBy fails, try without it
+          if (orderError?.message?.includes('order') || orderError?.message?.includes('Unknown column')) {
+            console.log('Ceremonies orderBy failed, trying without order')
+            events = await prisma.event.findMany({
+              where: { ownerId: user.id },
+              include: {
+                theme: true,
+                ceremonies: true, // Without orderBy
+                _count: {
+                  select: {
+                    invitees: true,
+                    mediaAssets: true,
+                    ceremonies: true,
+                    interactions: true,
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+            })
+          } else {
+            throw orderError
+          }
+        }
       } catch (fallbackError: any) {
         console.error('Fallback query also failed:', fallbackError)
-        throw new Error('Failed to load events. Please try again later.')
+        throw new Error(`Failed to load events: ${fallbackError?.message || 'Unknown error'}`)
       }
     }
 
