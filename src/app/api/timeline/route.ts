@@ -109,8 +109,8 @@ export async function GET(request: NextRequest) {
         {
           hasInvite: event._count.invitationDesigns > 0,
           hasProgramme: event._count.ceremonies > 0,
-          hasLiveStream: event.ceremonies.some((c) => c.isStreaming),
-          liveStreamUrl: event.ceremonies.find((c) => c.isStreaming)?.streamUrl || null,
+          hasLiveStream: event.ceremonies.some((c: any) => c.isStreaming),
+          liveStreamUrl: event.ceremonies.find((c: any) => c.isStreaming)?.streamUrl || null,
           isOwner: ownedEventIds.includes(event.id),
         },
       ])
