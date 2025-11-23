@@ -122,6 +122,7 @@ model Event {
   
   // Settings
   isPublic    Boolean     @default(false)
+  visibility  EventVisibility @default(INVITED_ONLY) // Who can view this event
   allowGuestUploads Boolean @default(true)
   allowComments    Boolean @default(true)
   allowReactions   Boolean @default(true)
@@ -165,6 +166,12 @@ enum EventStatus {
   LIVE
   COMPLETED
   CANCELLED
+}
+
+enum EventVisibility {
+  PUBLIC          // Anyone on the application
+  CONNECTED       // Anyone connected to the user on the app
+  INVITED_ONLY    // Only invited guests on the app
 }
 
 // Ceremony - multiple ceremonies per event (e.g., Traditional, White Wedding)

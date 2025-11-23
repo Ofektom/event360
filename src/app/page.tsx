@@ -5,9 +5,9 @@ import { getCurrentUser } from "@/lib/auth";
 export default async function Home() {
   const user = await getCurrentUser();
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to timeline
   if (user) {
-    redirect("/dashboard");
+    redirect("/timeline");
   }
 
   return (

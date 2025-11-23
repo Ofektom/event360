@@ -16,6 +16,12 @@ export enum EventStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum EventVisibility {
+  PUBLIC = 'PUBLIC',          // Anyone on the application
+  CONNECTED = 'CONNECTED',     // Anyone connected to the user on the app
+  INVITED_ONLY = 'INVITED_ONLY', // Only invited guests on the app
+}
+
 // RSVP Enums
 export enum RSVPStatus {
   PENDING = 'PENDING',

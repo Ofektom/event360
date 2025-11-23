@@ -76,7 +76,7 @@ export function SignupForm() {
     setError('')
     setIsLoading(true)
     try {
-      await signIn(provider, { callbackUrl: '/dashboard' })
+      await signIn(provider, { callbackUrl: '/timeline' })
     } catch (err) {
       setError('Failed to sign up with ' + provider)
       setIsLoading(false)

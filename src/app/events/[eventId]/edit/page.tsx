@@ -21,6 +21,7 @@ interface Event {
   location: string | null
   timezone: string
   isPublic: boolean
+  visibility: string
   allowGuestUploads: boolean
   allowComments: boolean
   allowReactions: boolean
@@ -47,6 +48,7 @@ export default function EditEventPage() {
     location: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     isPublic: false,
+    visibility: 'INVITED_ONLY' as 'PUBLIC' | 'CONNECTED' | 'INVITED_ONLY',
     allowGuestUploads: false,
     allowComments: true,
     allowReactions: true,
@@ -93,6 +95,7 @@ export default function EditEventPage() {
         location: data.location || '',
         timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         isPublic: data.isPublic || false,
+        visibility: data.visibility || 'INVITED_ONLY',
         allowGuestUploads: data.allowGuestUploads || false,
         allowComments: data.allowComments !== undefined ? data.allowComments : true,
         allowReactions: data.allowReactions !== undefined ? data.allowReactions : true,
@@ -312,6 +315,30 @@ export default function EditEventPage() {
                     Make event public (visible to anyone with the link)
                   </span>
                 </label>
+
+                {/* Visibility Setting */}
+                <div>
+                  <label
+                    htmlFor="visibility"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Who can view this event on the timeline?
+                  </label>
+                  <select
+                    id="visibility"
+                    name="visibility"
+                    value={formData.visibility}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                  >
+                    <option value="PUBLIC">Anyone on the application</option>
+                    <option value="CONNECTED">Anyone connected to me on the app</option>
+                    <option value="INVITED_ONLY">Only invited guests on the app</option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    This controls who can see posts from this event in their timeline feed.
+                  </p>
+                </div>
 
                 <label className="flex items-center gap-3">
                   <input

@@ -60,11 +60,21 @@ export function Navbar({ variant = 'dashboard' }: NavbarProps) {
     <nav className="bg-white shadow-lg border-b border-gray-200">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
-          <Link href="/dashboard" className="text-2xl font-bold text-purple-600">
+          <Link href="/timeline" className="text-2xl font-bold text-purple-600">
             Event360
           </Link>
 
           <div className="flex items-center gap-6">
+            <Link
+              href="/timeline"
+              className={`px-3 py-2 rounded-lg transition-colors ${
+                isActive('/timeline')
+                  ? 'bg-purple-100 text-purple-700 font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Timeline
+            </Link>
             <Link
               href="/dashboard/events"
               className={`px-3 py-2 rounded-lg transition-colors ${
@@ -73,7 +83,7 @@ export function Navbar({ variant = 'dashboard' }: NavbarProps) {
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              Events
+              Manage Events
             </Link>
             <Link
               href="/dashboard/guests"

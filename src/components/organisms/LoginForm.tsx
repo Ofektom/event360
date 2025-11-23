@@ -29,7 +29,7 @@ export function LoginForm() {
       if (result?.error) {
         setError(result.error)
       } else if (result?.ok) {
-        router.push('/dashboard')
+        router.push('/timeline')
         router.refresh()
       }
     } catch (err) {
@@ -43,7 +43,7 @@ export function LoginForm() {
     setError('')
     setIsLoading(true)
     try {
-      await signIn(provider, { callbackUrl: '/dashboard' })
+      await signIn(provider, { callbackUrl: '/timeline' })
     } catch (err) {
       setError('Failed to sign in with ' + provider)
       setIsLoading(false)
