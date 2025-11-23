@@ -34,15 +34,9 @@ export async function GET(
               isStreaming: true,
             },
           },
-          invitationDesigns: {
-            where: { isDefault: true },
-            select: { id: true },
-            take: 1,
-          },
           _count: {
             select: {
               ceremonies: true,
-              invitationDesigns: true,
               mediaAssets: true,
               interactions: true,
               invitees: true,
@@ -82,10 +76,9 @@ export async function GET(
           title: event.title,
           slug: event.slug,
           type: event.type,
-          hasInvite: event._count.invitationDesigns > 0,
           hasProgramme: event._count.ceremonies > 0,
-          hasLiveStream: event.ceremonies.some((c) => c.isStreaming),
-          liveStreamUrl: event.ceremonies.find((c) => c.isStreaming)?.streamUrl || null,
+          hasLiveStream: event.ceremonies.some((c: any) => c?.isStreaming),
+          liveStreamUrl: event.ceremonies.find((c: any) => c?.isStreaming)?.streamUrl || null,
           isOwner: isOwner,
         },
         ceremony: null,

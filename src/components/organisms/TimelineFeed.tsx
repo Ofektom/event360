@@ -20,7 +20,6 @@ interface TimelinePost {
     title: string
     slug: string | null
     type: string
-    hasInvite?: boolean
     hasProgramme?: boolean
     hasLiveStream?: boolean
     liveStreamUrl?: string | null

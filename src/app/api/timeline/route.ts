@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ posts: [] })
     }
 
-    // Get full event details with ceremonies, invitations, etc.
+    // Get full event details with ceremonies (programme)
+    // Note: Invitations are private and not shown in timeline feed
     let eventsWithDetails: any[] = []
     try {
       eventsWithDetails = await prisma.event.findMany({
@@ -83,15 +84,9 @@ export async function GET(request: NextRequest) {
               isStreaming: true,
             },
           },
-          invitationDesigns: {
-            where: { isDefault: true },
-            select: { id: true },
-            take: 1,
-          },
           _count: {
             select: {
-              ceremonies: true,
-              invitationDesigns: true,
+              ceremonies: true, // Programme/order of events
             },
           },
         },
@@ -103,14 +98,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Create a map of event details for quick lookup
+    // Note: Invitations are private - not shown in timeline
     const eventDetailsMap = new Map(
-      eventsWithDetails.map((event) => [
+      eventsWithDetails.map((event: any) => [
         event.id,
         {
-          hasInvite: event._count.invitationDesigns > 0,
-          hasProgramme: event._count.ceremonies > 0,
-          hasLiveStream: event.ceremonies.some((c: any) => c.isStreaming),
-          liveStreamUrl: event.ceremonies.find((c: any) => c.isStreaming)?.streamUrl || null,
+          hasProgramme: (event._count?.ceremonies || 0) > 0, // Programme/order of events
+          hasLiveStream: (event.ceremonies || []).some((c: any) => c?.isStreaming),
+          liveStreamUrl: (event.ceremonies || []).find((c: any) => c?.isStreaming)?.streamUrl || null,
           isOwner: ownedEventIds.includes(event.id),
         },
       ])
@@ -227,18 +222,11 @@ export async function GET(request: NextRequest) {
     // Show published/live events for all users, and draft events only for owners
     let eventPosts: any[] = []
     try {
-      eventPosts = await prisma.event.findMany({
+      // First, try to get all events the user owns or is invited to
+      // Then filter by status
+      const allUserEvents = await prisma.event.findMany({
         where: {
           id: { in: eventsToQuery },
-          OR: [
-            // Published or live events visible to all
-            { status: { in: ['PUBLISHED', 'LIVE'] } },
-            // Draft events only visible to owner
-            {
-              status: 'DRAFT',
-              ownerId: user.id,
-            },
-          ],
         },
         include: {
           owner: {
@@ -262,41 +250,84 @@ export async function GET(request: NextRequest) {
         },
         take: 50,
       })
+      
+      // Filter events: show published/live for all, draft only for owner
+      eventPosts = allUserEvents.filter((event: any) => {
+        const status = event.status || 'DRAFT'
+        if (status === 'PUBLISHED' || status === 'LIVE') {
+          return true
+        }
+        if (status === 'DRAFT' && event.ownerId === user.id) {
+          return true
+        }
+        return false
+      })
     } catch (error: any) {
       console.error('Error fetching event posts:', error)
-      eventPosts = []
+      // If that fails, try a simpler query
+      try {
+        eventPosts = await prisma.event.findMany({
+          where: {
+            ownerId: user.id, // Just get user's own events
+          },
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+            _count: {
+              select: {
+                mediaAssets: true,
+                interactions: true,
+                invitees: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 50,
+        })
+      } catch (fallbackError: any) {
+        console.error('Fallback query also failed:', fallbackError)
+        eventPosts = []
+      }
     }
 
     // Transform to timeline posts format
     const posts = [
       // Event creation posts
-      ...(eventPosts || []).map((event) => ({
+      ...(eventPosts || []).map((event: any) => ({
         id: `event-${event.id}`,
         type: 'event' as const,
         author: {
-          id: event.owner.id,
-          name: event.owner.name || 'Event Creator',
-          avatar: event.owner.image || null,
+          id: event.owner?.id || null,
+          name: event.owner?.name || 'Event Creator',
+          avatar: event.owner?.image || null,
         },
-        content: event.description || `Created a new ${event.type.toLowerCase()} event: ${event.title}`,
+        content: event.description || `Created a new ${event.type?.toLowerCase() || 'event'} event: ${event.title}`,
         event: {
           id: event.id,
           title: event.title,
-          slug: event.slug,
-          type: event.type,
+          slug: event.slug || null,
+          type: event.type || 'CELEBRATION',
           ...(eventDetailsMap.get(event.id) || {}),
         },
         ceremony: null,
         media: null,
-        timestamp: event.createdAt.toISOString(),
+        timestamp: event.createdAt?.toISOString() || new Date().toISOString(),
         likes: 0,
-        comments: event._count.interactions,
+        comments: event._count?.interactions || 0,
         eventDetails: {
           startDate: event.startDate?.toISOString() || null,
           endDate: event.endDate?.toISOString() || null,
-          location: event.location,
-          mediaCount: event._count.mediaAssets,
-          inviteeCount: event._count.invitees,
+          location: event.location || null,
+          mediaCount: event._count?.mediaAssets || 0,
+          inviteeCount: event._count?.invitees || 0,
         },
       })),
       // Interaction posts

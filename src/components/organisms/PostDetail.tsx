@@ -22,7 +22,6 @@ interface PostDetail {
     title: string
     slug: string | null
     type: string
-    hasInvite?: boolean
     hasProgramme?: boolean
     hasLiveStream?: boolean
     liveStreamUrl?: string | null
@@ -228,14 +227,7 @@ export function PostDetail({ postId }: PostDetailProps) {
 
         {/* Action Buttons */}
         <div className="mb-6 pt-4 border-t border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {post.event.hasInvite && (
-              <Link href={`/events/${post.event.id}/invitations`}>
-                <Button variant="outline" size="sm" className="w-full text-xs">
-                  📨 View Invite
-                </Button>
-              </Link>
-            )}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {post.event.hasProgramme && (
               <Link href={post.event.slug ? `/e/${post.event.slug}#programme` : `/events/${post.event.id}#programme`}>
                 <Button variant="outline" size="sm" className="w-full text-xs">
@@ -250,7 +242,7 @@ export function PostDetail({ postId }: PostDetailProps) {
                 </Button>
               </Link>
             )}
-            {(post.event.isOwner || post.event.hasInvite) && (
+            {post.event.isOwner && (
               <Button
                 variant="outline"
                 size="sm"

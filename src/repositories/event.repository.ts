@@ -12,14 +12,16 @@ export class EventRepository {
         ...(filters.status && { status: filters.status }),
       },
       include: {
-        theme: true,
+        theme: true, // Optional - can be null
         ceremonies: {
           orderBy: { order: 'asc' },
-        },
+        }, // Optional - can be empty array
         _count: {
           select: {
             invitees: true,
             mediaAssets: true,
+            ceremonies: true,
+            interactions: true,
           },
         },
       },
