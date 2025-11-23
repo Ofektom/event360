@@ -41,13 +41,28 @@ export default async function EventsPage() {
         </div>
       </DashboardLayout>
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error loading events:', error)
+    // Log detailed error in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Events error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      })
+    }
     return (
       <DashboardLayout>
         <Card className="p-8 text-center">
           <h1 className="text-2xl font-bold mb-4">Error Loading Events</h1>
-          <p className="text-gray-600">Failed to load your events. Please try again later.</p>
+          <p className="text-gray-600 mb-4">
+            {process.env.NODE_ENV === 'development' 
+              ? error.message || 'Failed to load your events. Please try again later.'
+              : 'Failed to load your events. Please try again later.'}
+          </p>
+          <Link href="/dashboard/events">
+            <Button variant="outline">Retry</Button>
+          </Link>
         </Card>
       </DashboardLayout>
     )

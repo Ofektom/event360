@@ -73,7 +73,7 @@ export function Navbar({ variant = 'dashboard' }: NavbarProps) {
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              Timeline
+              Events
             </Link>
             <Link
               href="/dashboard/events"

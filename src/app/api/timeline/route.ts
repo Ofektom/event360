@@ -29,17 +29,24 @@ export async function GET(request: NextRequest) {
     // Note: visibility field might not exist yet if migration hasn't been run
     let publicEvents: { id: string }[] = []
     try {
+      // Try to query public events - if visibility field doesn't exist, this will fail gracefully
       publicEvents = await prisma.event.findMany({
         where: {
-          visibility: 'PUBLIC' as any, // Type assertion in case field doesn't exist
+          // @ts-ignore - visibility field might not exist yet
+          visibility: 'PUBLIC',
           status: { in: ['PUBLISHED', 'LIVE'] },
           id: { notIn: [...ownedEventIds, ...invitedEventIds] },
         },
         select: { id: true },
       })
-    } catch (error) {
-      // If visibility field doesn't exist, skip public events query
-      console.log('Visibility field not available, skipping public events query')
+    } catch (error: any) {
+      // If visibility field doesn't exist or query fails, skip public events query
+      // This is expected if the migration hasn't been run yet
+      if (error?.message?.includes('Unknown column') || error?.message?.includes('does not exist')) {
+        console.log('Visibility field not available yet, skipping public events query')
+      } else {
+        console.error('Error querying public events:', error?.message)
+      }
     }
 
     // Collect all event IDs user can view
@@ -337,10 +344,23 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching timeline:', error)
     // Return more detailed error in development
     const errorMessage = process.env.NODE_ENV === 'development' 
-      ? error.message || 'Failed to fetch timeline'
+      ? (error.message || 'Failed to fetch timeline')
       : 'Failed to fetch timeline'
+    
+    // Log full error for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Timeline error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      })
+    }
+    
     return NextResponse.json(
-      { error: errorMessage, details: process.env.NODE_ENV === 'development' ? error.stack : undefined },
+      { 
+        error: errorMessage, 
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+      },
       { status: 500 }
     )
   }
