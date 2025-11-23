@@ -6,6 +6,7 @@ import { Button } from '@/components/atoms/Button'
 import { EventsList } from '@/components/organisms/EventsList'
 import Link from 'next/link'
 import { EventService } from '@/services/event.service'
+import { prisma } from '@/lib/prisma'
 
 const eventService = new EventService()
 
@@ -18,7 +19,38 @@ export default async function EventsPage() {
 
   try {
     // Fetch user's events
-    const events = await eventService.getEvents({ ownerId: user.id })
+    let events: any[] = []
+    try {
+      events = await eventService.getEvents({ ownerId: user.id })
+    } catch (error: any) {
+      console.error('Error fetching events via service:', error)
+      // Fallback: query directly with Prisma
+      try {
+        events = await prisma.event.findMany({
+          where: { ownerId: user.id },
+          include: {
+            theme: true,
+            ceremonies: {
+              orderBy: { order: 'asc' },
+            },
+            _count: {
+              select: {
+                invitees: true,
+                mediaAssets: true,
+                ceremonies: true,
+                interactions: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        })
+      } catch (fallbackError: any) {
+        console.error('Fallback query also failed:', fallbackError)
+        throw new Error('Failed to load events. Please try again later.')
+      }
+    }
 
     return (
       <DashboardLayout>
