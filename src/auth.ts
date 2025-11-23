@@ -91,30 +91,76 @@ export const authConfig = {
     strategy: "jwt",
   },
   callbacks: {
-    async signIn({ user, account }) {
-      // For OAuth providers, ensure user exists in database
-      if (account?.provider !== 'credentials' && user?.email) {
+    async signIn({ user, account, profile }) {
+      // For OAuth providers, handle account linking
+      if (account?.provider !== 'credentials' && user?.email && account) {
         try {
+          // Check if user exists with this email
           const existingUser = await prisma.user.findUnique({
-            where: { email: user.email }
+            where: { email: user.email },
+            include: {
+              accounts: {
+                where: {
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                }
+              }
+            }
           })
           
-          // If user doesn't exist, create with default role
-          // The adapter will handle the account creation
-          if (!existingUser) {
-            await prisma.user.create({
-              data: {
-                email: user.email,
-                name: user.name,
-                image: user.image,
-                emailVerified: new Date(),
-                role: UserRole.USER,
+          if (existingUser) {
+            // User exists - check if this OAuth account is already linked
+            const isAccountLinked = existingUser.accounts.length > 0
+            
+            if (!isAccountLinked) {
+              // Link the OAuth account to existing user
+              // This prevents OAuthAccountNotLinked error
+              try {
+                await prisma.account.create({
+                  data: {
+                    userId: existingUser.id,
+                    type: account.type || 'oauth',
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    expires_at: account.expires_at,
+                    token_type: account.token_type,
+                    scope: account.scope,
+                    id_token: account.id_token,
+                    refresh_token: account.refresh_token,
+                    session_state: account.session_state,
+                  }
+                })
+                
+                // Update user info if needed
+                await prisma.user.update({
+                  where: { id: existingUser.id },
+                  data: {
+                    ...(user.name && !existingUser.name && { name: user.name }),
+                    ...(user.image && !existingUser.image && { image: user.image }),
+                    ...(!existingUser.emailVerified && { emailVerified: new Date() }),
+                  }
+                })
+              } catch (linkError: any) {
+                // If account already exists (race condition), that's fine
+                if (linkError.code !== 'P2002') {
+                  console.error('Error linking account:', linkError)
+                }
               }
-            })
+            }
+            
+            // Update user object to use existing user ID
+            // This tells NextAuth to use the existing user
+            user.id = existingUser.id
+            return true
           }
+          
+          // User doesn't exist - adapter will create user and account
+          return true
         } catch (error) {
-          // User might already exist, continue
           console.error('Error in signIn callback:', error)
+          // Allow sign in - adapter will handle user creation
+          return true
         }
       }
       return true

@@ -10,10 +10,16 @@ export default async function AuthErrorPage({
   const params = await searchParams
   const error = params.error
 
-  const errorMessage = 
-    error === 'CredentialsSignin'
-      ? 'Invalid email or password. Please try again.'
-      : 'An error occurred during authentication. Please try again.'
+  const errorMessages: Record<string, string> = {
+    CredentialsSignin: 'Invalid email or password. Please try again.',
+    OAuthAccountNotLinked: 'An account with this email already exists. The account has been automatically linked. Please try signing in again.',
+    Configuration: 'There is a problem with the server configuration.',
+    AccessDenied: 'Access denied. Please contact support.',
+    Verification: 'The verification token has expired or has already been used.',
+    Default: 'An error occurred during authentication. Please try again.',
+  }
+
+  const errorMessage = errorMessages[error || 'Default'] || errorMessages.Default
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
