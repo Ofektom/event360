@@ -8,7 +8,7 @@ import { TimelinePost } from './TimelinePost'
 
 interface TimelinePost {
   id: string
-  type: 'interaction' | 'media'
+  type: 'interaction' | 'media' | 'event'
   author: {
     id: string | null
     name: string
@@ -20,6 +20,11 @@ interface TimelinePost {
     title: string
     slug: string | null
     type: string
+    hasInvite?: boolean
+    hasProgramme?: boolean
+    hasLiveStream?: boolean
+    liveStreamUrl?: string | null
+    isOwner?: boolean
   }
   ceremony: {
     id: string
@@ -34,6 +39,13 @@ interface TimelinePost {
   timestamp: string
   likes: number
   comments: number
+  eventDetails?: {
+    startDate: string | null
+    endDate: string | null
+    location: string | null
+    mediaCount: number
+    inviteeCount: number
+  }
 }
 
 export function TimelineFeed() {
@@ -45,14 +57,18 @@ export function TimelineFeed() {
     async function fetchTimeline() {
       try {
         setLoading(true)
+        setError(null)
         const response = await fetch('/api/timeline')
-        if (!response.ok) {
-          throw new Error('Failed to fetch timeline')
-        }
         const data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch timeline')
+        }
+        
         setPosts(data.posts || [])
         setError(null)
       } catch (err: any) {
+        console.error('Timeline fetch error:', err)
         setError(err.message || 'Failed to load timeline')
       } finally {
         setLoading(false)

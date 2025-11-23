@@ -19,7 +19,7 @@ export default async function TimelinePage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Timeline</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Your Timeline</h1>
             <p className="text-gray-600 mt-2">
               See posts and updates from events you're part of
             </p>

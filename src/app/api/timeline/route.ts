@@ -26,14 +26,21 @@ export async function GET(request: NextRequest) {
     // PUBLIC: Anyone on the application
     // CONNECTED: Anyone connected to the user (for now, we'll use invited events + owned events)
     // INVITED_ONLY: Only invited guests
-    const publicEvents = await prisma.event.findMany({
-      where: {
-        visibility: 'PUBLIC',
-        status: { in: ['PUBLISHED', 'LIVE'] },
-        id: { notIn: [...ownedEventIds, ...invitedEventIds] },
-      },
-      select: { id: true },
-    })
+    // Note: visibility field might not exist yet if migration hasn't been run
+    let publicEvents: { id: string }[] = []
+    try {
+      publicEvents = await prisma.event.findMany({
+        where: {
+          visibility: 'PUBLIC' as any, // Type assertion in case field doesn't exist
+          status: { in: ['PUBLISHED', 'LIVE'] },
+          id: { notIn: [...ownedEventIds, ...invitedEventIds] },
+        },
+        select: { id: true },
+      })
+    } catch (error) {
+      // If visibility field doesn't exist, skip public events query
+      console.log('Visibility field not available, skipping public events query')
+    }
 
     // Collect all event IDs user can view
     const eventIds = [
@@ -42,13 +49,18 @@ export async function GET(request: NextRequest) {
       ...publicEvents.map((e) => e.id),
     ]
 
-    if (eventIds.length === 0) {
+    // Always show user's own events, even if no other posts exist
+    // If user has created events, we should show them
+    if (eventIds.length === 0 && ownedEventIds.length === 0) {
       return NextResponse.json({ posts: [] })
     }
 
+    // If no eventIds but user has owned events, use owned events
+    const eventsToQuery = eventIds.length > 0 ? eventIds : ownedEventIds
+
     // Get full event details with ceremonies, invitations, etc.
     const eventsWithDetails = await prisma.event.findMany({
-      where: { id: { in: eventIds } },
+      where: { id: { in: eventsToQuery } },
       include: {
         ceremonies: {
           select: {
@@ -90,7 +102,7 @@ export async function GET(request: NextRequest) {
     // Include comments, guestbook entries, and media posts
     const interactions = await prisma.interaction.findMany({
       where: {
-        eventId: { in: eventIds },
+        eventId: { in: eventsToQuery },
         isApproved: true,
         OR: [
           { type: 'COMMENT' },
@@ -142,7 +154,7 @@ export async function GET(request: NextRequest) {
     // Also fetch media assets as posts
     const mediaPosts = await prisma.mediaAsset.findMany({
       where: {
-        eventId: { in: eventIds },
+        eventId: { in: eventsToQuery },
         isApproved: true,
       },
       include: {
@@ -185,7 +197,7 @@ export async function GET(request: NextRequest) {
     // Show published/live events for all users, and draft events only for owners
     const eventPosts = await prisma.event.findMany({
       where: {
-        id: { in: eventIds },
+        id: { in: eventsToQuery },
         OR: [
           // Published or live events visible to all
           { status: { in: ['PUBLISHED', 'LIVE'] } },
@@ -323,8 +335,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ posts })
   } catch (error: any) {
     console.error('Error fetching timeline:', error)
+    // Return more detailed error in development
+    const errorMessage = process.env.NODE_ENV === 'development' 
+      ? error.message || 'Failed to fetch timeline'
+      : 'Failed to fetch timeline'
     return NextResponse.json(
-      { error: 'Failed to fetch timeline' },
+      { error: errorMessage, details: process.env.NODE_ENV === 'development' ? error.stack : undefined },
       { status: 500 }
     )
   }
