@@ -11,13 +11,13 @@ export async function GET(request: NextRequest) {
     const user = await requireAuth()
 
     // Get all events user is linked to (as owner or invitee)
-    const [ownedEvents, invitedEvents] = await Promise.all([
-      eventService.getEvents({ ownerId: user.id }),
-      prisma.invitee.findMany({
-        where: { userId: user.id },
-        select: { eventId: true },
-      }),
-    ])
+    // Use the same method as the events page
+    const ownedEvents = await eventService.getEvents({ ownerId: user.id })
+    
+    const invitedEvents = await prisma.invitee.findMany({
+      where: { userId: user.id },
+      select: { eventId: true },
+    })
 
     const ownedEventIds = ownedEvents.map((e) => e.id)
     const invitedEventIds = invitedEvents.map((e) => e.eventId)
@@ -65,31 +65,42 @@ export async function GET(request: NextRequest) {
     // If no eventIds but user has owned events, use owned events
     const eventsToQuery = eventIds.length > 0 ? eventIds : ownedEventIds
 
+    if (eventsToQuery.length === 0) {
+      return NextResponse.json({ posts: [] })
+    }
+
     // Get full event details with ceremonies, invitations, etc.
-    const eventsWithDetails = await prisma.event.findMany({
-      where: { id: { in: eventsToQuery } },
-      include: {
-        ceremonies: {
-          select: {
-            id: true,
-            name: true,
-            streamUrl: true,
-            isStreaming: true,
+    let eventsWithDetails: any[] = []
+    try {
+      eventsWithDetails = await prisma.event.findMany({
+        where: { id: { in: eventsToQuery } },
+        include: {
+          ceremonies: {
+            select: {
+              id: true,
+              name: true,
+              streamUrl: true,
+              isStreaming: true,
+            },
+          },
+          invitationDesigns: {
+            where: { isDefault: true },
+            select: { id: true },
+            take: 1,
+          },
+          _count: {
+            select: {
+              ceremonies: true,
+              invitationDesigns: true,
+            },
           },
         },
-        invitationDesigns: {
-          where: { isDefault: true },
-          select: { id: true },
-          take: 1,
-        },
-        _count: {
-          select: {
-            ceremonies: true,
-            invitationDesigns: true,
-          },
-        },
-      },
-    })
+      })
+    } catch (error: any) {
+      console.error('Error fetching event details:', error)
+      // Continue without event details - we'll use defaults
+      eventsWithDetails = []
+    }
 
     // Create a map of event details for quick lookup
     const eventDetailsMap = new Map(
@@ -107,7 +118,9 @@ export async function GET(request: NextRequest) {
 
     // Fetch interactions (posts) from all linked events
     // Include comments, guestbook entries, and media posts
-    const interactions = await prisma.interaction.findMany({
+    let interactions: any[] = []
+    try {
+      interactions = await prisma.interaction.findMany({
       where: {
         eventId: { in: eventsToQuery },
         isApproved: true,
@@ -156,10 +169,16 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc',
       },
       take: 50, // Limit to 50 most recent posts
-    })
+      })
+    } catch (error: any) {
+      console.error('Error fetching interactions:', error)
+      interactions = []
+    }
 
     // Also fetch media assets as posts
-    const mediaPosts = await prisma.mediaAsset.findMany({
+    let mediaPosts: any[] = []
+    try {
+      mediaPosts = await prisma.mediaAsset.findMany({
       where: {
         eventId: { in: eventsToQuery },
         isApproved: true,
@@ -198,50 +217,60 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc',
       },
       take: 50,
-    })
+      })
+    } catch (error: any) {
+      console.error('Error fetching media posts:', error)
+      mediaPosts = []
+    }
 
     // Fetch events as posts (event creation posts)
     // Show published/live events for all users, and draft events only for owners
-    const eventPosts = await prisma.event.findMany({
-      where: {
-        id: { in: eventsToQuery },
-        OR: [
-          // Published or live events visible to all
-          { status: { in: ['PUBLISHED', 'LIVE'] } },
-          // Draft events only visible to owner
-          {
-            status: 'DRAFT',
-            ownerId: user.id,
+    let eventPosts: any[] = []
+    try {
+      eventPosts = await prisma.event.findMany({
+        where: {
+          id: { in: eventsToQuery },
+          OR: [
+            // Published or live events visible to all
+            { status: { in: ['PUBLISHED', 'LIVE'] } },
+            // Draft events only visible to owner
+            {
+              status: 'DRAFT',
+              ownerId: user.id,
+            },
+          ],
+        },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
           },
-        ],
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
+          _count: {
+            select: {
+              mediaAssets: true,
+              interactions: true,
+              invitees: true,
+            },
           },
         },
-        _count: {
-          select: {
-            mediaAssets: true,
-            interactions: true,
-            invitees: true,
-          },
+        orderBy: {
+          createdAt: 'desc',
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 50,
-    })
+        take: 50,
+      })
+    } catch (error: any) {
+      console.error('Error fetching event posts:', error)
+      eventPosts = []
+    }
 
     // Transform to timeline posts format
     const posts = [
       // Event creation posts
-      ...eventPosts.map((event) => ({
+      ...(eventPosts || []).map((event) => ({
         id: `event-${event.id}`,
         type: 'event' as const,
         author: {
@@ -271,7 +300,7 @@ export async function GET(request: NextRequest) {
         },
       })),
       // Interaction posts
-      ...interactions.map((interaction) => ({
+      ...(interactions || []).map((interaction) => ({
         id: interaction.id,
         type: 'interaction' as const,
         author: {
@@ -305,7 +334,7 @@ export async function GET(request: NextRequest) {
         likes: 0, // Reactions are separate interactions - can be counted later if needed
         comments: 0, // Comments are separate interactions - can be counted later if needed
       })),
-      ...mediaPosts.map((media) => ({
+      ...(mediaPosts || []).map((media) => ({
         id: media.id,
         type: 'media' as const,
         author: {

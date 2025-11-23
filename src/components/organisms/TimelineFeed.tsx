@@ -62,14 +62,18 @@ export function TimelineFeed() {
         const data = await response.json()
         
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch timeline')
+          const errorMsg = data.error || 'Failed to fetch timeline'
+          const details = data.details ? `\n\nDetails: ${data.details}` : ''
+          throw new Error(errorMsg + details)
         }
         
         setPosts(data.posts || [])
         setError(null)
       } catch (err: any) {
         console.error('Timeline fetch error:', err)
-        setError(err.message || 'Failed to load timeline')
+        // Show the actual error message
+        const errorMessage = err.message || 'Failed to load timeline'
+        setError(errorMessage)
       } finally {
         setLoading(false)
       }
