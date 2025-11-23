@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       ownedEvents = await eventService.getEvents({ ownerId: user.id })
     } catch (error: any) {
       console.error('Error fetching owned events via service:', error)
-      // Fallback: query directly with Prisma
+      // Fallback: query directly with Prisma using select to avoid visibility field
       try {
         ownedEvents = await prisma.event.findMany({
           where: { ownerId: user.id },
@@ -36,8 +36,25 @@ export async function GET(request: NextRequest) {
           },
         })
       } catch (fallbackError: any) {
-        console.error('Fallback query also failed:', fallbackError)
-        ownedEvents = []
+        // Check if it's a visibility column error
+        if (fallbackError?.code === 'P2022' || fallbackError?.message?.includes('visibility')) {
+          console.log('Visibility column error in fallback, trying raw query')
+          // Try with even more minimal select
+          try {
+            ownedEvents = await prisma.$queryRaw`
+              SELECT id, title, slug, type, status, "createdAt", "startDate", "endDate", location, description, "ownerId"
+              FROM "Event"
+              WHERE "ownerId" = ${user.id}
+              ORDER BY "createdAt" DESC
+            `
+          } catch (rawError: any) {
+            console.error('Raw query also failed:', rawError)
+            ownedEvents = []
+          }
+        } else {
+          console.error('Fallback query failed:', fallbackError)
+          ownedEvents = []
+        }
       }
     }
     

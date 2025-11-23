@@ -26,11 +26,23 @@ export default async function EventsPage() {
       console.error('Error fetching events via service:', error)
       // Fallback: query directly with Prisma
       try {
-        // Try with ceremonies orderBy first
+        // Try with ceremonies orderBy first, using select to avoid visibility column
         try {
           events = await prisma.event.findMany({
             where: { ownerId: user.id },
-            include: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              slug: true,
+              type: true,
+              status: true,
+              ownerId: true,
+              startDate: true,
+              endDate: true,
+              location: true,
+              createdAt: true,
+              updatedAt: true,
               theme: true,
               ceremonies: {
                 orderBy: { order: 'asc' },
@@ -49,12 +61,24 @@ export default async function EventsPage() {
             },
           })
         } catch (orderError: any) {
-          // If orderBy fails, try without it
-          if (orderError?.message?.includes('order') || orderError?.message?.includes('Unknown column')) {
-            console.log('Ceremonies orderBy failed, trying without order')
+          // If orderBy or visibility fails, try without orderBy
+          if (orderError?.code === 'P2022' || orderError?.message?.includes('visibility') || orderError?.message?.includes('order') || orderError?.message?.includes('Unknown column')) {
+            console.log('Query failed, trying without problematic fields')
             events = await prisma.event.findMany({
               where: { ownerId: user.id },
-              include: {
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                slug: true,
+                type: true,
+                status: true,
+                ownerId: true,
+                startDate: true,
+                endDate: true,
+                location: true,
+                createdAt: true,
+                updatedAt: true,
                 theme: true,
                 ceremonies: true, // Without orderBy
                 _count: {

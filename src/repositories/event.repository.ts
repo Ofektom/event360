@@ -13,11 +13,34 @@ export class EventRepository {
           ...(filters.familyId && { familyId: filters.familyId }),
           ...(filters.status && { status: filters.status }),
         },
-        include: {
-          theme: true, // Optional - can be null
+        select: {
+          // Explicitly select fields to avoid visibility column issue
+          id: true,
+          title: true,
+          description: true,
+          slug: true,
+          type: true,
+          status: true,
+          ownerId: true,
+          familyId: true,
+          themeId: true,
+          startDate: true,
+          endDate: true,
+          location: true,
+          timezone: true,
+          isPublic: true,
+          allowGuestUploads: true,
+          allowComments: true,
+          allowReactions: true,
+          qrCode: true,
+          shareLink: true,
+          customTheme: true,
+          createdAt: true,
+          updatedAt: true,
+          theme: true,
           ceremonies: {
             orderBy: { order: 'asc' },
-          }, // Optional - can be empty array
+          },
           _count: {
             select: {
               invitees: true,
@@ -32,15 +55,18 @@ export class EventRepository {
         },
       })
     } catch (error: any) {
-      // If ceremonies orderBy fails (e.g., if order field doesn't exist or schema issue), try without it
+      // If ceremonies orderBy fails or visibility column doesn't exist, try without orderBy
       const errorMessage = error?.message || ''
+      const errorCode = error?.code || ''
       if (
+        errorCode === 'P2022' || // Column doesn't exist
+        errorMessage.includes('visibility') ||
         errorMessage.includes('order') || 
         errorMessage.includes('Unknown column') ||
         errorMessage.includes('does not exist') ||
         errorMessage.includes('Invalid value')
       ) {
-        console.log('Ceremonies orderBy failed, trying without order:', errorMessage)
+        console.log('Query failed, trying without problematic fields:', errorMessage)
         try {
           return await prisma.event.findMany({
             where: {
@@ -48,7 +74,30 @@ export class EventRepository {
               ...(filters.familyId && { familyId: filters.familyId }),
               ...(filters.status && { status: filters.status }),
             },
-            include: {
+            select: {
+              // Explicitly select fields, excluding visibility
+              id: true,
+              title: true,
+              description: true,
+              slug: true,
+              type: true,
+              status: true,
+              ownerId: true,
+              familyId: true,
+              themeId: true,
+              startDate: true,
+              endDate: true,
+              location: true,
+              timezone: true,
+              isPublic: true,
+              allowGuestUploads: true,
+              allowComments: true,
+              allowReactions: true,
+              qrCode: true,
+              shareLink: true,
+              customTheme: true,
+              createdAt: true,
+              updatedAt: true,
               theme: true,
               ceremonies: true, // Without orderBy
               _count: {
@@ -73,7 +122,18 @@ export class EventRepository {
               ...(filters.familyId && { familyId: filters.familyId }),
               ...(filters.status && { status: filters.status }),
             },
-            include: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              slug: true,
+              type: true,
+              status: true,
+              ownerId: true,
+              startDate: true,
+              endDate: true,
+              location: true,
+              createdAt: true,
               theme: true,
               _count: {
                 select: {

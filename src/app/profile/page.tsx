@@ -46,9 +46,22 @@ export default async function ProfilePage() {
     // Profile should only fetch user data, events are separate entities
     const [createdEvents, invitedEvents, mediaAssets, interactions, stats] = await Promise.all([
       // Fetch events where user is owner (using userId foreign key)
+      // Use select to explicitly avoid visibility column
       prisma.event.findMany({
         where: { ownerId: user.id }, // userId is the foreign key in Event
-        include: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          slug: true,
+          type: true,
+          status: true,
+          ownerId: true,
+          startDate: true,
+          endDate: true,
+          location: true,
+          createdAt: true,
+          updatedAt: true,
           theme: true,
           ceremonies: {
             orderBy: { order: 'asc' },
@@ -65,26 +78,41 @@ export default async function ProfilePage() {
         orderBy: {
           createdAt: 'desc',
         },
-      }).catch(() => {
-        // If ceremonies orderBy fails, try without it
-        return prisma.event.findMany({
-          where: { ownerId: user.id },
-          include: {
-            theme: true,
-            ceremonies: true,
-            _count: {
-              select: {
-                invitees: true,
-                mediaAssets: true,
-                ceremonies: true,
-                interactions: true,
+      }).catch((error: any) => {
+        // If ceremonies orderBy or visibility fails, try without orderBy
+        if (error?.code === 'P2022' || error?.message?.includes('visibility') || error?.message?.includes('order')) {
+          return prisma.event.findMany({
+            where: { ownerId: user.id },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              slug: true,
+              type: true,
+              status: true,
+              ownerId: true,
+              startDate: true,
+              endDate: true,
+              location: true,
+              createdAt: true,
+              updatedAt: true,
+              theme: true,
+              ceremonies: true,
+              _count: {
+                select: {
+                  invitees: true,
+                  mediaAssets: true,
+                  ceremonies: true,
+                  interactions: true,
+                },
               },
             },
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        })
+            orderBy: {
+              createdAt: 'desc',
+            },
+          })
+        }
+        throw error
       }),
       getUserInvitedEvents(user.id),
       prisma.mediaAsset.findMany({
