@@ -123,7 +123,7 @@ export function TimelineFeed() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {posts.map((post) => (
         <TimelinePost key={post.id} post={post} onRefresh={handleRefresh} />
       ))}

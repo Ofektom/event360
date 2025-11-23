@@ -59,59 +59,42 @@ export function TimelinePost({ post, onRefresh }: TimelinePostProps) {
 
   return (
     <>
-      <Card className="p-6">
-        {/* Post Header */}
-        <div className="flex items-start gap-4 mb-4">
+      <Card className="p-4 shadow-sm">
+        {/* Post Header - Show Event Name (like Facebook shows person's name) */}
+        <div className="flex items-start gap-3 mb-3">
+          {/* Event Avatar/Icon */}
           <Link
-            href={post.author.id ? `/profile?userId=${post.author.id}` : '#'}
-            className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0"
+            href={post.event.slug ? `/e/${post.event.slug}` : `/events/${post.event.id}`}
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden flex-shrink-0"
           >
-            {post.author.avatar ? (
-              <Image
-                src={post.author.avatar}
-                alt={post.author.name}
-                width={48}
-                height={48}
-                className="object-cover"
-              />
-            ) : (
-              <span className="text-lg font-semibold text-gray-600">
-                {post.author.name.charAt(0).toUpperCase()}
-              </span>
-            )}
+            <span className="text-white font-semibold text-lg">
+              {post.event.title.charAt(0).toUpperCase()}
+            </span>
           </Link>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Link
-                href={post.author.id ? `/profile?userId=${post.author.id}` : '#'}
-                className="font-semibold text-gray-900 hover:text-purple-600"
-              >
-                {post.author.name}
-              </Link>
-              {post.ceremony && (
-                <>
-                  <span className="text-gray-400">•</span>
-                  <span className="text-sm text-gray-600">{post.ceremony.name}</span>
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
+            <div className="flex items-center gap-2 mb-1">
               <Link
                 href={post.event.slug ? `/e/${post.event.slug}` : `/events/${post.event.id}`}
-                className="hover:text-purple-600 hover:underline truncate"
+                className="font-semibold text-gray-900 hover:text-purple-600"
               >
                 {post.event.title}
               </Link>
-              <span>•</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
               <time dateTime={post.timestamp}>
                 {new Date(post.timestamp).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
-                  year: 'numeric',
                   hour: 'numeric',
                   minute: '2-digit',
                 })}
               </time>
+              {post.ceremony && (
+                <>
+                  <span>•</span>
+                  <span>{post.ceremony.name}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -207,58 +190,9 @@ export function TimelinePost({ post, onRefresh }: TimelinePostProps) {
           </div>
         )}
 
-        {/* Event Action Buttons */}
-        <div className="mb-4 pt-4 border-t border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {post.event.hasInvite && (
-              <Link href={`/events/${post.event.id}/invitations`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                >
-                  📨 View Invite
-                </Button>
-              </Link>
-            )}
-            {post.event.hasProgramme && (
-              <Link href={post.event.slug ? `/e/${post.event.slug}#programme` : `/events/${post.event.id}#programme`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                >
-                  📅 Order of Event
-                </Button>
-              </Link>
-            )}
-            {post.event.hasLiveStream && post.event.liveStreamUrl && (
-              <Link href={post.event.liveStreamUrl} target="_blank">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
-                >
-                  🔴 Live Stream
-                </Button>
-              </Link>
-            )}
-            {(post.event.isOwner || post.event.hasInvite) && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs"
-                onClick={() => setShowUploadModal(true)}
-              >
-                📸 Upload Media
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Post Actions (Like, Comment, Share) */}
-        <div className="flex items-center gap-6 pt-4 border-t border-gray-200">
-          <button className="flex items-center gap-2 text-gray-600 hover:text-purple-600 transition-colors">
+        {/* Post Actions (Like, Comment, View Post) - Like Facebook */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+          <button className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
             <svg
               className="w-5 h-5"
               fill="none"
@@ -272,9 +206,15 @@ export function TimelinePost({ post, onRefresh }: TimelinePostProps) {
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
               />
             </svg>
-            <span className="text-sm">{post.likes}</span>
+            <span className="text-sm font-medium">Like</span>
+            {post.likes > 0 && (
+              <span className="text-xs text-gray-500">({post.likes})</span>
+            )}
           </button>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-purple-600 transition-colors">
+          <Link
+            href={`/posts/${post.id}`}
+            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          >
             <svg
               className="w-5 h-5"
               fill="none"
@@ -288,9 +228,15 @@ export function TimelinePost({ post, onRefresh }: TimelinePostProps) {
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
               />
             </svg>
-            <span className="text-sm">{post.comments}</span>
-          </button>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-purple-600 transition-colors">
+            <span className="text-sm font-medium">Comment</span>
+            {post.comments > 0 && (
+              <span className="text-xs text-gray-500">({post.comments})</span>
+            )}
+          </Link>
+          <Link
+            href={`/posts/${post.id}`}
+            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          >
             <svg
               className="w-5 h-5"
               fill="none"
@@ -301,11 +247,17 @@ export function TimelinePost({ post, onRefresh }: TimelinePostProps) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
               />
             </svg>
-            <span className="text-sm">Share</span>
-          </button>
+            <span className="text-sm font-medium">View Post</span>
+          </Link>
         </div>
       </Card>
 

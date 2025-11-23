@@ -15,26 +15,8 @@ export default async function TimelinePage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Your Timeline</h1>
-            <p className="text-gray-600 mt-2">
-              See posts and updates from events you're part of
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link href="/dashboard/events">
-              <Button variant="outline">Manage Events</Button>
-            </Link>
-            <Link href="/events/new">
-              <Button variant="primary">Create Event</Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Timeline Feed */}
+      <div className="max-w-2xl mx-auto">
+        {/* Timeline Feed - No heading, just continuous cards like Facebook */}
         <TimelineFeed />
       </div>
     </DashboardLayout>
