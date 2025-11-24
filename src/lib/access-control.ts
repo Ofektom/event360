@@ -25,7 +25,7 @@ export async function canAccessEvent(
         id: true,
         ownerId: true,
         isPublic: true,
-        visibility: true,
+        visibility: true, // Include visibility for access control
         status: true,
       },
     })
@@ -39,9 +39,9 @@ export async function canAccessEvent(
     }
 
     // Public events can be viewed by anyone (limited view)
-    // Check both isPublic (for backward compatibility) and visibility === PUBLIC
+    // Check visibility === PUBLIC (primary) or isPublic (for backward compatibility)
     if (!userId) {
-      const isPublicAccess = event.isPublic || event.visibility === 'PUBLIC'
+      const isPublicAccess = event.visibility === 'PUBLIC' || event.isPublic
       return {
         canView: isPublicAccess,
         canInteract: false,

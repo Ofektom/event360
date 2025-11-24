@@ -231,6 +231,11 @@ export class EventRepository {
   }
 
   async create(data: CreateEventDto & { slug: string; qrCode: string; shareLink: string; status: EventStatus }) {
+    // Visibility defaults to PUBLIC in schema, so isPublic should be true for new events
+    // This ensures new events are accessible via public link by default
+    const visibility = 'PUBLIC' // Default from schema
+    const isPublic = true // Auto-sync: PUBLIC visibility = isPublic true
+    
     return prisma.event.create({
       data: {
         title: data.title,
@@ -248,6 +253,8 @@ export class EventRepository {
         customTheme: data.customTheme,
         qrCode: data.qrCode,
         shareLink: data.shareLink,
+        visibility: visibility, // Default to PUBLIC
+        isPublic: isPublic, // Auto-synced: true when visibility is PUBLIC
       },
       include: {
         theme: true,
@@ -275,8 +282,22 @@ export class EventRepository {
     if (data.location !== undefined) updateData.location = data.location
     if (data.timezone !== undefined) updateData.timezone = data.timezone
     if (data.customTheme !== undefined) updateData.customTheme = data.customTheme
-    if (data.isPublic !== undefined) updateData.isPublic = data.isPublic
-    if (data.visibility !== undefined) updateData.visibility = data.visibility
+    
+    // Auto-sync isPublic based on visibility: if visibility is PUBLIC, set isPublic to true
+    if (data.visibility !== undefined) {
+      updateData.visibility = data.visibility
+      // If visibility is being set to PUBLIC, automatically set isPublic to true
+      if (data.visibility === 'PUBLIC') {
+        updateData.isPublic = true
+      } else if (data.isPublic !== undefined) {
+        // If visibility is not PUBLIC but isPublic is explicitly set, use that value
+        updateData.isPublic = data.isPublic
+      }
+    } else if (data.isPublic !== undefined) {
+      // If only isPublic is being updated (without visibility change), use it
+      updateData.isPublic = data.isPublic
+    }
+    
     if (data.allowGuestUploads !== undefined) updateData.allowGuestUploads = data.allowGuestUploads
     if (data.allowComments !== undefined) updateData.allowComments = data.allowComments
     if (data.allowReactions !== undefined) updateData.allowReactions = data.allowReactions

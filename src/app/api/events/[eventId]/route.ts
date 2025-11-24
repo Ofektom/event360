@@ -50,6 +50,11 @@ export async function PATCH(
     }
     
     const body = await request.json()
+    
+    // Auto-sync isPublic based on visibility: if visibility is PUBLIC, set isPublic to true
+    const visibility = body.visibility
+    const isPublic = visibility === 'PUBLIC' ? true : (body.isPublic ?? false)
+    
     const updateData: UpdateEventDto = {
       title: body.title,
       description: body.description,
@@ -61,8 +66,8 @@ export async function PATCH(
       location: body.location,
       timezone: body.timezone,
       customTheme: body.customTheme,
-      isPublic: body.isPublic,
-      visibility: body.visibility,
+      isPublic: isPublic, // Auto-synced based on visibility
+      visibility: visibility,
       allowGuestUploads: body.allowGuestUploads,
       allowComments: body.allowComments,
       allowReactions: body.allowReactions,

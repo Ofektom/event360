@@ -322,7 +322,7 @@ export default function EditEventPage() {
                     <option value="INVITED_ONLY">Only invited guests on the app</option>
                   </select>
                   <p className="mt-1 text-xs text-gray-500">
-                    This controls who can see this event in their timeline feed and access it via public link.
+                    Selecting "Anyone on the application" makes your event accessible via public link and visible in timelines. Other options restrict access accordingly.
                   </p>
                 </div>
 
