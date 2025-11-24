@@ -20,7 +20,6 @@ interface Event {
   endDate: string | null
   location: string | null
   timezone: string
-  isPublic: boolean
   visibility: string
   allowGuestUploads: boolean
   allowComments: boolean
@@ -47,7 +46,6 @@ export default function EditEventPage() {
     endDate: '',
     location: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    isPublic: false,
     visibility: 'PUBLIC' as 'PUBLIC' | 'CONNECTED' | 'INVITED_ONLY',
     allowGuestUploads: false,
     allowComments: true,
@@ -94,7 +92,6 @@ export default function EditEventPage() {
         endDate,
         location: data.location || '',
         timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        isPublic: data.isPublic || false,
         visibility: data.visibility || 'PUBLIC',
         allowGuestUploads: data.allowGuestUploads || false,
         allowComments: data.allowComments !== undefined ? data.allowComments : true,
@@ -127,6 +124,8 @@ export default function EditEventPage() {
         },
         body: JSON.stringify({
           ...formData,
+          // Auto-sync isPublic based on visibility: PUBLIC = isPublic true
+          isPublic: formData.visibility === 'PUBLIC',
           startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
           endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
         }),
@@ -299,30 +298,17 @@ export default function EditEventPage() {
             {/* Settings */}
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                Event Settings
+                Settings
               </h3>
 
               <div className="space-y-3">
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="isPublic"
-                    checked={formData.isPublic}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-[var(--theme-primary)] border-gray-300 rounded focus:ring-[var(--theme-primary)]"
-                  />
-                  <span className="text-sm text-gray-700">
-                    Make event public (visible to anyone with the link)
-                  </span>
-                </label>
-
                 {/* Visibility Setting */}
                 <div>
                   <label
                     htmlFor="visibility"
                     className="block text-sm font-medium text-gray-700 mb-2"
                   >
-                    Who can view this event on the timeline?
+                    Who can view this event?
                   </label>
                   <select
                     id="visibility"
@@ -336,7 +322,7 @@ export default function EditEventPage() {
                     <option value="INVITED_ONLY">Only invited guests on the app</option>
                   </select>
                   <p className="mt-1 text-xs text-gray-500">
-                    This controls who can see posts from this event in their timeline feed.
+                    This controls who can see this event in their timeline feed and access it via public link.
                   </p>
                 </div>
 
