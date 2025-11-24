@@ -62,6 +62,7 @@ export async function PATCH(
       timezone: body.timezone,
       customTheme: body.customTheme,
       isPublic: body.isPublic,
+      visibility: body.visibility,
       allowGuestUploads: body.allowGuestUploads,
       allowComments: body.allowComments,
       allowReactions: body.allowReactions,

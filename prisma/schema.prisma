@@ -122,7 +122,7 @@ model Event {
   
   // Settings
   isPublic    Boolean     @default(false)
-  visibility  EventVisibility @default(INVITED_ONLY) // Who can view this event
+  visibility  EventVisibility @default(PUBLIC) // Who can view this event (default: everyone on the app)
   allowGuestUploads Boolean @default(true)
   allowComments    Boolean @default(true)
   allowReactions   Boolean @default(true)

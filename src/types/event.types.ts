@@ -1,4 +1,4 @@
-import { EventType, EventStatus } from './enums'
+import { EventType, EventStatus, EventVisibility } from './enums'
 
 // Request DTOs
 export interface CreateEventDto {
@@ -27,6 +27,7 @@ export interface UpdateEventDto {
   timezone?: string
   customTheme?: any
   isPublic?: boolean
+  visibility?: EventVisibility
   allowGuestUploads?: boolean
   allowComments?: boolean
   allowReactions?: boolean

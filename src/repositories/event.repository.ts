@@ -276,6 +276,7 @@ export class EventRepository {
     if (data.timezone !== undefined) updateData.timezone = data.timezone
     if (data.customTheme !== undefined) updateData.customTheme = data.customTheme
     if (data.isPublic !== undefined) updateData.isPublic = data.isPublic
+    if (data.visibility !== undefined) updateData.visibility = data.visibility
     if (data.allowGuestUploads !== undefined) updateData.allowGuestUploads = data.allowGuestUploads
     if (data.allowComments !== undefined) updateData.allowComments = data.allowComments
     if (data.allowReactions !== undefined) updateData.allowReactions = data.allowReactions
