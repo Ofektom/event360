@@ -311,23 +311,23 @@ export function InvitationDesignEditor({
   }
 
   const config = template?.config as TemplateConfig | undefined
-  const allColors = config?.colors || {}
+  const allColors = (config?.colors || {}) as TemplateConfig['colors']
   
   // Enhanced color categories
   const themeColors = {
-    primary: allColors.primary || '#9333ea',
-    secondary: allColors.secondary || '#ec4899',
-    accent: allColors.accent || allColors.secondary || '#ec4899',
+    primary: allColors?.primary || '#9333ea',
+    secondary: allColors?.secondary || '#ec4899',
+    accent: allColors?.accent || allColors?.secondary || '#ec4899',
   }
   
   const textColors = {
-    heading: allColors.heading || allColors.text || '#111827',
-    body: allColors.body || allColors.text || '#111827',
-    text: allColors.text || '#111827',
+    heading: allColors?.heading || allColors?.text || '#111827',
+    body: allColors?.body || allColors?.text || '#111827',
+    text: allColors?.text || '#111827',
   }
   
   const backgroundColors = {
-    background: allColors.background || '#ffffff',
+    background: allColors?.background || '#ffffff',
   }
 
   // Merge with user's custom colors
