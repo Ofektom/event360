@@ -129,6 +129,19 @@ export default function EventDetailPage() {
             Complete your event setup by adding these features
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Design Invitations */}
+            <Link href={`/events/${eventId}/invitations`}>
+              <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">💌</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Design Invitations</h3>
+                    <p className="text-xs text-gray-600">Create or upload invitation designs</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
             {/* Invite Guests */}
             <Link href={`/events/${eventId}/invitees`}>
               <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
@@ -136,7 +149,7 @@ export default function EventDetailPage() {
                   <div className="text-3xl">📨</div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Invite Guests</h3>
-                    <p className="text-xs text-gray-600">Add and send invitations</p>
+                    <p className="text-xs text-gray-600">Manage guest list & RSVPs</p>
                   </div>
                 </div>
               </Card>

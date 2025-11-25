@@ -37,6 +37,7 @@ export { CustomInvitationUpload } from './organisms/CustomInvitationUpload'
 
 // Layout
 export { Navbar } from './layout/Navbar'
+export { Sidebar } from './layout/Sidebar'
 export { Footer } from './layout/Footer'
 
 // Templates
