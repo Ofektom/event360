@@ -25,6 +25,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     pathname?.startsWith('/gallery') ||
     pathname?.startsWith('/reels')
 
+  // Pages that should be left-aligned (not centered) when sidebar is present
+  const shouldBeLeftAligned = 
+    pathname?.startsWith('/timeline') || 
+    pathname?.startsWith('/invitations')
+
   // Determine menu type based on pathname
   useEffect(() => {
     if (pathname?.startsWith('/timeline') || pathname?.startsWith('/dashboard/events') || pathname?.startsWith('/events/')) {
@@ -68,7 +73,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             w-full
           `}
         >
-          <div className={`w-full max-w-7xl ${shouldShowSidebar ? '' : 'mx-auto'} px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8`}>
+          <div className={`w-full max-w-7xl ${shouldShowSidebar && shouldBeLeftAligned ? '' : 'mx-auto'} p-[10px]`}>
             {children}
           </div>
         </main>
