@@ -83,9 +83,6 @@ export function InvitationPreview({
           width: 400,
           height: 500,
           scale: 1.5, // Reduced scale for better performance
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: '#ffffff',
         })
 
         const dataUrl = await Promise.race([previewPromise, timeoutPromise])
