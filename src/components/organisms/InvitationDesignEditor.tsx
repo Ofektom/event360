@@ -249,6 +249,27 @@ export function InvitationDesignEditor({
     })
   }
 
+  const handleStyleChange = (stylePath: string, value: number) => {
+    const [category, key, subKey] = stylePath.split('.')
+    setDesignData({
+      ...designData,
+      styles: {
+        ...(designData.styles || {}),
+        [category]: {
+          ...(designData.styles?.[category] || {}),
+          ...(subKey ? {
+            [key]: {
+              ...(designData.styles?.[category]?.[key] || {}),
+              [subKey]: value,
+            }
+          } : {
+            [key]: value,
+          }),
+        },
+      },
+    })
+  }
+
   const addCustomTextField = () => {
     if (!newFieldLabel.trim()) {
       alert('Please enter a field label')
