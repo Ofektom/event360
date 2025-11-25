@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
@@ -25,6 +25,7 @@ type ViewMode = 'library' | 'editor' | 'upload' | 'list'
 export default function InvitationsPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session, status } = useSession()
   const eventId = params.eventId as string
 
@@ -41,8 +42,15 @@ export default function InvitationsPage() {
     }
     if (status === 'authenticated') {
       fetchEvent()
+      
+      // Check for designId in URL query params
+      const designIdFromUrl = searchParams.get('designId')
+      if (designIdFromUrl) {
+        setSelectedDesign(designIdFromUrl)
+        setViewMode('editor')
+      }
     }
-  }, [eventId, status, router])
+  }, [eventId, status, router, searchParams])
 
   const fetchEvent = async () => {
     try {
