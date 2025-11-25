@@ -26,10 +26,7 @@ export function CustomInvitationUpload({
   const acceptedFormats = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']
   const maxSize = 10 * 1024 * 1024 // 10MB
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (!selectedFile) return
-
+  const processFile = (selectedFile: File) => {
     setError(null)
 
     // Validate file type
@@ -65,6 +62,12 @@ export function CustomInvitationUpload({
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (!selectedFile) return
+    processFile(selectedFile)
+  }
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -77,14 +80,7 @@ export function CustomInvitationUpload({
     const droppedFile = e.dataTransfer.files[0]
     if (!droppedFile) return
 
-    // Create a synthetic event to reuse validation logic
-    const syntheticEvent = {
-      target: {
-        files: [droppedFile],
-      },
-    } as React.ChangeEvent<HTMLInputElement>
-
-    handleFileChange(syntheticEvent)
+    processFile(droppedFile)
   }
 
   const handleUpload = async () => {
