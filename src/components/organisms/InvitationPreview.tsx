@@ -39,13 +39,19 @@ export function InvitationPreview({
   const previewRef = useRef<HTMLDivElement>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generateError, setGenerateError] = useState<string | null>(null)
-  const isGeneratingRef = useRef(false) // Use ref to prevent re-triggering
+  const isGeneratingRef = useRef(false)
   const lastDataHashRef = useRef<string>('')
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const generationTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // Create a hash of the design data to detect actual changes
-    const dataHash = JSON.stringify({ designData, config, templateType })
+    // Create a stable hash of the design data to detect actual changes
+    // Only hash text and colors, ignore graphics for now to reduce churn
+    const dataHash = JSON.stringify({ 
+      text: designData?.text || {},
+      colors: designData?.colors || {},
+      templateType 
+    })
     
     // Skip if data hasn't changed
     if (dataHash === lastDataHashRef.current) {
@@ -54,77 +60,103 @@ export function InvitationPreview({
     
     lastDataHashRef.current = dataHash
 
-    // Reset preview image when data changes (show live preview first)
-    setPreviewImage(null)
-    setGenerateError(null)
-
-    // Generate preview image when design data changes (lazy with debounce)
-    // Only generate if html2canvas is available and element is ready
-    let isMounted = true
-    let timeoutId: NodeJS.Timeout | undefined
-
-    const generatePreview = async () => {
-      // Prevent multiple simultaneous generations
-      if (!previewRef.current || isGeneratingRef.current) return
-      
-      // Wait a bit for the DOM to render
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      isGeneratingRef.current = true
-      setIsGenerating(true)
-
-      try {
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Preview generation timeout')), 8000)
-        })
-
-        const previewPromise = generatePreviewFromElement(previewRef.current, {
-          width: 400,
-          height: 500,
-          scale: 1.5, // Reduced scale for better performance
-        })
-
-        const dataUrl = await Promise.race([previewPromise, timeoutPromise])
-
-        if (isMounted && dataUrl && typeof dataUrl === 'string') {
-          // Verify the image is not just white/empty (basic check)
-          if (dataUrl.length > 500 && !dataUrl.includes('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')) {
-            setPreviewImage(dataUrl)
-            if (onPreviewGenerated) {
-              onPreviewGenerated(dataUrl)
-            }
-          } else {
-            console.warn('Generated preview appears to be empty or invalid')
-            // Don't set error, just keep showing live preview
-          }
-        }
-      } catch (error: any) {
-        console.error('Error generating preview:', error)
-        // Don't show error to user, just keep live preview
-        // Preview generation is optional
-      } finally {
-        if (isMounted) {
-          isGeneratingRef.current = false
-          setIsGenerating(false)
-        }
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-        }
-      }
+    // Clear any pending generation
+    if (generationTimerRef.current) {
+      clearTimeout(generationTimerRef.current)
+      generationTimerRef.current = null
+    }
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
     }
 
-    // Debounce preview generation (longer delay for better performance)
-    const debounceTimeout = setTimeout(generatePreview, 1500)
+    // Don't reset preview image immediately - keep showing it while editing
+    // Only clear if we're actually going to regenerate
+
+    // Generate preview image only after user stops editing (long debounce)
+    // This prevents constant regeneration during typing
+    let isMounted = true
+
+    const scheduleGeneration = () => {
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+
+      // Schedule new generation with longer delay (5 seconds after last change)
+      debounceTimerRef.current = setTimeout(() => {
+        if (!isMounted || isGeneratingRef.current) return
+
+        const generatePreview = async () => {
+          // Prevent multiple simultaneous generations
+          if (!previewRef.current || isGeneratingRef.current) return
+          
+          // Wait for DOM to be fully rendered
+          await new Promise(resolve => setTimeout(resolve, 500))
+
+          // Double-check we're still mounted and not already generating
+          if (!isMounted || isGeneratingRef.current || !previewRef.current) return
+
+          isGeneratingRef.current = true
+          setIsGenerating(true)
+
+          let timeoutId: NodeJS.Timeout | undefined
+
+          try {
+            // Add timeout to prevent hanging
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              timeoutId = setTimeout(() => reject(new Error('Preview generation timeout')), 10000)
+            })
+
+            const previewPromise = generatePreviewFromElement(previewRef.current, {
+              width: 400,
+              height: 500,
+              scale: 1.5,
+            })
+
+            const dataUrl = await Promise.race([previewPromise, timeoutPromise])
+
+            if (isMounted && dataUrl && typeof dataUrl === 'string') {
+              // Verify the image is valid
+              if (dataUrl.length > 500) {
+                setPreviewImage(dataUrl)
+                if (onPreviewGenerated) {
+                  onPreviewGenerated(dataUrl)
+                }
+              }
+            }
+          } catch (error: any) {
+            console.error('Error generating preview:', error)
+            // Silently fail - live preview is always available
+          } finally {
+            if (isMounted) {
+              isGeneratingRef.current = false
+              setIsGenerating(false)
+            }
+            if (timeoutId) {
+              clearTimeout(timeoutId)
+            }
+          }
+        }
+
+        generatePreview()
+      }, 5000) // 5 second delay after user stops editing
+    }
+
+    scheduleGeneration()
     
     return () => {
       isMounted = false
-      clearTimeout(debounceTimeout)
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
+      if (generationTimerRef.current) {
+        clearTimeout(generationTimerRef.current)
+        generationTimerRef.current = null
       }
     }
-  }, [designData, config, templateType, onPreviewGenerated]) // Removed isGenerating from dependencies
+  }, [designData, templateType, onPreviewGenerated]) // Removed config from dependencies to reduce churn
 
   return (
     <div className="relative">
@@ -149,28 +181,36 @@ export function InvitationPreview({
         />
       </div>
 
-      {/* Visible preview */}
+      {/* Visible preview - Always show live preview, static preview is optional */}
       <div className="w-full aspect-[4/5] bg-white rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm relative">
-        {previewImage && !generateError ? (
-          <img
-            src={previewImage}
-            alt="Invitation Preview"
-            className="w-full h-full object-contain"
-            onError={() => {
-              // Fallback to live preview if image fails to load
-              setPreviewImage(null)
-            }}
-          />
+        {/* Show static preview if available and not generating */}
+        {previewImage && !isGenerating ? (
+          <div className="relative w-full h-full">
+            <img
+              src={previewImage}
+              alt="Invitation Preview"
+              className="w-full h-full object-contain"
+              onError={() => {
+                // Fallback to live preview if image fails to load
+                setPreviewImage(null)
+              }}
+            />
+            {/* Overlay indicator that this is a static preview */}
+            <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+              Static Preview
+            </div>
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-50 relative overflow-auto" style={{ minHeight: '500px' }}>
             {isGenerating && (
               <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10 rounded-lg">
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-2">Generating preview...</div>
+                  <div className="text-sm text-gray-600 mb-2">Generating static preview...</div>
                   <div className="text-xs text-gray-500">This may take a few seconds</div>
                 </div>
               </div>
             )}
+            {/* Live preview - always visible */}
             <div className="w-full h-full flex items-center justify-center p-4" style={{ maxWidth: '400px', maxHeight: '500px' }}>
               <TemplateRenderer
                 templateType={templateType}
@@ -178,6 +218,12 @@ export function InvitationPreview({
                 designData={designData}
               />
             </div>
+            {/* Indicator that this is live preview */}
+            {!isGenerating && (
+              <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                Live Preview
+              </div>
+            )}
           </div>
         )}
       </div>
