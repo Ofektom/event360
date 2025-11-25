@@ -11,7 +11,13 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  // Initialize sidebar as open on desktop (>= 1024px)
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024
+    }
+    return false
+  })
   const [activeMenuType, setActiveMenuType] = useState<'events' | 'invitations' | 'order-of-events' | 'gallery' | 'reels'>('events')
   const pathname = usePathname()
 
@@ -29,6 +35,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const shouldBeLeftAligned = 
     pathname?.startsWith('/timeline') || 
     pathname?.startsWith('/invitations')
+
+  // Handle window resize to auto-open sidebar on desktop
+  useEffect(() => {
+    const handleResize = () => {
+      const isDesktop = window.innerWidth >= 1024
+      if (isDesktop) {
+        setSidebarOpen(true)
+      } else {
+        setSidebarOpen(false)
+      }
+    }
+    
+    window.addEventListener('resize', handleResize)
+    handleResize() // Initial check
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Determine menu type based on pathname
   useEffect(() => {
@@ -69,7 +91,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <main
         className={`
           flex-1 mt-16 overflow-y-auto transition-all duration-300
-          ${shouldShowSidebar && sidebarOpen ? 'lg:ml-64' : ''}
+          ${shouldShowSidebar ? 'lg:ml-64' : ''}
         `}
       >
         <div className="px-[10px] py-4">
