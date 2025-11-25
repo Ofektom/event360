@@ -5,6 +5,7 @@ import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { InvitationPreview } from './InvitationPreview'
 
 interface InvitationDesignEditorProps {
   eventId: string
@@ -642,35 +643,32 @@ export function InvitationDesignEditor({
 
       {/* Preview Panel */}
       <Card className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Preview</h2>
-        <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
-          {existingDesign?.customImage ? (
-            // Show custom uploaded image
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Live Preview</h2>
+        {existingDesign?.customImage ? (
+          // Show custom uploaded image
+          <div className="aspect-[4/5] bg-white rounded-lg overflow-hidden border-2 border-gray-200">
             <img
               src={existingDesign.customImage}
               alt={existingDesign.name || 'Custom Invitation'}
               className="w-full h-full object-contain"
             />
-          ) : config ? (
-            // Template-based preview (will be enhanced later)
-            <div className="text-center text-gray-500 p-4">
-              <div className="text-4xl mb-2">📱</div>
-              <p className="text-sm">Live preview will appear here</p>
-              <p className="text-xs mt-1">Preview functionality coming soon</p>
-              <div className="mt-4 text-left text-xs space-y-1">
-                <p><strong>Colors:</strong> {Object.keys(designData.colors || {}).length} customized</p>
-                <p><strong>Text Fields:</strong> {(config.textFields?.length || 0) + customFields.length}</p>
-                <p><strong>Graphics:</strong> {customGraphics.length + (config.graphics?.length || 0)}</p>
-              </div>
-            </div>
-          ) : (
-            // No template or custom image
+          </div>
+        ) : config ? (
+          // Template-based live preview
+          <InvitationPreview
+            templateType={template?.name || 'elegant'}
+            config={config}
+            designData={designData}
+          />
+        ) : (
+          // No template or custom image
+          <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
             <div className="text-center text-gray-500">
               <div className="text-4xl mb-2">🎨</div>
               <p className="text-sm">No preview available</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         {existingDesign?.customImage && (
           <p className="mt-4 text-sm text-gray-600 text-center">
             Custom uploaded design

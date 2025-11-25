@@ -34,6 +34,7 @@ export { InvitationTemplateLibrary } from './organisms/InvitationTemplateLibrary
 export { InvitationDesignEditor } from './organisms/InvitationDesignEditor'
 export { InvitationDesignsList } from './organisms/InvitationDesignsList'
 export { CustomInvitationUpload } from './organisms/CustomInvitationUpload'
+export { InvitationPreview } from './organisms/InvitationPreview'
 
 // Layout
 export { Navbar } from './layout/Navbar'
