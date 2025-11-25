@@ -54,44 +54,58 @@ export function InvitationPreview({
     
     lastDataHashRef.current = dataHash
 
+    // Reset preview image when data changes (show live preview first)
+    setPreviewImage(null)
+    setGenerateError(null)
+
     // Generate preview image when design data changes (lazy with debounce)
+    // Only generate if html2canvas is available and element is ready
     let isMounted = true
     let timeoutId: NodeJS.Timeout | undefined
 
     const generatePreview = async () => {
       // Prevent multiple simultaneous generations
       if (!previewRef.current || isGeneratingRef.current) return
+      
+      // Wait a bit for the DOM to render
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       isGeneratingRef.current = true
       setIsGenerating(true)
-      setGenerateError(null)
 
       try {
         // Add timeout to prevent hanging
         const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Preview generation timeout')), 5000)
+          timeoutId = setTimeout(() => reject(new Error('Preview generation timeout')), 8000)
         })
 
         const previewPromise = generatePreviewFromElement(previewRef.current, {
           width: 400,
           height: 500,
           scale: 1.5, // Reduced scale for better performance
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
         })
 
         const dataUrl = await Promise.race([previewPromise, timeoutPromise])
 
-        if (isMounted) {
-          setPreviewImage(dataUrl)
-          if (onPreviewGenerated) {
-            onPreviewGenerated(dataUrl)
+        if (isMounted && dataUrl && typeof dataUrl === 'string') {
+          // Verify the image is not just white/empty (basic check)
+          if (dataUrl.length > 500 && !dataUrl.includes('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')) {
+            setPreviewImage(dataUrl)
+            if (onPreviewGenerated) {
+              onPreviewGenerated(dataUrl)
+            }
+          } else {
+            console.warn('Generated preview appears to be empty or invalid')
+            // Don't set error, just keep showing live preview
           }
         }
       } catch (error: any) {
         console.error('Error generating preview:', error)
-        if (isMounted) {
-          setGenerateError(error.message || 'Failed to generate preview')
-          // Don't set preview image on error, will show live preview instead
-        }
+        // Don't show error to user, just keep live preview
+        // Preview generation is optional
       } finally {
         if (isMounted) {
           isGeneratingRef.current = false
@@ -104,7 +118,7 @@ export function InvitationPreview({
     }
 
     // Debounce preview generation (longer delay for better performance)
-    const debounceTimeout = setTimeout(generatePreview, 1000)
+    const debounceTimeout = setTimeout(generatePreview, 1500)
     
     return () => {
       isMounted = false
@@ -123,8 +137,12 @@ export function InvitationPreview({
         style={{
           position: 'absolute',
           left: '-9999px',
-          opacity: 0,
+          top: 0,
+          width: '400px',
+          height: '500px',
+          opacity: 1, // Keep visible for html2canvas
           pointerEvents: 'none',
+          zIndex: -1,
         }}
       >
         <TemplateRenderer
@@ -141,24 +159,28 @@ export function InvitationPreview({
             src={previewImage}
             alt="Invitation Preview"
             className="w-full h-full object-contain"
+            onError={() => {
+              // Fallback to live preview if image fails to load
+              setPreviewImage(null)
+            }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-50">
+          <div className="w-full h-full flex items-center justify-center bg-gray-50 relative overflow-auto" style={{ minHeight: '500px' }}>
             {isGenerating && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
-                <div className="text-sm text-gray-600">Generating preview...</div>
+              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10 rounded-lg">
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-2">Generating preview...</div>
+                  <div className="text-xs text-gray-500">This may take a few seconds</div>
+                </div>
               </div>
             )}
-            <TemplateRenderer
-              templateType={templateType}
-              config={config}
-              designData={designData}
-            />
-          </div>
-        )}
-        {generateError && (
-          <div className="absolute bottom-2 left-2 right-2 text-xs text-red-600 bg-red-50 p-2 rounded">
-            Preview generation failed. Showing live preview instead.
+            <div className="w-full h-full flex items-center justify-center p-4" style={{ maxWidth: '400px', maxHeight: '500px' }}>
+              <TemplateRenderer
+                templateType={templateType}
+                config={config}
+                designData={designData}
+              />
+            </div>
           </div>
         )}
       </div>

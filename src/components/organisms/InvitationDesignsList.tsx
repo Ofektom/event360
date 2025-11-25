@@ -24,15 +24,18 @@ interface InvitationDesignsListProps {
   eventId: string
   onEditDesign: (designId: string) => void
   onCreateNew: () => void
+  onDeleteDesign?: (designId: string) => void
 }
 
 export function InvitationDesignsList({
   eventId,
   onEditDesign,
   onCreateNew,
+  onDeleteDesign,
 }: InvitationDesignsListProps) {
   const [designs, setDesigns] = useState<InvitationDesign[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDesigns()
@@ -51,6 +54,38 @@ export function InvitationDesignsList({
       console.error('Error fetching designs:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async (designId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+    
+    if (!confirm('Are you sure you want to delete this invitation design? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeletingId(designId)
+      const response = await fetch(`/api/invitations/designs/${designId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete design')
+      }
+
+      // Remove from list
+      setDesigns(designs.filter(d => d.id !== designId))
+      
+      // Call callback if provided
+      if (onDeleteDesign) {
+        onDeleteDesign(designId)
+      }
+    } catch (error) {
+      console.error('Error deleting design:', error)
+      alert('Failed to delete design. Please try again.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -97,9 +132,25 @@ export function InvitationDesignsList({
         {designs.map((design) => (
           <Card
             key={design.id}
-            className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+            className="p-4 hover:shadow-lg transition-shadow cursor-pointer relative group"
             onClick={() => onEditDesign(design.id)}
           >
+            {/* Delete button - appears on hover */}
+            <button
+              onClick={(e) => handleDelete(design.id, e)}
+              disabled={deletingId === design.id}
+              className="absolute top-2 right-2 z-10 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
+              title="Delete design"
+            >
+              {deletingId === design.id ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+            </button>
+
             <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center">
               {design.imageUrl || design.customImage ? (
                 <img
@@ -121,7 +172,7 @@ export function InvitationDesignsList({
               )}
             </div>
             <div className="flex justify-between items-start">
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 mb-1">
                   {design.name || 'Untitled Design'}
                 </h3>
@@ -132,7 +183,7 @@ export function InvitationDesignsList({
                 )}
               </div>
               {design.isDefault && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded ml-2">
                   Default
                 </span>
               )}

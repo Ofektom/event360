@@ -102,6 +102,7 @@ export async function PATCH(
         ...(body.designData && { designData: body.designData }),
         ...(body.name !== undefined && { name: body.name }),
         ...(body.isDefault !== undefined && { isDefault: body.isDefault }),
+        ...(body.templateId !== undefined && { templateId: body.templateId }),
       },
       include: {
         template: {

@@ -13,6 +13,7 @@ interface InvitationDesignEditorProps {
   designId?: string
   onSave: () => void
   onCancel: () => void
+  onChangeTemplate?: () => void
 }
 
 interface TemplateConfig {
@@ -60,6 +61,7 @@ export function InvitationDesignEditor({
   designId,
   onSave,
   onCancel,
+  onChangeTemplate,
 }: InvitationDesignEditorProps) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -163,19 +165,29 @@ export function InvitationDesignEditor({
       setTemplate(data)
 
       // Initialize design data with template defaults if not editing existing design
-      if (!existingDesign && data.config) {
+      // OR if we're changing template for existing design (templateId prop is set but different from existing)
+      const isChangingTemplate = existingDesign && templateId && existingDesign.templateId !== templateId
+      
+      if ((!existingDesign || isChangingTemplate) && data.config) {
         const config = data.config as TemplateConfig
-        setDesignData({
+        // If changing template, merge existing data with new template defaults
+        const newDesignData = {
           text: config.textFields?.reduce((acc, field) => {
-            acc[field.id] = field.default || ''
+            // Keep existing text if changing template, otherwise use default
+            acc[field.id] = isChangingTemplate && designData.text?.[field.id] 
+              ? designData.text[field.id] 
+              : (field.default || '')
             return acc
           }, {} as Record<string, string>) || {},
-          colors: config.colors || {},
+          colors: isChangingTemplate 
+            ? { ...config.colors, ...designData.colors } // Merge colors
+            : (config.colors || {}),
           graphics: config.graphics?.reduce((acc, graphic) => {
             acc[graphic.id] = graphic.url
             return acc
           }, {} as Record<string, string>) || {},
-        })
+        }
+        setDesignData(newDesignData)
       }
     } catch (error: any) {
       console.error('Error fetching template:', error)
@@ -324,7 +336,9 @@ export function InvitationDesignEditor({
         },
         body: JSON.stringify({
           eventId,
-          templateId: templateId || existingDesign?.templateId,
+          templateId: designId 
+            ? (templateId || existingDesign?.templateId || null)
+            : (templateId || null),
           designData: saveData,
         }),
       })
@@ -391,7 +405,19 @@ export function InvitationDesignEditor({
     <div className="grid lg:grid-cols-2 gap-6">
       {/* Editor Panel */}
       <Card className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Customize Your Invitation</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Customize Your Invitation</h2>
+          {existingDesign && template && onChangeTemplate && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onChangeTemplate}
+              title="Change template for this design"
+            >
+              Change Template
+            </Button>
+          )}
+        </div>
 
         {/* Text Fields - Template Fields */}
         {config?.textFields && config.textFields.length > 0 && (

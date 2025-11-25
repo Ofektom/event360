@@ -27,23 +27,42 @@ interface ElegantWeddingTemplateProps {
 }
 
 export function ElegantWeddingTemplate({ config, designData }: ElegantWeddingTemplateProps) {
-  const colors = { ...config.colors, ...designData.colors }
-  const text = designData.text || {}
+  // Ensure we have valid config and designData
+  if (!config || !config.colors) {
+    console.error('ElegantWeddingTemplate: Missing config or config.colors', { config, designData })
+    return <div>Error: Template configuration is missing</div>
+  }
+
+  const colors = { 
+    primary: config.colors.primary || '#9333ea',
+    secondary: config.colors.secondary || '#ec4899',
+    accent: config.colors.accent || config.colors.secondary || '#ec4899',
+    background: config.colors.background || '#ffffff',
+    text: config.colors.text || '#111827',
+    heading: config.colors.heading || config.colors.text || '#111827',
+    body: config.colors.body || config.colors.text || '#4b5563',
+    ...(designData?.colors || {}),
+  }
+  
+  const text = designData?.text || {}
 
   return (
     <div
       className="invitation-template elegant-wedding"
       style={{
-        width: '400px',
-        height: '500px',
-        background: colors.background,
-        color: colors.text,
+        width: '100%',
+        height: '100%',
+        minWidth: '400px',
+        minHeight: '500px',
+        background: colors.background || '#ffffff',
+        color: colors.text || '#111827',
         fontFamily: "'Georgia', 'Times New Roman', serif",
         display: 'flex',
         flexDirection: 'column',
         padding: '40px',
         position: 'relative',
         overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       {/* Decorative elements */}

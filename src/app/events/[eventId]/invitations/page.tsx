@@ -74,6 +74,10 @@ export default function InvitationsPage() {
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId)
     setViewMode('editor')
+    // If we're changing template for existing design, update it
+    if (selectedDesign) {
+      // The editor will handle updating the design with new template
+    }
   }
 
   const handleCustomUpload = () => {
@@ -174,6 +178,11 @@ export default function InvitationsPage() {
               }
               setSelectedTemplate(null)
               setSelectedDesign(null)
+            }}
+            onChangeTemplate={() => {
+              // Keep the design ID but allow selecting a new template
+              setViewMode('library')
+              // Don't clear selectedDesign so we can update it with new template
             }}
           />
         )}
