@@ -46,7 +46,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [pathname])
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Navbar - Fixed at top */}
       <Navbar 
         variant="dashboard" 
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
@@ -55,29 +56,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         }}
       />
       
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar - Show on relevant pages */}
-        {shouldShowSidebar && (
-          <Sidebar 
-            isOpen={sidebarOpen} 
-            onClose={() => setSidebarOpen(false)}
-            menuType={activeMenuType}
-          />
-        )}
+      {/* Sidebar - Show on relevant pages */}
+      {shouldShowSidebar && (
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)}
+          menuType={activeMenuType}
+        />
+      )}
 
-        {/* Main Content */}
-        <main
-          className={`
-            flex-1 overflow-y-auto transition-all duration-300
-            ${shouldShowSidebar ? 'lg:ml-64' : ''}
-            w-full
-          `}
-        >
-          <div className="w-full h-full px-[10px] py-4">
-            {children}
-          </div>
-        </main>
-      </div>
+      {/* Main Content Area - Shift based on sidebar */}
+      <main
+        className={`
+          flex-1 mt-16 overflow-y-auto transition-all duration-300
+          ${shouldShowSidebar && sidebarOpen ? 'lg:ml-64' : ''}
+        `}
+      >
+        <div className="px-[10px] py-4">
+          {children}
+        </div>
+      </main>
 
       <Footer variant="dashboard" />
     </div>
