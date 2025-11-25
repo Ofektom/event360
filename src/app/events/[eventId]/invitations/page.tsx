@@ -119,7 +119,7 @@ export default function InvitationsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <Link href={`/events/${eventId}`}>
               <Button variant="ghost" size="sm" className="mb-4">
@@ -135,16 +135,18 @@ export default function InvitationsPage() {
 
         {/* Action Buttons */}
         {viewMode === 'list' && (
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Button
               variant="primary"
               onClick={() => setViewMode('library')}
+              className="w-full sm:w-auto"
             >
               Choose Template
             </Button>
             <Button
               variant="outline"
               onClick={handleCustomUpload}
+              className="w-full sm:w-auto"
             >
               Upload Custom Design
             </Button>

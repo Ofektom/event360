@@ -23,7 +23,7 @@ export default async function Home() {
         </header>
 
         {/* Main Content */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
           {/* Sign Up Card */}
           <Link
             href="/auth/signup"
@@ -56,7 +56,7 @@ export default async function Home() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="p-6 bg-white rounded-xl shadow-md">
             <div className="text-3xl mb-3">💒</div>
             <h3 className="font-semibold text-gray-900 mb-2">

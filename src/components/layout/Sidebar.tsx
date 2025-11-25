@@ -186,7 +186,7 @@ export function Sidebar({ isOpen, onClose, menuType = 'events' }: SidebarProps) 
       <aside
         className={`
           fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-white shadow-lg z-40 transform transition-transform duration-300 ease-in-out
-          lg:translate-x-0 lg:static lg:h-auto lg:z-auto lg:top-0
+          lg:translate-x-0 lg:static lg:h-screen lg:z-auto lg:top-0 lg:shadow-none lg:border-r lg:border-gray-200
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >

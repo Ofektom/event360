@@ -128,7 +128,7 @@ export default function EventDetailPage() {
           <p className="text-sm text-gray-600 mb-6">
             Complete your event setup by adding these features
           </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Design Invitations */}
             <Link href={`/events/${eventId}/invitations`}>
               <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
@@ -226,7 +226,7 @@ export default function EventDetailPage() {
         </Card>
 
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="p-6">
             <div className="text-2xl font-bold text-[var(--theme-primary)]">
               {event.ceremonies.length}
@@ -249,7 +249,7 @@ export default function EventDetailPage() {
 
         {/* Ceremonies Section */}
         <Card className="p-8">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Ceremonies</h2>
             <Link href={`/events/${eventId}/ceremonies/new`}>
               <Button variant="primary">
@@ -271,7 +271,7 @@ export default function EventDetailPage() {
                   href={`/events/${eventId}/ceremonies/${ceremony.id}`}
                 >
                   <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                     <div>
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         {ceremony.name}
@@ -303,7 +303,7 @@ export default function EventDetailPage() {
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Link href={`/events/${eventId}/invitees`}>
             <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
             <div className="text-3xl mb-3">👥</div>

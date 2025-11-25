@@ -341,7 +341,7 @@ export default function InviteesPage() {
           <Card className="p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Guest</h2>
             <form onSubmit={handleAddInvitee} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Name <span className="text-red-500">*</span>

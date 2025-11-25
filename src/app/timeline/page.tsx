@@ -15,7 +15,7 @@ export default async function TimelinePage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto">
+      <div className="w-full max-w-3xl mx-auto">
         {/* Timeline Feed - No heading, just continuous cards like Facebook */}
         <TimelineFeed />
       </div>

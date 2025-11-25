@@ -451,7 +451,7 @@ export function InvitationDesignEditor({
   }
 
   return (
-    <div className="grid lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
       {/* Editor Panel */}
       <Card className="p-6">
         <div className="flex justify-between items-center mb-6">
@@ -567,101 +567,138 @@ export function InvitationDesignEditor({
           ))}
         </div>
 
-        {/* Enhanced Colors - Theme Colors */}
-        <div className="space-y-4 mb-6">
-          <h3 className="font-semibold text-gray-900">Theme Colors</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(currentThemeColors).map(([key, defaultColor]) => (
-              <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                  {key}
+        {/* Colors Section - Reorganized with clear labels */}
+        <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Colors & Styling</h3>
+          
+          {/* Background Color */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Background Color
+            </label>
+            <p className="text-xs text-gray-500 mb-2">The background color of the entire invitation card</p>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                value={currentBackgroundColors.background}
+                onChange={(e) => handleColorChange('background', e.target.value)}
+                className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+              />
+              <Input
+                type="text"
+                value={currentBackgroundColors.background}
+                onChange={(e) => handleColorChange('background', e.target.value)}
+                className="flex-1"
+                placeholder="#ffffff"
+              />
+            </div>
+          </div>
+
+          {/* Text Colors - Clear labels */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-gray-800 mt-4">Text Colors</h4>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Couple Names (Primary)
                 </label>
+                <p className="text-xs text-gray-500 mb-2">Color for the main heading (e.g., "Bride & Groom")</p>
                 <div className="flex gap-2">
                   <input
                     type="color"
-                    value={defaultColor}
-                    onChange={(e) => handleColorChange(key, e.target.value)}
+                    value={currentThemeColors.primary}
+                    onChange={(e) => handleColorChange('primary', e.target.value)}
                     className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
                   />
                   <Input
                     type="text"
-                    value={defaultColor}
-                    onChange={(e) => handleColorChange(key, e.target.value)}
+                    value={currentThemeColors.primary}
+                    onChange={(e) => handleColorChange('primary', e.target.value)}
                     className="flex-1"
-                    placeholder={defaultColor}
+                    placeholder="#9333ea"
                   />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Text Colors */}
-        <div className="space-y-4 mb-6">
-          <h3 className="font-semibold text-gray-900">Text Colors</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(currentTextColors).map(([key, defaultColor]) => (
-              <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                  {key}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date & Subheading
                 </label>
+                <p className="text-xs text-gray-500 mb-2">Color for date, venue, and subheadings</p>
                 <div className="flex gap-2">
                   <input
                     type="color"
-                    value={defaultColor}
-                    onChange={(e) => handleColorChange(key, e.target.value)}
+                    value={currentTextColors.heading}
+                    onChange={(e) => handleColorChange('heading', e.target.value)}
                     className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
                   />
                   <Input
                     type="text"
-                    value={defaultColor}
-                    onChange={(e) => handleColorChange(key, e.target.value)}
+                    value={currentTextColors.heading}
+                    onChange={(e) => handleColorChange('heading', e.target.value)}
                     className="flex-1"
-                    placeholder={defaultColor}
+                    placeholder="#111827"
                   />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Background Colors */}
-        <div className="space-y-4 mb-6">
-          <h3 className="font-semibold text-gray-900">Background Colors</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(currentBackgroundColors).map(([key, defaultColor]) => (
-              <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                  {key}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Body Text
                 </label>
+                <p className="text-xs text-gray-500 mb-2">Color for description and message text</p>
                 <div className="flex gap-2">
                   <input
                     type="color"
-                    value={defaultColor}
-                    onChange={(e) => handleColorChange(key, e.target.value)}
+                    value={currentTextColors.body}
+                    onChange={(e) => handleColorChange('body', e.target.value)}
                     className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
                   />
                   <Input
                     type="text"
-                    value={defaultColor}
-                    onChange={(e) => handleColorChange(key, e.target.value)}
+                    value={currentTextColors.body}
+                    onChange={(e) => handleColorChange('body', e.target.value)}
                     className="flex-1"
-                    placeholder={defaultColor}
+                    placeholder="#4b5563"
                   />
                 </div>
               </div>
-            ))}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Accent Color
+                </label>
+                <p className="text-xs text-gray-500 mb-2">Color for decorative elements and dividers</p>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={currentThemeColors.secondary}
+                    onChange={(e) => handleColorChange('secondary', e.target.value)}
+                    className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={currentThemeColors.secondary}
+                    onChange={(e) => handleColorChange('secondary', e.target.value)}
+                    className="flex-1"
+                    placeholder="#ec4899"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Typography Settings */}
-        <div className="space-y-4 mb-6">
-          <h3 className="font-semibold text-gray-900">Typography</h3>
+        {/* Typography Settings - Clear labels */}
+        <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Typography</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Heading Font Size (px)
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Couple Names Size
               </label>
+              <p className="text-xs text-gray-500 mb-2">Font size for the main heading (e.g., "Bride & Groom")</p>
               <Input
                 type="number"
                 min="12"
@@ -672,9 +709,10 @@ export function InvitationDesignEditor({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subheading Font Size (px)
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date & Subheading Size
               </label>
+              <p className="text-xs text-gray-500 mb-2">Font size for date, venue, and subheadings</p>
               <Input
                 type="number"
                 min="12"
@@ -685,9 +723,10 @@ export function InvitationDesignEditor({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Body Font Size (px)
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Body Text Size
               </label>
+              <p className="text-xs text-gray-500 mb-2">Font size for description and message text</p>
               <Input
                 type="number"
                 min="10"
@@ -700,14 +739,15 @@ export function InvitationDesignEditor({
           </div>
         </div>
 
-        {/* Spacing Settings */}
-        <div className="space-y-4 mb-6">
-          <h3 className="font-semibold text-gray-900">Spacing</h3>
+        {/* Spacing Settings - Clear labels */}
+        <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Spacing</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Padding (px)
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Card Padding
               </label>
+              <p className="text-xs text-gray-500 mb-2">Space around the edges of the invitation card</p>
               <Input
                 type="number"
                 min="0"
@@ -718,9 +758,10 @@ export function InvitationDesignEditor({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Top Margin (px)
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Top Spacing
               </label>
+              <p className="text-xs text-gray-500 mb-2">Space above headings and main elements</p>
               <Input
                 type="number"
                 min="0"
@@ -731,9 +772,10 @@ export function InvitationDesignEditor({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bottom Margin (px)
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bottom Spacing
               </label>
+              <p className="text-xs text-gray-500 mb-2">Space below headings and main elements</p>
               <Input
                 type="number"
                 min="0"
@@ -787,7 +829,7 @@ export function InvitationDesignEditor({
                 {customGraphics.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-gray-700">Your Graphics:</p>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {customGraphics.map((graphic) => (
                         <div key={graphic.id} className="relative group">
                           <img
@@ -812,7 +854,7 @@ export function InvitationDesignEditor({
                 {config?.graphics && config.graphics.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-gray-700">Template Graphics:</p>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {config.graphics.map((graphic) => (
                         <div key={graphic.id} className="relative">
                           <img
@@ -831,17 +873,17 @@ export function InvitationDesignEditor({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-6 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
           <Button
             variant="primary"
             onClick={handleSave}
             isLoading={saving}
             disabled={saving}
-            className="flex-1"
+            className="w-full sm:flex-1"
           >
             Save Design
           </Button>
-          <Button variant="outline" onClick={onCancel} className="flex-1">
+          <Button variant="outline" onClick={onCancel} className="w-full sm:flex-1">
             Cancel
           </Button>
         </div>

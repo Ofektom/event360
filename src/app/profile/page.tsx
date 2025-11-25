@@ -200,7 +200,7 @@ export default async function ProfilePage() {
           <UserStats stats={profileData.stats} />
 
           {/* Events Section */}
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Created Events */}
             <Card className="p-6">
               <h2 className="text-2xl font-bold mb-4">Events I Created</h2>

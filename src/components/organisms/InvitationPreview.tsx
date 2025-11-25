@@ -211,7 +211,7 @@ export function InvitationPreview({
               </div>
             )}
             {/* Live preview - always visible */}
-            <div className="w-full h-full flex items-center justify-center p-4" style={{ maxWidth: '400px', maxHeight: '500px' }}>
+            <div className="w-full h-full flex items-center justify-center p-2 sm:p-4" style={{ maxWidth: '100%', maxHeight: '500px' }}>
               <TemplateRenderer
                 templateType={templateType}
                 config={config}
