@@ -100,40 +100,14 @@ export function InvitationTemplateLibrary({
         </div>
       </Card>
 
-      {/* Seed Templates Button (for development) */}
-      {filteredTemplates.length === 0 && (
-        <Card className="p-6 mb-6 bg-yellow-50 border-yellow-200">
-          <div className="text-center">
-            <p className="text-gray-700 mb-4">No templates found. Seed templates to get started.</p>
-            <button
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/invitations/templates/seed', {
-                    method: 'POST',
-                  })
-                  if (response.ok) {
-                    alert('Templates seeded successfully! Refresh the page to see them.')
-                    window.location.reload()
-                  } else {
-                    alert('Failed to seed templates')
-                  }
-                } catch (error) {
-                  console.error('Error seeding templates:', error)
-                  alert('Error seeding templates')
-                }
-              }}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Seed Templates
-            </button>
-          </div>
-        </Card>
-      )}
-
       {/* Templates Grid */}
       {filteredTemplates.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-gray-600">No templates found.</p>
+          <div className="text-4xl mb-4">🎨</div>
+          <p className="text-gray-600 mb-2">No templates found.</p>
+          <p className="text-sm text-gray-500">
+            Templates need to be seeded during development setup.
+          </p>
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

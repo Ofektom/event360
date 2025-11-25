@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { seedInvitationTemplates } from '@/lib/seed-templates'
 import { requireAuth } from '@/lib/auth'
 
-// POST /api/invitations/templates/seed - Seed initial templates
+/**
+ * POST /api/invitations/templates/seed - Seed initial templates
+ * 
+ * NOTE: Templates should be seeded during development setup using:
+ *   pnpm seed:templates
+ * 
+ * This API endpoint is available for admin use or programmatic seeding,
+ * but the recommended approach is to use the seed script.
+ */
 export async function POST(request: NextRequest) {
   try {
     // Require authentication (can add admin check later)

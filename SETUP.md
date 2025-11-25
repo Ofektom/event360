@@ -88,10 +88,12 @@ FACEBOOK_CLIENT_SECRET=""
    npx prisma migrate dev --name init
    ```
 
-3. **Seed the database (optional):**
+3. **Seed invitation templates (required for invitation features):**
    ```bash
-   npx prisma db seed
+   pnpm seed:templates
    ```
+   This seeds the database with default invitation templates that all users can use.
+   **Note:** This should be run ONCE during initial setup. Templates are shared across all users.
 
 4. **Start the development server:**
    ```bash
