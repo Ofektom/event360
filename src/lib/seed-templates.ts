@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { getUnsplashQueryForCategory, getUnsplashImageUrl } from './template-renderer'
+import { getTemplatePreviewDataURL } from './template-preview'
 
 /**
  * Seed initial invitation templates
@@ -327,20 +327,28 @@ export async function seedInvitationTemplates() {
     })
 
     if (!existing) {
-      // Generate preview image URL using Unsplash
-      const query = getUnsplashQueryForCategory(template.category)
-      const previewUrl = getUnsplashImageUrl(query, 400, 500)
+      // Generate preview image using SVG (fast and reliable)
+      const previewUrl = getTemplatePreviewDataURL({
+        width: 400,
+        height: 500,
+        category: template.category,
+        name: template.name,
+      })
 
       await prisma.invitationTemplate.create({
         data: {
           ...template,
-          preview: previewUrl, // Add Unsplash preview image
+          preview: previewUrl, // Add SVG preview image
         },
       })
-    } else if (!existing.preview) {
-      // Update existing template without preview
-      const query = getUnsplashQueryForCategory(template.category)
-      const previewUrl = getUnsplashImageUrl(query, 400, 500)
+    } else if (!existing.preview || existing.preview.includes('unsplash.com')) {
+      // Update existing template without preview or with old Unsplash URL
+      const previewUrl = getTemplatePreviewDataURL({
+        width: 400,
+        height: 500,
+        category: template.category,
+        name: template.name,
+      })
       
       await prisma.invitationTemplate.update({
         where: { id: existing.id },

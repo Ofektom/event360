@@ -88,10 +88,21 @@ export function InvitationDesignEditor({
   const fetchDesign = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/invitations/designs/${designId}`)
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const response = await fetch(`/api/invitations/designs/${designId}`, {
+        signal: controller.signal,
+      })
+      
+      clearTimeout(timeoutId)
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch design')
+        throw new Error(`Failed to fetch design: ${response.statusText}`)
       }
+      
       const data = await response.json()
       setExistingDesign(data)
       const savedData = data.designData || { text: {}, colors: {}, graphics: {} }
@@ -110,23 +121,44 @@ export function InvitationDesignEditor({
       // Fetch template if design has one
       if (data.templateId) {
         await fetchTemplate(data.templateId)
+      } else {
+        setLoading(false)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching design:', error)
-    } finally {
+      if (error.name === 'AbortError') {
+        alert('Request timed out. Please try again.')
+      } else {
+        alert('Failed to load design. Please try again.')
+      }
       setLoading(false)
     }
   }
 
   const fetchTemplate = async (id?: string) => {
     const templateIdToFetch = id || templateId
-    if (!templateIdToFetch) return
+    if (!templateIdToFetch) {
+      setLoading(false)
+      return
+    }
 
     try {
-      const response = await fetch(`/api/invitations/templates/${templateIdToFetch}`)
+      setLoading(true)
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const response = await fetch(`/api/invitations/templates/${templateIdToFetch}`, {
+        signal: controller.signal,
+      })
+      
+      clearTimeout(timeoutId)
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch template')
+        throw new Error(`Failed to fetch template: ${response.statusText}`)
       }
+      
       const data = await response.json()
       setTemplate(data)
 
@@ -145,8 +177,15 @@ export function InvitationDesignEditor({
           }, {} as Record<string, string>) || {},
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching template:', error)
+      if (error.name === 'AbortError') {
+        alert('Request timed out. Please try again.')
+      } else {
+        alert('Failed to load template. Please try again.')
+      }
+    } finally {
+      setLoading(false)
     }
   }
 

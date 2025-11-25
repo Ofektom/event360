@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
@@ -52,16 +52,20 @@ export function InvitationTemplateLibrary({
   }
 
   const categories = ['all', 'wedding', 'birthday', 'corporate', 'celebration', 'other']
-  const filteredTemplates = templates.filter((template) => {
-    const matchesSearch =
-      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  
+  // Memoize filtered templates for better performance
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((template) => {
+      const matchesSearch =
+        template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        template.description?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesCategory =
-      selectedCategory === 'all' || template.category === selectedCategory
+      const matchesCategory =
+        selectedCategory === 'all' || template.category === selectedCategory
 
-    return matchesSearch && matchesCategory
-  })
+      return matchesSearch && matchesCategory
+    })
+  }, [templates, searchQuery, selectedCategory])
 
   if (loading) {
     return (
@@ -117,12 +121,27 @@ export function InvitationTemplateLibrary({
               className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => onSelectTemplate(template.id)}
             >
-              <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center">
+              <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
                 {template.preview ? (
                   <img
                     src={template.preview}
                     alt={template.name}
                     className="w-full h-full object-cover rounded-lg"
+                    loading="lazy"
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      const parent = target.parentElement
+                      if (parent) {
+                        parent.innerHTML = `
+                          <div class="text-center text-gray-400">
+                            <div class="text-4xl mb-2">🎨</div>
+                            <p class="text-sm">${template.name}</p>
+                          </div>
+                        `
+                      }
+                    }}
                   />
                 ) : (
                   <div className="text-center text-gray-400">
