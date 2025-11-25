@@ -594,17 +594,17 @@ export function InvitationDesignEditor({
             </div>
           </div>
 
-          {/* Text Colors - Clear labels */}
+          {/* Text Colors - Clear labels with font sizes */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-800 mt-4">Text Colors</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mt-4">Text Colors & Sizes</h4>
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Couple Names (Primary)
                 </label>
-                <p className="text-xs text-gray-500 mb-2">Color for the main heading (e.g., "Bride & Groom")</p>
-                <div className="flex gap-2">
+                <p className="text-xs text-gray-500 mb-2">Color and size for the main heading (e.g., "Bride & Groom")</p>
+                <div className="flex gap-2 items-end">
                   <input
                     type="color"
                     value={currentThemeColors.primary}
@@ -618,6 +618,17 @@ export function InvitationDesignEditor({
                     className="flex-1"
                     placeholder="#9333ea"
                   />
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-600 whitespace-nowrap">Size:</label>
+                    <Input
+                      type="number"
+                      min="12"
+                      max="72"
+                      value={designData.styles?.fontSize?.heading || 32}
+                      onChange={(e) => handleStyleChange('fontSize.heading', parseInt(e.target.value) || 32)}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -625,8 +636,8 @@ export function InvitationDesignEditor({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Date & Subheading
                 </label>
-                <p className="text-xs text-gray-500 mb-2">Color for date, venue, and subheadings</p>
-                <div className="flex gap-2">
+                <p className="text-xs text-gray-500 mb-2">Color and size for date, venue, and subheadings</p>
+                <div className="flex gap-2 items-end">
                   <input
                     type="color"
                     value={currentTextColors.heading}
@@ -640,6 +651,17 @@ export function InvitationDesignEditor({
                     className="flex-1"
                     placeholder="#111827"
                   />
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-600 whitespace-nowrap">Size:</label>
+                    <Input
+                      type="number"
+                      min="12"
+                      max="48"
+                      value={designData.styles?.fontSize?.subheading || 24}
+                      onChange={(e) => handleStyleChange('fontSize.subheading', parseInt(e.target.value) || 24)}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -647,8 +669,8 @@ export function InvitationDesignEditor({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Body Text
                 </label>
-                <p className="text-xs text-gray-500 mb-2">Color for description and message text</p>
-                <div className="flex gap-2">
+                <p className="text-xs text-gray-500 mb-2">Color and size for description and message text</p>
+                <div className="flex gap-2 items-end">
                   <input
                     type="color"
                     value={currentTextColors.body}
@@ -662,6 +684,17 @@ export function InvitationDesignEditor({
                     className="flex-1"
                     placeholder="#4b5563"
                   />
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-600 whitespace-nowrap">Size:</label>
+                    <Input
+                      type="number"
+                      min="10"
+                      max="24"
+                      value={designData.styles?.fontSize?.body || 16}
+                      onChange={(e) => handleStyleChange('fontSize.body', parseInt(e.target.value) || 16)}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -690,54 +723,6 @@ export function InvitationDesignEditor({
           </div>
         </div>
 
-        {/* Typography Settings - Clear labels */}
-        <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Typography</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Couple Names Size
-              </label>
-              <p className="text-xs text-gray-500 mb-2">Font size for the main heading (e.g., "Bride & Groom")</p>
-              <Input
-                type="number"
-                min="12"
-                max="72"
-                value={designData.styles?.fontSize?.heading || 32}
-                onChange={(e) => handleStyleChange('fontSize.heading', parseInt(e.target.value) || 32)}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date & Subheading Size
-              </label>
-              <p className="text-xs text-gray-500 mb-2">Font size for date, venue, and subheadings</p>
-              <Input
-                type="number"
-                min="12"
-                max="48"
-                value={designData.styles?.fontSize?.subheading || 24}
-                onChange={(e) => handleStyleChange('fontSize.subheading', parseInt(e.target.value) || 24)}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Body Text Size
-              </label>
-              <p className="text-xs text-gray-500 mb-2">Font size for description and message text</p>
-              <Input
-                type="number"
-                min="10"
-                max="24"
-                value={designData.styles?.fontSize?.body || 16}
-                onChange={(e) => handleStyleChange('fontSize.body', parseInt(e.target.value) || 16)}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
 
         {/* Spacing Settings - Clear labels */}
         <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
