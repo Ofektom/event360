@@ -40,21 +40,35 @@ export function InvitationPreview({
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const isGeneratingRef = useRef(false) // Use ref to prevent re-triggering
+  const lastDataHashRef = useRef<string>('')
 
   useEffect(() => {
+    // Create a hash of the design data to detect actual changes
+    const dataHash = JSON.stringify({ designData, config, templateType })
+    
+    // Skip if data hasn't changed
+    if (dataHash === lastDataHashRef.current) {
+      return
+    }
+    
+    lastDataHashRef.current = dataHash
+
     // Generate preview image when design data changes (lazy with debounce)
     let isMounted = true
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: NodeJS.Timeout | undefined
 
     const generatePreview = async () => {
-      if (!previewRef.current || isGenerating) return
+      // Prevent multiple simultaneous generations
+      if (!previewRef.current || isGeneratingRef.current) return
 
+      isGeneratingRef.current = true
       setIsGenerating(true)
       setGenerateError(null)
 
       try {
         // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => {
+        const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => reject(new Error('Preview generation timeout')), 5000)
         })
 
@@ -64,7 +78,7 @@ export function InvitationPreview({
           scale: 1.5, // Reduced scale for better performance
         })
 
-        const dataUrl = await Promise.race([previewPromise, timeoutPromise]) as string
+        const dataUrl = await Promise.race([previewPromise, timeoutPromise])
 
         if (isMounted) {
           setPreviewImage(dataUrl)
@@ -80,7 +94,11 @@ export function InvitationPreview({
         }
       } finally {
         if (isMounted) {
+          isGeneratingRef.current = false
           setIsGenerating(false)
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId)
         }
       }
     }
@@ -91,9 +109,11 @@ export function InvitationPreview({
     return () => {
       isMounted = false
       clearTimeout(debounceTimeout)
-      if (timeoutId) clearTimeout(timeoutId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
     }
-  }, [designData, config, templateType, onPreviewGenerated, isGenerating])
+  }, [designData, config, templateType, onPreviewGenerated]) // Removed isGenerating from dependencies
 
   return (
     <div className="relative">
