@@ -33,6 +33,7 @@ export { ShareEventModal } from './organisms/ShareEventModal'
 export { InvitationTemplateLibrary } from './organisms/InvitationTemplateLibrary'
 export { InvitationDesignEditor } from './organisms/InvitationDesignEditor'
 export { InvitationDesignsList } from './organisms/InvitationDesignsList'
+export { CustomInvitationUpload } from './organisms/CustomInvitationUpload'
 
 // Layout
 export { Navbar } from './layout/Navbar'

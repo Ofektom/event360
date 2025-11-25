@@ -12,6 +12,7 @@ import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { InvitationTemplateLibrary } from '@/components/organisms/InvitationTemplateLibrary'
 import { InvitationDesignEditor } from '@/components/organisms/InvitationDesignEditor'
 import { InvitationDesignsList } from '@/components/organisms/InvitationDesignsList'
+import { CustomInvitationUpload } from '@/components/organisms/CustomInvitationUpload'
 
 interface Event {
   id: string
@@ -69,7 +70,15 @@ export default function InvitationsPage() {
 
   const handleCustomUpload = () => {
     setSelectedTemplate(null)
+    setSelectedDesign(null)
     setViewMode('upload')
+  }
+
+  const handleUploadSuccess = (designId: string) => {
+    setSelectedDesign(designId)
+    setViewMode('list') // Show the list with the new design
+    // Optionally, you could switch to editor mode:
+    // setViewMode('editor')
   }
 
   if (status === 'loading' || loading) {
@@ -162,21 +171,11 @@ export default function InvitationsPage() {
         )}
 
         {viewMode === 'upload' && (
-          <Card className="p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Upload Custom Invitation
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Upload your own invitation design (image or PDF)
-            </p>
-            {/* TODO: Implement file upload */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-              <p className="text-gray-500 mb-4">File upload will be implemented here</p>
-              <Button variant="outline" onClick={() => setViewMode('list')}>
-                Cancel
-              </Button>
-            </div>
-          </Card>
+          <CustomInvitationUpload
+            eventId={eventId}
+            onUploadSuccess={handleUploadSuccess}
+            onCancel={() => setViewMode('list')}
+          />
         )}
 
         {viewMode === 'list' && (

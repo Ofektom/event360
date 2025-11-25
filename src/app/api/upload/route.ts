@@ -30,19 +30,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only images and videos are allowed.' },
-        { status: 400 }
-      )
+    // Get upload type from form data (defaults to 'media' for backward compatibility)
+    const uploadType = formData.get('type') as string || 'media'
+
+    // Validate file type based on upload type
+    if (uploadType === 'invitation') {
+      // For invitations, allow images and PDFs
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']
+      if (!allowedTypes.includes(file.type)) {
+        return NextResponse.json(
+          { error: 'Invalid file type. Only PNG, JPG, and PDF files are allowed for invitations.' },
+          { status: 400 }
+        )
+      }
+    } else {
+      // For media uploads, allow images and videos
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        return NextResponse.json(
+          { error: 'Invalid file type. Only images and videos are allowed.' },
+          { status: 400 }
+        )
+      }
     }
 
-    // Validate file size (max 50MB)
-    const maxSize = 50 * 1024 * 1024 // 50MB
+    // Validate file size based on upload type
+    const maxSize = uploadType === 'invitation' 
+      ? 10 * 1024 * 1024 // 10MB for invitations
+      : 50 * 1024 * 1024 // 50MB for media
+    const maxSizeLabel = uploadType === 'invitation' ? '10MB' : '50MB'
+    
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File size exceeds maximum allowed size of 50MB' },
+        { error: `File size exceeds maximum allowed size of ${maxSizeLabel}` },
         { status: 400 }
       )
     }
