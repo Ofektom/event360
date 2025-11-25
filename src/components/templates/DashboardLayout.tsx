@@ -73,7 +73,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             w-full
           `}
         >
-          <div className={`w-full max-w-7xl ${shouldShowSidebar && shouldBeLeftAligned ? '' : 'mx-auto'} p-[10px]`}>
+          <div className="w-full h-full px-[10px] py-4">
             {children}
           </div>
         </main>
