@@ -8,23 +8,29 @@ import { Button } from '@/components/atoms/Button'
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
+  menuType?: 'events' | 'invitations' | 'order-of-events' | 'gallery' | 'reels'
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const pathname = usePathname()
+interface MenuItem {
+  label: string
+  href: string
+  icon: string
+}
 
-  const isActive = (path: string) => {
-    return pathname === path || pathname?.startsWith(path + '/')
-  }
-
-  const menuItems = [
+const menuConfigs: Record<string, MenuItem[]> = {
+  events: [
     {
       label: 'Manage Events',
       href: '/dashboard/events',
       icon: '📋',
     },
     {
-      label: 'Settings',
+      label: 'Create Event',
+      href: '/events/new',
+      icon: '➕',
+    },
+    {
+      label: 'Event Settings',
       href: '/dashboard/settings',
       icon: '⚙️',
     },
@@ -33,7 +39,138 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       href: '/dashboard/analytics',
       icon: '📊',
     },
-  ]
+  ],
+  invitations: [
+    {
+      label: 'My Invitations',
+      href: '/invitations',
+      icon: '💌',
+    },
+    {
+      label: 'Design Invitation',
+      href: '/invitations/design',
+      icon: '🎨',
+    },
+    {
+      label: 'Upload Custom Design',
+      href: '/invitations/upload',
+      icon: '📤',
+    },
+    {
+      label: 'Share Invitation',
+      href: '/invitations/share',
+      icon: '🔗',
+    },
+    {
+      label: 'Invitation Templates',
+      href: '/invitations/templates',
+      icon: '📄',
+    },
+  ],
+  'order-of-events': [
+    {
+      label: 'All Programmes',
+      href: '/order-of-events',
+      icon: '📅',
+    },
+    {
+      label: 'Create Programme',
+      href: '/order-of-events/new',
+      icon: '➕',
+    },
+    {
+      label: 'Schedule Builder',
+      href: '/order-of-events/builder',
+      icon: '🔨',
+    },
+    {
+      label: 'Programme Templates',
+      href: '/order-of-events/templates',
+      icon: '📋',
+    },
+  ],
+  gallery: [
+    {
+      label: 'All Photos',
+      href: '/gallery',
+      icon: '📸',
+    },
+    {
+      label: 'Upload Photos',
+      href: '/gallery/upload',
+      icon: '📤',
+    },
+    {
+      label: 'Featured Photos',
+      href: '/gallery/featured',
+      icon: '⭐',
+    },
+    {
+      label: 'Photo Albums',
+      href: '/gallery/albums',
+      icon: '📁',
+    },
+    {
+      label: 'Gallery Settings',
+      href: '/gallery/settings',
+      icon: '⚙️',
+    },
+  ],
+  reels: [
+    {
+      label: 'All Reels',
+      href: '/reels',
+      icon: '🎬',
+    },
+    {
+      label: 'Create Reel',
+      href: '/reels/new',
+      icon: '➕',
+    },
+    {
+      label: 'Upload Video',
+      href: '/reels/upload',
+      icon: '📤',
+    },
+    {
+      label: 'My Reels',
+      href: '/reels/my-reels',
+      icon: '🎥',
+    },
+    {
+      label: 'Reel Templates',
+      href: '/reels/templates',
+      icon: '📄',
+    },
+  ],
+}
+
+export function Sidebar({ isOpen, onClose, menuType = 'events' }: SidebarProps) {
+  const pathname = usePathname()
+
+  const isActive = (path: string) => {
+    return pathname === path || pathname?.startsWith(path + '/')
+  }
+
+  const menuItems = menuConfigs[menuType] || menuConfigs.events
+
+  // Get the title based on menu type
+  const getTitle = () => {
+    switch (menuType) {
+      case 'events':
+        return 'Event Management'
+      case 'invitations':
+        return 'Invitation Management'
+      case 'order-of-events':
+        return 'Programme Management'
+      case 'gallery':
+        return 'Gallery Management'
+      case 'reels':
+        return 'Reels Management'
+      default:
+        return 'Event Management'
+    }
+  }
 
   return (
     <>
@@ -56,7 +193,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Event Management</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{getTitle()}</h2>
             <button
               onClick={onClose}
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -110,4 +247,3 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     </>
   )
 }
-

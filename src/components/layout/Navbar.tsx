@@ -9,9 +9,10 @@ import { Button } from '@/components/atoms/Button'
 interface NavbarProps {
   variant?: 'dashboard' | 'public'
   onMenuClick?: () => void
+  onActiveTabChange?: (tab: string) => void
 }
 
-export function Navbar({ variant = 'dashboard', onMenuClick }: NavbarProps) {
+export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }: NavbarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -20,6 +21,33 @@ export function Navbar({ variant = 'dashboard', onMenuClick }: NavbarProps) {
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
   }
+
+  // Determine active tab based on pathname
+  const getActiveTab = () => {
+    if (pathname?.startsWith('/timeline') || pathname?.startsWith('/dashboard/events') || pathname?.startsWith('/events/')) {
+      return 'events'
+    }
+    if (pathname?.startsWith('/invitations')) {
+      return 'invitations'
+    }
+    if (pathname?.startsWith('/order-of-events')) {
+      return 'order-of-events'
+    }
+    if (pathname?.startsWith('/gallery')) {
+      return 'gallery'
+    }
+    if (pathname?.startsWith('/reels')) {
+      return 'reels'
+    }
+    return 'events' // Default
+  }
+
+  // Notify parent of active tab change
+  useEffect(() => {
+    if (onActiveTabChange) {
+      onActiveTabChange(getActiveTab())
+    }
+  }, [pathname, onActiveTabChange])
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })
@@ -113,7 +141,7 @@ export function Navbar({ variant = 'dashboard', onMenuClick }: NavbarProps) {
             <Link
               href="/timeline"
               className={`px-3 py-2 rounded-lg transition-colors ${
-                isActive('/timeline')
+                isActive('/timeline') || isActive('/dashboard/events') || isActive('/events/')
                   ? 'bg-purple-100 text-purple-700 font-medium'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
@@ -254,7 +282,7 @@ export function Navbar({ variant = 'dashboard', onMenuClick }: NavbarProps) {
             <Link
               href="/timeline"
               className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                isActive('/timeline')
+                isActive('/timeline') || isActive('/dashboard/events') || isActive('/events/')
                   ? 'bg-purple-100 text-purple-700 font-medium'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}

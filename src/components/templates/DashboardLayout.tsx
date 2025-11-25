@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Footer } from '@/components/layout/Footer'
@@ -12,29 +12,59 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeMenuType, setActiveMenuType] = useState<'events' | 'invitations' | 'order-of-events' | 'gallery' | 'reels'>('events')
   const pathname = usePathname()
 
-  // Show sidebar on timeline, events pages, and event detail pages
-  const showSidebar = 
+  // Determine which pages should show sidebar
+  const shouldShowSidebar = 
     pathname?.startsWith('/timeline') || 
     pathname?.startsWith('/dashboard/events') ||
-    pathname?.startsWith('/events/')
+    pathname?.startsWith('/events/') ||
+    pathname?.startsWith('/invitations') ||
+    pathname?.startsWith('/order-of-events') ||
+    pathname?.startsWith('/gallery') ||
+    pathname?.startsWith('/reels')
+
+  // Determine menu type based on pathname
+  useEffect(() => {
+    if (pathname?.startsWith('/timeline') || pathname?.startsWith('/dashboard/events') || pathname?.startsWith('/events/')) {
+      setActiveMenuType('events')
+    } else if (pathname?.startsWith('/invitations')) {
+      setActiveMenuType('invitations')
+    } else if (pathname?.startsWith('/order-of-events')) {
+      setActiveMenuType('order-of-events')
+    } else if (pathname?.startsWith('/gallery')) {
+      setActiveMenuType('gallery')
+    } else if (pathname?.startsWith('/reels')) {
+      setActiveMenuType('reels')
+    }
+  }, [pathname])
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar variant="dashboard" onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      <Navbar 
+        variant="dashboard" 
+        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        onActiveTabChange={(tab) => {
+          setActiveMenuType(tab as typeof activeMenuType)
+        }}
+      />
       
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar - Only show on timeline/events pages */}
-        {showSidebar && (
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        {/* Sidebar - Show on relevant pages */}
+        {shouldShowSidebar && (
+          <Sidebar 
+            isOpen={sidebarOpen} 
+            onClose={() => setSidebarOpen(false)}
+            menuType={activeMenuType}
+          />
         )}
 
         {/* Main Content */}
         <main
           className={`
             flex-1 overflow-y-auto transition-all duration-300
-            ${showSidebar ? 'lg:ml-64' : ''}
+            ${shouldShowSidebar ? 'lg:ml-64' : ''}
           `}
         >
           <div className="container mx-auto px-4 py-8">
