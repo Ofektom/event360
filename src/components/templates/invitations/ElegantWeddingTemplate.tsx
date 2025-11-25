@@ -23,6 +23,20 @@ interface ElegantWeddingTemplateProps {
   designData: {
     text: Record<string, string>
     colors: Record<string, string>
+    styles?: {
+      fontSize?: {
+        heading?: number
+        subheading?: number
+        body?: number
+      }
+      spacing?: {
+        padding?: number
+        margin?: {
+          top?: number
+          bottom?: number
+        }
+      }
+    }
   }
 }
 
@@ -45,6 +59,22 @@ export function ElegantWeddingTemplate({ config, designData }: ElegantWeddingTem
   }
   
   const text = designData?.text || {}
+  
+  // Get styles from designData or use defaults
+  const styles = {
+    fontSize: {
+      heading: designData?.styles?.fontSize?.heading || 32,
+      subheading: designData?.styles?.fontSize?.subheading || 24,
+      body: designData?.styles?.fontSize?.body || 16,
+    },
+    spacing: {
+      padding: designData?.styles?.spacing?.padding || 40,
+      margin: {
+        top: designData?.styles?.spacing?.margin?.top || 20,
+        bottom: designData?.styles?.spacing?.margin?.bottom || 20,
+      },
+    },
+  }
 
   return (
     <div
@@ -59,7 +89,7 @@ export function ElegantWeddingTemplate({ config, designData }: ElegantWeddingTem
         fontFamily: "'Georgia', 'Times New Roman', serif",
         display: 'flex',
         flexDirection: 'column',
-        padding: '40px',
+        padding: `${styles.spacing.padding}px`,
         position: 'relative',
         overflow: 'hidden',
         boxSizing: 'border-box',
@@ -95,11 +125,11 @@ export function ElegantWeddingTemplate({ config, designData }: ElegantWeddingTem
       <h1
         style={{
           color: colors.primary,
-          fontSize: '32px',
+          fontSize: `${styles.fontSize.heading}px`,
           fontWeight: 'bold',
           textAlign: 'center',
-          marginBottom: '20px',
-          marginTop: '20px',
+          marginBottom: `${styles.spacing.margin.bottom}px`,
+          marginTop: `${styles.spacing.margin.top}px`,
         }}
       >
         {text.bride_name || 'Bride'} & {text.groom_name || 'Groom'}
@@ -117,9 +147,9 @@ export function ElegantWeddingTemplate({ config, designData }: ElegantWeddingTem
       <h2
         style={{
           color: colors.heading || colors.primary,
-          fontSize: '24px',
+          fontSize: `${styles.fontSize.subheading}px`,
           textAlign: 'center',
-          marginBottom: '15px',
+          marginBottom: `${styles.spacing.margin.bottom}px`,
         }}
       >
         {text.date || 'Wedding Date'}
@@ -128,20 +158,20 @@ export function ElegantWeddingTemplate({ config, designData }: ElegantWeddingTem
       <p
         style={{
           color: colors.body || colors.text,
-          fontSize: '16px',
+          fontSize: `${styles.fontSize.body}px`,
           lineHeight: '1.6',
           textAlign: 'center',
-          marginBottom: '10px',
+          marginBottom: `${styles.spacing.margin.bottom}px`,
         }}
       >
         {text.venue || 'Venue'}
       </p>
 
-      <div style={{ marginTop: '40px', textAlign: 'center' }}>
+      <div style={{ marginTop: `${styles.spacing.margin.top * 2}px`, textAlign: 'center' }}>
         <p
           style={{
             color: colors.body || colors.text,
-            fontSize: '16px',
+            fontSize: `${styles.fontSize.body}px`,
             lineHeight: '1.6',
             fontStyle: 'italic',
           }}

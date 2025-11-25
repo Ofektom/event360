@@ -71,6 +71,20 @@ export function InvitationDesignEditor({
     text: {},
     colors: {},
     graphics: {},
+    styles: {
+      fontSize: {
+        heading: 32,
+        subheading: 24,
+        body: 16,
+      },
+      spacing: {
+        padding: 40,
+        margin: {
+          top: 20,
+          bottom: 20,
+        },
+      },
+    },
   })
   const [customFields, setCustomFields] = useState<CustomTextField[]>([])
   const [customGraphics, setCustomGraphics] = useState<CustomGraphic[]>([])
@@ -107,7 +121,15 @@ export function InvitationDesignEditor({
       
       const data = await response.json()
       setExistingDesign(data)
-      const savedData = data.designData || { text: {}, colors: {}, graphics: {} }
+      const savedData = data.designData || { 
+        text: {}, 
+        colors: {}, 
+        graphics: {},
+        styles: {
+          fontSize: { heading: 32, subheading: 24, body: 16 },
+          spacing: { padding: 40, margin: { top: 20, bottom: 20 } },
+        },
+      }
       setDesignData(savedData)
       
       // Load custom fields
@@ -186,6 +208,12 @@ export function InvitationDesignEditor({
             acc[graphic.id] = graphic.url
             return acc
           }, {} as Record<string, string>) || {},
+          styles: isChangingTemplate && designData.styles
+            ? designData.styles // Keep existing styles when changing template
+            : {
+                fontSize: { heading: 32, subheading: 24, body: 16 },
+                spacing: { padding: 40, margin: { top: 20, bottom: 20 } },
+              },
         }
         setDesignData(newDesignData)
       }
@@ -602,6 +630,98 @@ export function InvitationDesignEditor({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Typography Settings */}
+        <div className="space-y-4 mb-6">
+          <h3 className="font-semibold text-gray-900">Typography</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Heading Font Size (px)
+              </label>
+              <Input
+                type="number"
+                min="12"
+                max="72"
+                value={designData.styles?.fontSize?.heading || 32}
+                onChange={(e) => handleStyleChange('fontSize.heading', parseInt(e.target.value) || 32)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subheading Font Size (px)
+              </label>
+              <Input
+                type="number"
+                min="12"
+                max="48"
+                value={designData.styles?.fontSize?.subheading || 24}
+                onChange={(e) => handleStyleChange('fontSize.subheading', parseInt(e.target.value) || 24)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Body Font Size (px)
+              </label>
+              <Input
+                type="number"
+                min="10"
+                max="24"
+                value={designData.styles?.fontSize?.body || 16}
+                onChange={(e) => handleStyleChange('fontSize.body', parseInt(e.target.value) || 16)}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Spacing Settings */}
+        <div className="space-y-4 mb-6">
+          <h3 className="font-semibold text-gray-900">Spacing</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Padding (px)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={designData.styles?.spacing?.padding || 40}
+                onChange={(e) => handleStyleChange('spacing.padding', parseInt(e.target.value) || 40)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Top Margin (px)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={designData.styles?.spacing?.margin?.top || 20}
+                onChange={(e) => handleStyleChange('spacing.margin.top', parseInt(e.target.value) || 20)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bottom Margin (px)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={designData.styles?.spacing?.margin?.bottom || 20}
+                onChange={(e) => handleStyleChange('spacing.margin.bottom', parseInt(e.target.value) || 20)}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
 
