@@ -90,11 +90,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content Area - Shift based on sidebar */}
       <main
         className={`
-          flex-1 mt-16 overflow-y-auto transition-all duration-300
+          flex-1 mt-16 overflow-y-auto transition-all duration-300 w-full
           ${shouldShowSidebar ? 'lg:ml-64' : ''}
         `}
       >
-        <div className="px-[10px] py-4">
+        <div className="w-full px-[10px] py-4">
           {children}
         </div>
       </main>
