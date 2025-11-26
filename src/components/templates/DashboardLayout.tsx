@@ -98,13 +98,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content Area - Shift based on sidebar */}
       <div
-        className={`flex-1 flex flex-col mt-16 transition-all duration-300 ${
+        className={`flex-1 flex flex-col transition-all duration-300 ${
           shouldShowSidebar && sidebarOpen ? 'lg:ml-64' : ''
         }`}
+        style={{ marginTop: '5rem' }}
       >
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-w-0">
-          <div className="w-full max-w-full px-[10px] pt-6 pb-4">
+          <div className="w-full max-w-full px-[10px] pt-4 pb-4">
             {children}
           </div>
         </div>
