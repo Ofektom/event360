@@ -22,6 +22,7 @@ interface EditableTextBoxProps {
   onDelete: () => void
   isSelected: boolean
   onSelect: () => void
+  onDeselect?: () => void // Callback to deselect the text box
   containerRef: React.RefObject<HTMLDivElement | null>
 }
 
@@ -31,6 +32,7 @@ export function EditableTextBox({
   onDelete,
   isSelected,
   onSelect,
+  onDeselect,
   containerRef,
 }: EditableTextBoxProps) {
   const [isDragging, setIsDragging] = useState(false)
@@ -76,27 +78,36 @@ export function EditableTextBox({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onSelect()
     
     // If clicking on textarea, start editing
     if ((e.target as HTMLElement).tagName === 'TEXTAREA') {
+      onSelect()
       setIsEditing(true)
       return
     }
     
     // If clicking on resize handle, start resizing
     if ((e.target as HTMLElement).closest('.resize-handle')) {
+      onSelect()
       handleResizeMouseDown(e)
       return
     }
     
-    // If clicking on the text content area, always start editing
+    // If clicking on the text content area
     if ((e.target as HTMLElement).closest('.textbox-content')) {
-      setIsEditing(true)
+      // If already selected, reactivate editing
+      if (isSelected) {
+        setIsEditing(true)
+      } else {
+        // If not selected, select and start editing
+        onSelect()
+        setIsEditing(true)
+      }
       return
     }
     
-    // Otherwise, start dragging (clicking on border/background)
+    // Otherwise, select the text box and start dragging (clicking on border/background)
+    onSelect()
     if (!isEditing) {
       setIsDragging(true)
       const rect = containerRef.current?.getBoundingClientRect()
@@ -273,11 +284,24 @@ export function EditableTextBox({
               if (e.key === 'Escape') {
                 setIsEditing(false)
                 e.preventDefault()
+                // Deselect text box when pressing Escape
+                if (onDeselect) {
+                  onDeselect()
+                }
               }
-              // Enter key exits editing mode (Shift+Enter for new line)
+              // Enter key exits editing mode, deselects text box, and keeps formatting
+              // Shift+Enter creates a new line
               if (e.key === 'Enter' && !e.shiftKey) {
                 setIsEditing(false)
                 e.preventDefault()
+                // Blur the textarea to ensure editing state is cleared
+                if (textareaRef.current) {
+                  textareaRef.current.blur()
+                }
+                // Deselect text box when pressing Enter (same as clicking outside)
+                if (onDeselect) {
+                  onDeselect()
+                }
               }
             }}
             style={{

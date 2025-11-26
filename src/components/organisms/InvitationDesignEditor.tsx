@@ -160,33 +160,39 @@ export function InvitationDesignEditor({
     const handleClickOutside = (e: MouseEvent) => {
       if (!textBoxMode) return;
 
-      // Don't exit if clicking on the canvas or text box tool button
       const target = e.target as HTMLElement;
-      if (
-        previewContainerRef.current?.contains(target) ||
-        target.closest("button")?.textContent?.includes("Text Box")
-      ) {
+
+      // Don't exit if clicking on the text box tool button
+      if (target.closest("button")?.textContent?.includes("Text Box")) {
         return;
       }
 
-      // Exit text box mode when clicking outside
-      setTextBoxMode(false);
+      // Exit text box mode when clicking outside the canvas
+      // This will prevent creating new text boxes when clicking to deactivate
+      if (!previewContainerRef.current?.contains(target)) {
+        setTextBoxMode(false);
+        setSelectedTextBoxId(null); // Deselect any selected text box
+      }
     };
 
     // Exit text box mode on Escape key
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && textBoxMode) {
         setTextBoxMode(false);
+        setSelectedTextBoxId(null);
       }
     };
 
     if (textBoxMode) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
+      // Use a small delay to allow text box click handlers to run first
+      setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside, true);
+        document.addEventListener("keydown", handleKeyDown);
+      }, 0);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [textBoxMode]);
@@ -1706,41 +1712,47 @@ export function InvitationDesignEditor({
                 cursor: textBoxMode ? "text" : "default",
               }}
               onClick={(e) => {
-                // Only create text box if:
-                // 1. It's a blank template
-                // 2. Text box mode is active
-                // 3. We didn't click on an existing text box or shape
-                if (!template && textBoxMode && previewContainerRef.current) {
-                  // Don't create if clicking on an existing text box or shape
+                if (!template) {
+                  const target = e.target as HTMLElement;
+
+                  // Don't do anything if clicking on an existing text box or shape
                   if (
-                    (e.target as HTMLElement).closest(".textbox-content") ||
-                    (e.target as HTMLElement).closest(".editable-shape")
+                    target.closest(".textbox-content") ||
+                    target.closest(".editable-shape") ||
+                    target.closest(".editable-textbox") ||
+                    target.tagName === "TEXTAREA"
                   ) {
                     return;
                   }
 
-                  const canvasRect = e.currentTarget.getBoundingClientRect();
-                  const x = e.clientX - canvasRect.left;
-                  const y = e.clientY - canvasRect.top;
+                  // Only create text box if text box mode is active
+                  if (textBoxMode && previewContainerRef.current) {
+                    const canvasRect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX - canvasRect.left;
+                    const y = e.clientY - canvasRect.top;
 
-                  // Create new text box at click location
-                  const newTextBox: TextBox = {
-                    id: `textbox_${Date.now()}`,
-                    text: "",
-                    position: {
-                      x: Math.max(0, x - 10),
-                      y: Math.max(0, y - 10),
-                    },
-                    size: { width: 200, height: 40 },
-                    fontSize: designData.styles?.fontSize?.body || 16,
-                    color: designData.colors?.text || "#111827",
-                    hasFill: false,
-                    textAlign: "left",
-                  };
-                  setTextBoxes([...textBoxes, newTextBox]);
-                  setSelectedTextBoxId(newTextBox.id);
-                  // Don't exit text box mode - allow creating multiple text boxes
-                  // User can click the button again to exit
+                    // Create new text box at click location
+                    const newTextBox: TextBox = {
+                      id: `textbox_${Date.now()}`,
+                      text: "",
+                      position: {
+                        x: Math.max(0, x - 10),
+                        y: Math.max(0, y - 10),
+                      },
+                      size: { width: 200, height: 40 },
+                      fontSize: designData.styles?.fontSize?.body || 16,
+                      color: designData.colors?.text || "#111827",
+                      hasFill: false,
+                      textAlign: "left",
+                    };
+                    setTextBoxes([...textBoxes, newTextBox]);
+                    setSelectedTextBoxId(newTextBox.id);
+                    // Exit text box mode after creating one text box
+                    setTextBoxMode(false);
+                  } else {
+                    // If text box mode is not active, deselect any selected text box
+                    setSelectedTextBoxId(null);
+                  }
                 }
               }}
             >
@@ -1803,7 +1815,10 @@ export function InvitationDesignEditor({
                       onSelect={() => {
                         setSelectedTextBoxId(textBox.id);
                         setSelectedShapeId(null);
-                        setTextBoxMode(false); // Exit text box mode when selecting existing
+                        // Don't exit text box mode - allow user to select and edit text boxes
+                      }}
+                      onDeselect={() => {
+                        setSelectedTextBoxId(null);
                       }}
                       onUpdate={(updates) => {
                         const updated = textBoxes.map((tb) =>
