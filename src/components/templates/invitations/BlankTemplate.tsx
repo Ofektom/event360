@@ -39,8 +39,10 @@ interface BlankTemplateProps {
       backgroundColor?: string
       hasFill: boolean
       fontFamily?: string
-      fontWeight?: string
+      fontWeight?: string | number
       textAlign?: 'left' | 'center' | 'right'
+      showBorder?: boolean
+      isBold?: boolean
     }>
     orientation?: 'portrait' | 'landscape'
   }
@@ -166,7 +168,7 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
                 width: `${textBox.size.width}px`,
                 minHeight: `${textBox.size.height}px`,
                 backgroundColor: textBox.hasFill ? (textBox.backgroundColor || '#ffffff') : 'transparent',
-                border: '1px solid rgba(0,0,0,0.1)',
+                border: textBox.showBorder ? '1px solid rgba(0,0,0,0.3)' : 'none',
                 borderRadius: '4px',
                 padding: '8px',
               }}
@@ -176,7 +178,7 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
                   fontSize: `${textBox.fontSize}px`,
                   color: textBox.color,
                   fontFamily: textBox.fontFamily || 'inherit',
-                  fontWeight: textBox.fontWeight || 'normal',
+                  fontWeight: textBox.isBold ? 'bold' : (textBox.fontWeight || 'normal'),
                   textAlign: textBox.textAlign || 'left',
                   wordWrap: 'break-word',
                   whiteSpace: 'pre-wrap',

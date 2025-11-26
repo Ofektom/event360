@@ -12,8 +12,10 @@ interface TextBox {
   backgroundColor?: string
   hasFill: boolean
   fontFamily?: string
-  fontWeight?: string
+  fontWeight?: string | number
   textAlign?: 'left' | 'center' | 'right'
+  showBorder?: boolean // Whether to show the text box border
+  isBold?: boolean // Whether text is bold
 }
 
 interface EditableTextBoxProps {
@@ -225,7 +227,9 @@ export function EditableTextBox({
         className="textbox-content w-full h-full relative"
         style={{
           backgroundColor: textBox.hasFill ? (textBox.backgroundColor || '#ffffff') : 'transparent',
-          border: isSelected ? '2px dashed #9333ea' : '1px solid rgba(0,0,0,0.1)',
+          border: textBox.showBorder 
+            ? (isSelected ? '2px dashed #9333ea' : '1px solid rgba(0,0,0,0.3)')
+            : (isSelected ? '2px dashed #9333ea' : 'none'),
           borderRadius: '4px',
           padding: '8px',
           minHeight: '100%',
@@ -258,7 +262,7 @@ export function EditableTextBox({
                   measure.style.width = 'auto'
                   measure.style.fontSize = `${textBox.fontSize}px`
                   measure.style.fontFamily = textBox.fontFamily || 'inherit'
-                  measure.style.fontWeight = textBox.fontWeight || 'normal'
+                  measure.style.fontWeight = textBox.isBold ? 'bold' : (textBox.fontWeight || 'normal')
                   measure.textContent = newText || 'M'
                   document.body.appendChild(measure)
                   
@@ -312,7 +316,7 @@ export function EditableTextBox({
               fontSize: `${textBox.fontSize}px`,
               color: textBox.color,
               fontFamily: textBox.fontFamily || 'inherit',
-              fontWeight: textBox.fontWeight || 'normal',
+              fontWeight: textBox.isBold ? 'bold' : (textBox.fontWeight || 'normal'),
               textAlign: textBox.textAlign || 'left',
               backgroundColor: 'transparent',
               border: 'none',
@@ -332,7 +336,7 @@ export function EditableTextBox({
               fontSize: `${textBox.fontSize}px`,
               color: textBox.color,
               fontFamily: textBox.fontFamily || 'inherit',
-              fontWeight: textBox.fontWeight || 'normal',
+              fontWeight: textBox.isBold ? 'bold' : (textBox.fontWeight || 'normal'),
               textAlign: textBox.textAlign || 'left',
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',

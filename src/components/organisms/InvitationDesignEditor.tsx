@@ -79,8 +79,10 @@ interface TextBox {
   backgroundColor?: string;
   hasFill: boolean;
   fontFamily?: string;
-  fontWeight?: string;
+  fontWeight?: string | number;
   textAlign?: "left" | "center" | "right";
+  showBorder?: boolean; // Whether to show the text box border
+  isBold?: boolean; // Whether text is bold
 }
 
 export function InvitationDesignEditor({
@@ -1291,6 +1293,40 @@ export function InvitationDesignEditor({
                             </div>
                           )}
                           <div>
+                            <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={selectedTextBox.isBold || false}
+                                onChange={(e) => {
+                                  const updated = textBoxes.map((tb) =>
+                                    tb.id === selectedTextBoxId
+                                      ? { ...tb, isBold: e.target.checked }
+                                      : tb
+                                  );
+                                  setTextBoxes(updated);
+                                }}
+                              />
+                              Bold Text
+                            </label>
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={selectedTextBox.showBorder || false}
+                                onChange={(e) => {
+                                  const updated = textBoxes.map((tb) =>
+                                    tb.id === selectedTextBoxId
+                                      ? { ...tb, showBorder: e.target.checked }
+                                      : tb
+                                  );
+                                  setTextBoxes(updated);
+                                }}
+                              />
+                              Show Border
+                            </label>
+                          </div>
+                          <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
                               Text Align
                             </label>
@@ -1744,6 +1780,8 @@ export function InvitationDesignEditor({
                       color: designData.colors?.text || "#111827",
                       hasFill: false,
                       textAlign: "left",
+                      showBorder: false, // Border hidden by default
+                      isBold: false, // Not bold by default
                     };
                     setTextBoxes([...textBoxes, newTextBox]);
                     setSelectedTextBoxId(newTextBox.id);

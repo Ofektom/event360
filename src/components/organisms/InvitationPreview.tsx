@@ -58,8 +58,10 @@ interface InvitationPreviewProps {
       backgroundColor?: string
       hasFill: boolean
       fontFamily?: string
-      fontWeight?: string
+      fontWeight?: string | number
       textAlign?: 'left' | 'center' | 'right'
+      showBorder?: boolean
+      isBold?: boolean
     }>
     orientation?: 'portrait' | 'landscape'
   }
