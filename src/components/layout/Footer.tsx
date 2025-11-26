@@ -54,8 +54,8 @@ export function Footer({ variant = 'dashboard' }: FooterProps) {
 
   // Dashboard footer
   return (
-    <footer className="bg-gray-50 border-t border-gray-200 py-8 mt-auto">
-      <div className="container mx-auto px-4">
+    <footer className="bg-gray-50 border-t border-gray-200 py-8 mt-auto w-full">
+      <div className="w-full px-[10px]">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-sm">
             &copy; {new Date().getFullYear()} Event360. All rights reserved.
