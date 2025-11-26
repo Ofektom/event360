@@ -747,83 +747,85 @@ export function InvitationDesignEditor({
           </div>
         )}
 
-        {/* Custom Text Fields */}
-        <div className="space-y-4 mb-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-gray-900">
-              Additional Text Fields
-            </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddField(!showAddField)}
-            >
-              {showAddField ? "Cancel" : "+ Add Field"}
-            </Button>
-          </div>
-
-          {showAddField && (
-            <Card className="p-4 bg-gray-50 border-2 border-dashed border-gray-300">
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Field Label
-                  </label>
-                  <Input
-                    type="text"
-                    value={newFieldLabel}
-                    onChange={(e) => setNewFieldLabel(e.target.value)}
-                    placeholder="e.g., Special Instructions"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Placeholder Text (optional)
-                  </label>
-                  <Input
-                    type="text"
-                    value={newFieldPlaceholder}
-                    onChange={(e) => setNewFieldPlaceholder(e.target.value)}
-                    placeholder="Enter text..."
-                  />
-                </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={addCustomTextField}
-                  className="w-full"
-                >
-                  Add Field
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {customFields.map((field) => (
-            <div key={field.id} className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {field.label}
-                </label>
-                <button
-                  onClick={() => removeCustomTextField(field.id)}
-                  className="text-red-500 hover:text-red-700 text-sm"
-                  type="button"
-                >
-                  Remove
-                </button>
-              </div>
-              <Input
-                type="text"
-                value={field.value}
-                onChange={(e) =>
-                  handleCustomFieldChange(field.id, e.target.value)
-                }
-                placeholder={field.placeholder}
-              />
+        {/* Custom Text Fields - Only for template-based designs */}
+        {template && (
+          <div className="space-y-4 mb-6">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold text-gray-900">
+                Additional Text Fields
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddField(!showAddField)}
+              >
+                {showAddField ? "Cancel" : "+ Add Field"}
+              </Button>
             </div>
-          ))}
-        </div>
+
+            {showAddField && (
+              <Card className="p-4 bg-gray-50 border-2 border-dashed border-gray-300">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Field Label
+                    </label>
+                    <Input
+                      type="text"
+                      value={newFieldLabel}
+                      onChange={(e) => setNewFieldLabel(e.target.value)}
+                      placeholder="e.g., Special Instructions"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Placeholder Text (optional)
+                    </label>
+                    <Input
+                      type="text"
+                      value={newFieldPlaceholder}
+                      onChange={(e) => setNewFieldPlaceholder(e.target.value)}
+                      placeholder="Enter text..."
+                    />
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={addCustomTextField}
+                    className="w-full"
+                  >
+                    Add Field
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {customFields.map((field) => (
+              <div key={field.id} className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {field.label}
+                  </label>
+                  <button
+                    onClick={() => removeCustomTextField(field.id)}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <Input
+                  type="text"
+                  value={field.value}
+                  onChange={(e) =>
+                    handleCustomFieldChange(field.id, e.target.value)
+                  }
+                  placeholder={field.placeholder}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Colors Section - Reorganized with clear labels */}
         <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
@@ -1711,8 +1713,7 @@ export function InvitationDesignEditor({
                 designData={{
                   ...designData,
                   shapes: shapes.length > 0 ? shapes : undefined,
-                  textBoxes:
-                    !template && textBoxes.length > 0 ? textBoxes : undefined,
+                  textBoxes: !template ? textBoxes : undefined, // Always pass text boxes for blank template
                   orientation: !template ? orientation : undefined,
                 }}
               />

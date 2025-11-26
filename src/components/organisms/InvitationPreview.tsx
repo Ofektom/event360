@@ -68,10 +68,11 @@ export function InvitationPreview({
 
   useEffect(() => {
     // Create a stable hash of the design data to detect actual changes
-    // Only hash text and colors, ignore graphics for now to reduce churn
+    // Include text, colors, and styles to detect font size changes
     const dataHash = JSON.stringify({ 
       text: designData?.text || {},
       colors: designData?.colors || {},
+      styles: designData?.styles || {},
       templateType 
     })
     
