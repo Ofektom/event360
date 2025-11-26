@@ -104,7 +104,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-w-0">
-          <div className="w-full max-w-full px-[10px] py-4">
+          <div className="w-full max-w-full px-[10px] pt-6 pb-4">
             {children}
           </div>
         </div>
