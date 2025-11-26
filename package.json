@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "seed:templates": "tsx scripts/seed-templates.ts"
+    "seed:templates": "tsx scripts/seed-templates.ts",
+    "seed:shapes": "tsx scripts/seed-shapes.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

@@ -6,7 +6,7 @@ import { generatePreviewFromElement } from '@/lib/template-renderer'
 
 interface InvitationPreviewProps {
   templateType: string
-  config: {
+  config?: {
     textFields: Array<{
       id: string
       label: string

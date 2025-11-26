@@ -5,6 +5,7 @@ import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { generateSVGPreview } from '@/lib/template-preview'
 
 interface InvitationTemplate {
   id: string
@@ -17,7 +18,7 @@ interface InvitationTemplate {
 
 interface InvitationTemplateLibraryProps {
   eventType: string
-  onSelectTemplate: (templateId: string) => void
+  onSelectTemplate: (templateId: string | null) => void
   onCancel: () => void
 }
 
@@ -105,26 +106,57 @@ export function InvitationTemplateLibrary({
       </Card>
 
       {/* Templates Grid */}
-      {filteredTemplates.length === 0 ? (
-        <Card className="p-8 text-center">
-          <div className="text-4xl mb-4">🎨</div>
-          <p className="text-gray-600 mb-2">No templates found.</p>
-          <p className="text-sm text-gray-500">
-            Templates need to be seeded during development setup.
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Blank Template Option */}
+        <Card
+          className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 border-dashed border-gray-300"
+          onClick={() => onSelectTemplate(null)}
+        >
+          <div className="aspect-[4/5] bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300">
+            <div className="text-center text-gray-400">
+              <div className="text-5xl mb-2">✨</div>
+              <p className="text-sm font-medium">Start from Scratch</p>
+            </div>
+          </div>
+          <h3 className="font-semibold text-gray-900 mb-1">Blank Template</h3>
+          <p className="text-sm text-gray-600 line-clamp-2">
+            Create your own custom design from scratch
           </p>
+          <div className="mt-3">
+            <Button variant="outline" size="sm" className="w-full">
+              Create Blank Design
+            </Button>
+          </div>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {filteredTemplates.map((template) => (
-            <Card
-              key={template.id}
-              className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => onSelectTemplate(template.id)}
-            >
-              <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                {template.preview ? (
+
+        {/* Template Cards */}
+        {filteredTemplates.length === 0 ? (
+          <div className="col-span-full">
+            <Card className="p-8 text-center">
+              <div className="text-4xl mb-4">🎨</div>
+              <p className="text-gray-600 mb-2">No templates found.</p>
+              <p className="text-sm text-gray-500">
+                Templates need to be seeded during development setup.
+              </p>
+            </Card>
+          </div>
+        ) : (
+          filteredTemplates.map((template) => {
+            // Generate preview if not available
+            const previewUrl = template.preview || generateSVGPreview({
+              category: template.category,
+              name: template.name,
+            })
+
+            return (
+              <Card
+                key={template.id}
+                className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => onSelectTemplate(template.id)}
+              >
+                <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
                   <img
-                    src={template.preview}
+                    src={previewUrl}
                     alt={template.name}
                     className="w-full h-full object-cover rounded-lg"
                     loading="lazy"
@@ -134,35 +166,32 @@ export function InvitationTemplateLibrary({
                       target.style.display = 'none'
                       const parent = target.parentElement
                       if (parent) {
-                        parent.innerHTML = `
-                          <div class="text-center text-gray-400">
-                            <div class="text-4xl mb-2">🎨</div>
-                            <p class="text-sm">${template.name}</p>
-                          </div>
-                        `
+                        const fallbackPreview = generateSVGPreview({
+                          category: template.category,
+                          name: template.name,
+                        })
+                        const fallbackImg = document.createElement('img')
+                        fallbackImg.src = fallbackPreview
+                        fallbackImg.className = 'w-full h-full object-cover rounded-lg'
+                        parent.appendChild(fallbackImg)
                       }
                     }}
                   />
-                ) : (
-                  <div className="text-center text-gray-400">
-                    <div className="text-4xl mb-2">🎨</div>
-                    <p className="text-sm">Preview</p>
-                  </div>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">{template.name}</h3>
+                {template.description && (
+                  <p className="text-sm text-gray-600 line-clamp-2">{template.description}</p>
                 )}
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">{template.name}</h3>
-              {template.description && (
-                <p className="text-sm text-gray-600 line-clamp-2">{template.description}</p>
-              )}
-              <div className="mt-3">
-                <Button variant="primary" size="sm" className="w-full">
-                  Use This Template
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+                <div className="mt-3">
+                  <Button variant="primary" size="sm" className="w-full">
+                    Use This Template
+                  </Button>
+                </div>
+              </Card>
+            )
+          })
+        )}
+      </div>
 
       {/* Cancel Button */}
       <div className="flex justify-end">

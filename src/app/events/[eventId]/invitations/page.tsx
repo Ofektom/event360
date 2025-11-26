@@ -71,7 +71,7 @@ export default function InvitationsPage() {
     }
   }
 
-  const handleTemplateSelect = (templateId: string) => {
+  const handleTemplateSelect = (templateId: string | null) => {
     setSelectedTemplate(templateId)
     setViewMode('editor')
     // If we're changing template for existing design, update it

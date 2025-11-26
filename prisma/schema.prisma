@@ -507,6 +507,24 @@ model InvitationTemplate {
   @@index([isActive])
 }
 
+// Shapes and Symbols - Reusable design elements for invitations
+model DesignShape {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // e.g., "geometric", "decorative", "symbols", "icons"
+  type        String   // "shape" or "symbol"
+  svgPath     String   // SVG path data or full SVG
+  defaultColor String  @default("#9333ea")
+  isDefault   Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([type])
+  @@index([isActive])
+}
+
 // Invitation Designs - User's customized invitations for events
 model InvitationDesign {
   id          String   @id @default(cuid())
