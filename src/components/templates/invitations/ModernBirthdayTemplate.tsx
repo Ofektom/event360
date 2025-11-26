@@ -23,12 +23,42 @@ interface ModernBirthdayTemplateProps {
   designData: {
     text: Record<string, string>
     colors: Record<string, string>
+    styles?: {
+      fontSize?: {
+        heading?: number
+        subheading?: number
+        body?: number
+      }
+      spacing?: {
+        padding?: number
+        margin?: {
+          top?: number
+          bottom?: number
+        }
+      }
+    }
   }
 }
 
 export function ModernBirthdayTemplate({ config, designData }: ModernBirthdayTemplateProps) {
   const colors = { ...config.colors, ...designData.colors }
   const text = designData.text || {}
+  
+  // Get styles from designData or use defaults
+  const styles = {
+    fontSize: {
+      heading: designData?.styles?.fontSize?.heading || 48,
+      subheading: designData?.styles?.fontSize?.subheading || 36,
+      body: designData?.styles?.fontSize?.body || 16,
+    },
+    spacing: {
+      padding: designData?.styles?.spacing?.padding || 40,
+      margin: {
+        top: designData?.styles?.spacing?.margin?.top || 20,
+        bottom: designData?.styles?.spacing?.margin?.bottom || 20,
+      },
+    },
+  }
 
   return (
     <div
@@ -43,7 +73,7 @@ export function ModernBirthdayTemplate({ config, designData }: ModernBirthdayTem
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '40px',
+        padding: `${styles.spacing.padding}px`,
         position: 'relative',
       }}
     >
@@ -66,7 +96,7 @@ export function ModernBirthdayTemplate({ config, designData }: ModernBirthdayTem
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
         <h1
           style={{
-            fontSize: '48px',
+            fontSize: `${styles.fontSize.heading}px`,
             fontWeight: 'bold',
             color: colors.primary,
             marginBottom: '10px',
@@ -78,7 +108,7 @@ export function ModernBirthdayTemplate({ config, designData }: ModernBirthdayTem
         {text.age && (
           <h2
             style={{
-              fontSize: '36px',
+              fontSize: `${styles.fontSize.subheading}px`,
               color: colors.secondary,
               marginBottom: '20px',
             }}
@@ -98,7 +128,7 @@ export function ModernBirthdayTemplate({ config, designData }: ModernBirthdayTem
 
         <p
           style={{
-            fontSize: '20px',
+            fontSize: `${styles.fontSize.subheading * 0.8}px`,
             color: colors.heading || colors.text,
             marginTop: '20px',
             marginBottom: '10px',
@@ -109,7 +139,7 @@ export function ModernBirthdayTemplate({ config, designData }: ModernBirthdayTem
 
         <p
           style={{
-            fontSize: '18px',
+            fontSize: `${styles.fontSize.body * 1.1}px`,
             color: colors.body || colors.text,
             marginBottom: '30px',
           }}
@@ -119,7 +149,7 @@ export function ModernBirthdayTemplate({ config, designData }: ModernBirthdayTem
 
         <p
           style={{
-            fontSize: '16px',
+            fontSize: `${styles.fontSize.body}px`,
             color: colors.body || colors.text,
             fontStyle: 'italic',
             marginTop: '30px',

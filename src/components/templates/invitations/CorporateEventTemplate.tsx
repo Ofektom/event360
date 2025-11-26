@@ -23,12 +23,42 @@ interface CorporateEventTemplateProps {
   designData: {
     text: Record<string, string>
     colors: Record<string, string>
+    styles?: {
+      fontSize?: {
+        heading?: number
+        subheading?: number
+        body?: number
+      }
+      spacing?: {
+        padding?: number
+        margin?: {
+          top?: number
+          bottom?: number
+        }
+      }
+    }
   }
 }
 
 export function CorporateEventTemplate({ config, designData }: CorporateEventTemplateProps) {
   const colors = { ...config.colors, ...designData.colors }
   const text = designData.text || {}
+  
+  // Get styles from designData or use defaults
+  const styles = {
+    fontSize: {
+      heading: designData?.styles?.fontSize?.heading || 32,
+      subheading: designData?.styles?.fontSize?.subheading || 24,
+      body: designData?.styles?.fontSize?.body || 16,
+    },
+    spacing: {
+      padding: designData?.styles?.spacing?.padding || 40,
+      margin: {
+        top: designData?.styles?.spacing?.margin?.top || 20,
+        bottom: designData?.styles?.spacing?.margin?.bottom || 20,
+      },
+    },
+  }
 
   return (
     <div
@@ -42,7 +72,7 @@ export function CorporateEventTemplate({ config, designData }: CorporateEventTem
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        padding: '40px',
+        padding: `${styles.spacing.padding}px`,
         position: 'relative',
       }}
     >
@@ -60,7 +90,7 @@ export function CorporateEventTemplate({ config, designData }: CorporateEventTem
       <h1
         style={{
           color: colors.primary,
-          fontSize: '32px',
+          fontSize: `${styles.fontSize.heading}px`,
           fontWeight: 'bold',
           borderBottom: `3px solid ${colors.primary}`,
           paddingBottom: '15px',
@@ -74,7 +104,7 @@ export function CorporateEventTemplate({ config, designData }: CorporateEventTem
       <div style={{ marginBottom: '20px' }}>
         <p
           style={{
-            fontSize: '16px',
+            fontSize: `${styles.fontSize.body}px`,
             color: colors.text,
             marginBottom: '10px',
             lineHeight: '1.8',
@@ -86,7 +116,7 @@ export function CorporateEventTemplate({ config, designData }: CorporateEventTem
         {text.time && (
           <p
             style={{
-              fontSize: '16px',
+              fontSize: `${styles.fontSize.body}px`,
               color: colors.text,
               marginBottom: '10px',
               lineHeight: '1.8',
@@ -98,7 +128,7 @@ export function CorporateEventTemplate({ config, designData }: CorporateEventTem
         )}
         <p
           style={{
-            fontSize: '16px',
+            fontSize: `${styles.fontSize.body}px`,
             color: colors.text,
             marginBottom: '10px',
             lineHeight: '1.8',
@@ -119,7 +149,7 @@ export function CorporateEventTemplate({ config, designData }: CorporateEventTem
       >
         <p
           style={{
-            fontSize: '14px',
+            fontSize: `${styles.fontSize.body * 0.875}px`,
             color: colors.body || colors.text,
             lineHeight: '1.6',
           }}

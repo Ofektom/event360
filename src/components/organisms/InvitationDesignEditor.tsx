@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { Card } from "@/components/atoms/Card";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
@@ -151,6 +152,7 @@ export function InvitationDesignEditor({
   const [orientation, setOrientation] = useState<"portrait" | "landscape">(
     "portrait"
   );
+  const [textBoxMode, setTextBoxMode] = useState(false); // PowerPoint-style text box mode
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchDesign = useCallback(async () => {
@@ -439,51 +441,57 @@ export function InvitationDesignEditor({
   };
 
   const handleStyleChange = (stylePath: string, value: number) => {
-    const [category, key, subKey] = stylePath.split(".");
-    const currentStyles = designData.styles || {
-      fontSize: { heading: 32, subheading: 24, body: 16 },
-      spacing: { padding: 40, margin: { top: 20, bottom: 20 } },
-    };
+    setDesignData((prevData) => {
+      const currentStyles = prevData.styles || {
+        fontSize: { heading: 32, subheading: 24, body: 16 },
+        spacing: { padding: 40, margin: { top: 20, bottom: 20 } },
+      };
 
-    if (category === "fontSize" && key && subKey) {
-      setDesignData({
-        ...designData,
-        styles: {
-          ...currentStyles,
-          fontSize: {
-            ...currentStyles.fontSize,
-            [subKey]: value,
-          },
-        },
-      });
-    } else if (category === "spacing" && key) {
-      if (subKey) {
-        setDesignData({
-          ...designData,
+      const [category, key, subKey] = stylePath.split(".");
+
+      if (category === "fontSize" && key && subKey) {
+        return {
+          ...prevData,
           styles: {
             ...currentStyles,
-            spacing: {
-              ...currentStyles.spacing,
-              margin: {
-                ...currentStyles.spacing.margin,
-                [subKey]: value,
+            fontSize: {
+              ...currentStyles.fontSize,
+              [subKey]: value,
+            },
+          },
+        };
+      } else if (category === "spacing" && key) {
+        if (subKey) {
+          return {
+            ...prevData,
+            styles: {
+              ...currentStyles,
+              spacing: {
+                ...currentStyles.spacing,
+                [key]: {
+                  ...((currentStyles.spacing[
+                    key as keyof typeof currentStyles.spacing
+                  ] as object) || {}),
+                  [subKey]: value,
+                },
               },
             },
-          },
-        });
-      } else {
-        setDesignData({
-          ...designData,
-          styles: {
-            ...currentStyles,
-            spacing: {
-              ...currentStyles.spacing,
-              [key]: value,
+          };
+        } else {
+          return {
+            ...prevData,
+            styles: {
+              ...currentStyles,
+              spacing: {
+                ...currentStyles.spacing,
+                [key]: value,
+              },
             },
-          },
-        });
+          };
+        }
       }
-    }
+      return prevData;
+    });
   };
 
   const addCustomTextField = () => {
@@ -1101,26 +1109,24 @@ export function InvitationDesignEditor({
             <div className="flex justify-between items-center">
               <h3 className="font-semibold text-gray-900">Text Boxes</h3>
               <Button
-                variant="outline"
+                variant={textBoxMode ? "primary" : "outline"}
                 size="sm"
                 onClick={() => {
-                  const newTextBox: TextBox = {
-                    id: `textbox_${Date.now()}`,
-                    text: "Double-click to edit",
-                    position: { x: 50, y: 50 },
-                    size: { width: 200, height: 60 },
-                    fontSize: 16,
-                    color: "#111827",
-                    hasFill: false,
-                    textAlign: "left",
-                  };
-                  setTextBoxes([...textBoxes, newTextBox]);
-                  setSelectedTextBoxId(newTextBox.id);
+                  setTextBoxMode(!textBoxMode);
                 }}
               >
-                Add Text Box
+                {textBoxMode ? "✓ Text Box Mode Active" : "📝 Text Box Tool"}
               </Button>
             </div>
+            {textBoxMode && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                <p className="font-medium mb-1">Text Box Mode Active</p>
+                <p>
+                  Click anywhere on the canvas to create a text box at that
+                  location.
+                </p>
+              </div>
+            )}
 
             {textBoxes.length > 0 && (
               <div className="space-y-2">
@@ -1562,9 +1568,11 @@ export function InvitationDesignEditor({
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {customGraphics.map((graphic) => (
                         <div key={graphic.id} className="relative group">
-                          <img
+                          <Image
                             src={graphic.url}
                             alt="Graphic"
+                            width={200}
+                            height={80}
                             className="w-full h-20 object-cover rounded border border-gray-300"
                           />
                           <button
@@ -1589,9 +1597,11 @@ export function InvitationDesignEditor({
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {config.graphics.map((graphic) => (
                         <div key={graphic.id} className="relative">
-                          <img
+                          <Image
                             src={graphic.url}
                             alt="Graphic"
+                            width={200}
+                            height={80}
                             className="w-full h-20 object-cover rounded border border-gray-300"
                           />
                         </div>
@@ -1630,11 +1640,12 @@ export function InvitationDesignEditor({
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Live Preview</h2>
         {existingDesign?.customImage ? (
           // Show custom uploaded image
-          <div className="aspect-[4/5] bg-white rounded-lg overflow-hidden border-2 border-gray-200">
-            <img
+          <div className="aspect-4/5 bg-white rounded-lg overflow-hidden border-2 border-gray-200 relative">
+            <Image
               src={existingDesign.customImage}
               alt={existingDesign.name || "Custom Invitation"}
-              className="w-full h-full object-contain"
+              fill
+              className="object-contain"
             />
           </div>
         ) : (
@@ -1654,6 +1665,44 @@ export function InvitationDesignEditor({
                 height: orientation === "landscape" ? "400px" : "500px",
                 maxWidth: "100%",
                 maxHeight: "100%",
+                cursor: textBoxMode ? "text" : "default",
+              }}
+              onClick={(e) => {
+                // Only create text box if:
+                // 1. It's a blank template
+                // 2. Text box mode is active
+                // 3. We didn't click on an existing text box or shape
+                if (!template && textBoxMode && previewContainerRef.current) {
+                  // Don't create if clicking on an existing text box or shape
+                  if (
+                    (e.target as HTMLElement).closest(".textbox-content") ||
+                    (e.target as HTMLElement).closest(".editable-shape")
+                  ) {
+                    return;
+                  }
+
+                  const canvasRect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - canvasRect.left;
+                  const y = e.clientY - canvasRect.top;
+
+                  // Create new text box at click location
+                  const newTextBox: TextBox = {
+                    id: `textbox_${Date.now()}`,
+                    text: "",
+                    position: {
+                      x: Math.max(0, x - 10),
+                      y: Math.max(0, y - 10),
+                    },
+                    size: { width: 200, height: 40 },
+                    fontSize: designData.styles?.fontSize?.body || 16,
+                    color: designData.colors?.text || "#111827",
+                    hasFill: false,
+                    textAlign: "left",
+                  };
+                  setTextBoxes([...textBoxes, newTextBox]);
+                  setSelectedTextBoxId(newTextBox.id);
+                  setTextBoxMode(false); // Exit text box mode after creating
+                }
               }}
             >
               <InvitationPreview
@@ -1700,10 +1749,13 @@ export function InvitationDesignEditor({
                 </div>
               )}
               {/* Text Boxes Overlay - Only for blank template */}
-              {!template && textBoxes.length > 0 && (
+              {!template && (
                 <div
                   className="absolute inset-0"
-                  style={{ zIndex: 11, pointerEvents: "none" }}
+                  style={{
+                    zIndex: 11,
+                    pointerEvents: "auto", // Always allow interaction with text boxes
+                  }}
                 >
                   {textBoxes.map((textBox) => (
                     <EditableTextBox
@@ -1713,6 +1765,7 @@ export function InvitationDesignEditor({
                       onSelect={() => {
                         setSelectedTextBoxId(textBox.id);
                         setSelectedShapeId(null);
+                        setTextBoxMode(false); // Exit text box mode when selecting existing
                       }}
                       onUpdate={(updates) => {
                         const updated = textBoxes.map((tb) =>
