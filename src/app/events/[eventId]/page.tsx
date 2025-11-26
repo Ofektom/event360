@@ -107,11 +107,13 @@ export default function EventDetailPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Back Button */}
-        <Link href="/dashboard">
-          <Button variant="ghost" size="sm">
-            ← Back to Dashboard
-          </Button>
+        <div className="mb-2">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="sm">
+              ← Back to Dashboard
+            </Button>
           </Link>
+        </div>
 
         {/* Event Header */}
         <EventHeader

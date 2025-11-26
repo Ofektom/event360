@@ -59,11 +59,11 @@ export function EventHeader({
       )}
 
       {/* Content */}
-      <div className="container mx-auto px-4 -mt-20 relative z-10">
+      <div className={`w-full ${image ? '-mt-20 relative z-10' : ''}`}>
         <Card
           variant="elevated"
           padding="lg"
-          className="bg-white/95 backdrop-blur-sm"
+          className={image ? "bg-white/95 backdrop-blur-sm" : "bg-white"}
         >
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             {title}
