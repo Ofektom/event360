@@ -32,7 +32,7 @@ export default function InvitationsPage() {
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null | 'blank'>(null)
   const [selectedDesign, setSelectedDesign] = useState<string | null>(null)
 
   useEffect(() => {
@@ -72,7 +72,8 @@ export default function InvitationsPage() {
   }
 
   const handleTemplateSelect = (templateId: string | null) => {
-    setSelectedTemplate(templateId)
+    // Use 'blank' as a special value to distinguish from null/undefined
+    setSelectedTemplate(templateId === null ? 'blank' : templateId)
     setViewMode('editor')
     // If we're changing template for existing design, update it
     if (selectedDesign) {
@@ -162,10 +163,10 @@ export default function InvitationsPage() {
           />
         )}
 
-        {viewMode === 'editor' && (selectedTemplate || selectedDesign) && (
+        {viewMode === 'editor' && (selectedTemplate !== null || selectedDesign !== null) && (
           <InvitationDesignEditor
             eventId={eventId}
-            templateId={selectedTemplate || undefined}
+            templateId={selectedTemplate === 'blank' ? undefined : (selectedTemplate || undefined)}
             designId={selectedDesign || undefined}
             onSave={() => {
               setViewMode('list')
