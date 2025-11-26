@@ -54,7 +54,7 @@ export function Footer({ variant = 'dashboard' }: FooterProps) {
 
   // Dashboard footer
   return (
-    <footer className="bg-gray-50 border-t border-gray-200 py-8 mt-auto w-full">
+    <footer className="bg-gray-50 border-t border-gray-200 py-8 w-full">
       <div className="w-full px-[10px]">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-sm">

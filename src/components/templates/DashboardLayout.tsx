@@ -109,8 +109,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
         
-        {/* Footer - Always at bottom */}
-        <Footer variant="dashboard" />
+        {/* Footer - Always at bottom, outside scrollable area */}
+        <div className="flex-shrink-0">
+          <Footer variant="dashboard" />
+        </div>
       </div>
     </div>
   )
