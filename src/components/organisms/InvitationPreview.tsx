@@ -26,6 +26,27 @@ interface InvitationPreviewProps {
   designData: {
     text: Record<string, string>
     colors: Record<string, string>
+    shapes?: Array<{
+      id: string
+      name: string
+      svgPath: string
+      color: string
+      position: { x: number; y: number }
+      size: { width: number; height: number }
+    }>
+    textBoxes?: Array<{
+      id: string
+      text: string
+      position: { x: number; y: number }
+      size: { width: number; height: number }
+      fontSize: number
+      color: string
+      backgroundColor?: string
+      hasFill: boolean
+      fontFamily?: string
+      fontWeight?: string
+      textAlign?: 'left' | 'center' | 'right'
+    }>
   }
   onPreviewGenerated?: (previewUrl: string) => void
 }

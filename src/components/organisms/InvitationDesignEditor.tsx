@@ -337,42 +337,44 @@ export function InvitationDesignEditor({
 
         // Initialize design data with template defaults if not editing existing design
         // OR if we're changing template for existing design (templateId prop is set but different from existing)
-        const isChangingTemplate =
-          existingDesign &&
-          templateId &&
-          existingDesign.templateId !== templateId;
+        setDesignData((prevDesignData) => {
+          const isChangingTemplate =
+            existingDesign &&
+            templateId &&
+            existingDesign.templateId !== templateId;
 
-        if ((!existingDesign || isChangingTemplate) && data.config) {
-          const config = data.config as TemplateConfig;
-          // If changing template, merge existing data with new template defaults
-          const newDesignData = {
-            text:
-              config.textFields?.reduce((acc, field) => {
-                // Keep existing text if changing template, otherwise use default
-                acc[field.id] =
-                  isChangingTemplate && designData.text?.[field.id]
-                    ? designData.text[field.id]
-                    : field.default || "";
-                return acc;
-              }, {} as Record<string, string>) || {},
-            colors: isChangingTemplate
-              ? { ...config.colors, ...designData.colors } // Merge colors
-              : config.colors || {},
-            graphics:
-              config.graphics?.reduce((acc, graphic) => {
-                acc[graphic.id] = graphic.url;
-                return acc;
-              }, {} as Record<string, string>) || {},
-            styles:
-              isChangingTemplate && designData.styles
-                ? designData.styles // Keep existing styles when changing template
-                : {
-                    fontSize: { heading: 32, subheading: 24, body: 16 },
-                    spacing: { padding: 40, margin: { top: 20, bottom: 20 } },
-                  },
-          };
-          setDesignData(newDesignData);
-        }
+          if ((!existingDesign || isChangingTemplate) && data.config) {
+            const config = data.config as TemplateConfig;
+            // If changing template, merge existing data with new template defaults
+            return {
+              text:
+                config.textFields?.reduce((acc, field) => {
+                  // Keep existing text if changing template, otherwise use default
+                  acc[field.id] =
+                    isChangingTemplate && prevDesignData.text?.[field.id]
+                      ? prevDesignData.text[field.id]
+                      : field.default || "";
+                  return acc;
+                }, {} as Record<string, string>) || {},
+              colors: isChangingTemplate
+                ? { ...config.colors, ...prevDesignData.colors } // Merge colors
+                : config.colors || {},
+              graphics:
+                config.graphics?.reduce((acc, graphic) => {
+                  acc[graphic.id] = graphic.url;
+                  return acc;
+                }, {} as Record<string, string>) || {},
+              styles:
+                isChangingTemplate && prevDesignData.styles
+                  ? prevDesignData.styles // Keep existing styles when changing template
+                  : {
+                      fontSize: { heading: 32, subheading: 24, body: 16 },
+                      spacing: { padding: 40, margin: { top: 20, bottom: 20 } },
+                    },
+            };
+          }
+          return prevDesignData;
+        });
       } catch (error: unknown) {
         console.error("Error fetching template:", error);
         if (error instanceof Error && error.name === "AbortError") {
@@ -384,7 +386,7 @@ export function InvitationDesignEditor({
         setLoading(false);
       }
     },
-    [templateId, existingDesign, designData]
+    [templateId, existingDesign]
   );
 
   useEffect(() => {
@@ -1607,17 +1609,29 @@ export function InvitationDesignEditor({
           </div>
         ) : (
           // Template-based or blank template live preview with shapes overlay
-          <div className="relative" ref={previewContainerRef}>
+          <div
+            className="relative w-full"
+            ref={previewContainerRef}
+            style={{
+              minHeight: "500px",
+              position: "relative",
+            }}
+          >
             <InvitationPreview
               templateType={template?.name || "blank"}
               config={config}
-              designData={designData}
+              designData={{
+                ...designData,
+                shapes: shapes.length > 0 ? shapes : undefined,
+                textBoxes:
+                  !template && textBoxes.length > 0 ? textBoxes : undefined,
+              }}
             />
             {/* Shapes Overlay */}
             {shapes.length > 0 && (
               <div
-                className="absolute inset-0 pointer-events-none"
-                style={{ zIndex: 10 }}
+                className="absolute inset-0"
+                style={{ zIndex: 10, pointerEvents: "none" }}
               >
                 {shapes.map((shape) => (
                   <EditableShape
@@ -1648,8 +1662,8 @@ export function InvitationDesignEditor({
             {/* Text Boxes Overlay - Only for blank template */}
             {!template && textBoxes.length > 0 && (
               <div
-                className="absolute inset-0 pointer-events-none"
-                style={{ zIndex: 11 }}
+                className="absolute inset-0"
+                style={{ zIndex: 11, pointerEvents: "none" }}
               >
                 {textBoxes.map((textBox) => (
                   <EditableTextBox
