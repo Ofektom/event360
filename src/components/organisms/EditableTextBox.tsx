@@ -84,14 +84,20 @@ export function EditableTextBox({
       return
     }
     
-    // If clicking on the text content area (not the border), start editing
-    if ((e.target as HTMLElement).closest('.textbox-content') && !(e.target as HTMLElement).closest('.resize-handle')) {
-      // Check if it's a new empty text box - start editing immediately
-      if (!textBox.text || textBox.text.trim() === '') {
-        setIsEditing(true)
-        return
-      }
-      // For existing text, allow dragging
+    // If clicking on resize handle, start resizing
+    if ((e.target as HTMLElement).closest('.resize-handle')) {
+      handleResizeMouseDown(e)
+      return
+    }
+    
+    // If clicking on the text content area, always start editing
+    if ((e.target as HTMLElement).closest('.textbox-content')) {
+      setIsEditing(true)
+      return
+    }
+    
+    // Otherwise, start dragging (clicking on border/background)
+    if (!isEditing) {
       setIsDragging(true)
       const rect = containerRef.current?.getBoundingClientRect()
       if (rect) {
@@ -266,10 +272,12 @@ export function EditableTextBox({
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
                 setIsEditing(false)
+                e.preventDefault()
               }
-              // Allow Enter for new lines
+              // Enter key exits editing mode (Shift+Enter for new line)
               if (e.key === 'Enter' && !e.shiftKey) {
-                // Default behavior (new line) is fine
+                setIsEditing(false)
+                e.preventDefault()
               }
             }}
             style={{

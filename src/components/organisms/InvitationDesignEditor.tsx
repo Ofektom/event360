@@ -155,6 +155,42 @@ export function InvitationDesignEditor({
   const [textBoxMode, setTextBoxMode] = useState(false); // PowerPoint-style text box mode
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
+  // Exit text box mode when clicking outside the canvas
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!textBoxMode) return;
+
+      // Don't exit if clicking on the canvas or text box tool button
+      const target = e.target as HTMLElement;
+      if (
+        previewContainerRef.current?.contains(target) ||
+        target.closest("button")?.textContent?.includes("Text Box")
+      ) {
+        return;
+      }
+
+      // Exit text box mode when clicking outside
+      setTextBoxMode(false);
+    };
+
+    // Exit text box mode on Escape key
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && textBoxMode) {
+        setTextBoxMode(false);
+      }
+    };
+
+    if (textBoxMode) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [textBoxMode]);
+
   const fetchDesign = useCallback(async () => {
     try {
       setLoading(true);
