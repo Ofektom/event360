@@ -262,7 +262,8 @@ export function EditableTextBox({
                   measure.style.width = 'auto'
                   measure.style.fontSize = `${textBox.fontSize}px`
                   measure.style.fontFamily = textBox.fontFamily || 'inherit'
-                  measure.style.fontWeight = textBox.isBold ? 'bold' : (textBox.fontWeight || 'normal')
+                  const fontWeight = textBox.isBold ? 'bold' : (textBox.fontWeight || 'normal')
+                  measure.style.fontWeight = typeof fontWeight === 'number' ? fontWeight.toString() : fontWeight
                   measure.textContent = newText || 'M'
                   document.body.appendChild(measure)
                   
