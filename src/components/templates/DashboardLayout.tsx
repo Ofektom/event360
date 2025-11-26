@@ -11,8 +11,13 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  // Initialize sidebar as open on desktop (>= 1024px)
   const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024
+    }
+    return false
+  })
+  const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 1024
     }
@@ -31,16 +36,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     pathname?.startsWith('/gallery') ||
     pathname?.startsWith('/reels')
 
-  // Pages that should be left-aligned (not centered) when sidebar is present
-  const shouldBeLeftAligned = 
-    pathname?.startsWith('/timeline') || 
-    pathname?.startsWith('/invitations')
-
-  // Handle window resize to auto-open sidebar on desktop
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const isDesktop = window.innerWidth >= 1024
-      if (isDesktop) {
+      const desktop = window.innerWidth >= 1024
+      setIsDesktop(desktop)
+      if (desktop) {
         setSidebarOpen(true)
       } else {
         setSidebarOpen(false)
@@ -48,7 +49,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
     
     window.addEventListener('resize', handleResize)
-    handleResize() // Initial check
+    handleResize()
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
@@ -67,12 +68,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [pathname])
 
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev)
+
+  const handleTabClick = () => {
+    if (!isDesktop) {
+      setSidebarOpen(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Navbar - Fixed at top */}
       <Navbar 
         variant="dashboard" 
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        onMenuClick={toggleSidebar}
         onActiveTabChange={(tab) => {
           setActiveMenuType(tab as typeof activeMenuType)
         }}
@@ -82,22 +91,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {shouldShowSidebar && (
         <Sidebar 
           isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)}
+          onClose={handleTabClick}
           menuType={activeMenuType}
         />
       )}
 
       {/* Main Content Area - Shift based on sidebar */}
-      <main
-        className={`
-          flex-1 mt-16 overflow-y-auto transition-all duration-300 w-full
-          ${shouldShowSidebar ? 'lg:ml-64' : ''}
-        `}
+      <div
+        className={`flex-1 mt-16 overflow-y-auto transition-all duration-300 ${
+          shouldShowSidebar && sidebarOpen ? 'lg:ml-64' : ''
+        }`}
       >
-        <div className="w-full px-[10px] py-4">
+        <div className="px-[10px] py-4">
           {children}
         </div>
-      </main>
+      </div>
 
       <Footer variant="dashboard" />
     </div>
