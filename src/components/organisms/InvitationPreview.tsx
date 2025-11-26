@@ -26,6 +26,20 @@ interface InvitationPreviewProps {
   designData: {
     text: Record<string, string>
     colors: Record<string, string>
+    styles?: {
+      fontSize?: {
+        heading?: number
+        subheading?: number
+        body?: number
+      }
+      spacing?: {
+        padding?: number
+        margin?: {
+          top?: number
+          bottom?: number
+        }
+      }
+    }
     shapes?: Array<{
       id: string
       name: string
