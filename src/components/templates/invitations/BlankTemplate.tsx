@@ -42,6 +42,7 @@ interface BlankTemplateProps {
       fontWeight?: string
       textAlign?: 'left' | 'center' | 'right'
     }>
+    orientation?: 'portrait' | 'landscape'
   }
 }
 
@@ -60,12 +61,17 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
   const primaryColor = designData.colors?.primary || '#9333ea'
   const textColor = designData.colors?.text || designData.colors?.heading || '#111827'
   const bodyColor = designData.colors?.body || '#4b5563'
+  
+  // Orientation support
+  const orientation = designData.orientation || 'portrait'
+  const isLandscape = orientation === 'landscape'
 
   return (
     <div
       style={{
         width: '100%',
-        minHeight: '500px',
+        height: '100%',
+        minHeight: isLandscape ? '400px' : '500px',
         backgroundColor,
         padding: `${padding}px`,
         display: 'flex',

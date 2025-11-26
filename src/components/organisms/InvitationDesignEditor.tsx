@@ -148,6 +148,9 @@ export function InvitationDesignEditor({
   const [showShapesLibrary, setShowShapesLibrary] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldPlaceholder, setNewFieldPlaceholder] = useState("");
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+    "portrait"
+  );
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchDesign = useCallback(async () => {
@@ -668,18 +671,45 @@ export function InvitationDesignEditor({
       <Card className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            Customize Your Invitation
+            {template ? "Customize Your Invitation" : "Design Your Invitation"}
           </h2>
-          {existingDesign && template && onChangeTemplate && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onChangeTemplate}
-              title="Change template for this design"
-            >
-              Change Template
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {/* Orientation Selector - Only for blank template */}
+            {!template && (
+              <div className="flex items-center gap-2 border border-gray-300 rounded-lg p-1">
+                <button
+                  onClick={() => setOrientation("portrait")}
+                  className={`px-3 py-1 text-sm rounded ${
+                    orientation === "portrait"
+                      ? "bg-purple-500 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  Portrait
+                </button>
+                <button
+                  onClick={() => setOrientation("landscape")}
+                  className={`px-3 py-1 text-sm rounded ${
+                    orientation === "landscape"
+                      ? "bg-purple-500 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  Landscape
+                </button>
+              </div>
+            )}
+            {existingDesign && template && onChangeTemplate && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onChangeTemplate}
+                title="Change template for this design"
+              >
+                Change Template
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Text Fields - Template Fields */}
@@ -1610,89 +1640,100 @@ export function InvitationDesignEditor({
         ) : (
           // Template-based or blank template live preview with shapes overlay
           <div
-            className="relative w-full"
+            className="relative w-full flex items-center justify-center"
             ref={previewContainerRef}
             style={{
-              minHeight: "500px",
+              minHeight: orientation === "landscape" ? "400px" : "600px",
               position: "relative",
             }}
           >
-            <InvitationPreview
-              templateType={template?.name || "blank"}
-              config={config}
-              designData={{
-                ...designData,
-                shapes: shapes.length > 0 ? shapes : undefined,
-                textBoxes:
-                  !template && textBoxes.length > 0 ? textBoxes : undefined,
+            <div
+              className="relative"
+              style={{
+                width: orientation === "landscape" ? "600px" : "400px",
+                height: orientation === "landscape" ? "400px" : "500px",
+                maxWidth: "100%",
+                maxHeight: "100%",
               }}
-            />
-            {/* Shapes Overlay */}
-            {shapes.length > 0 && (
-              <div
-                className="absolute inset-0"
-                style={{ zIndex: 10, pointerEvents: "none" }}
-              >
-                {shapes.map((shape) => (
-                  <EditableShape
-                    key={shape.id}
-                    shape={shape}
-                    isSelected={selectedShapeId === shape.id}
-                    onSelect={() => {
-                      setSelectedShapeId(shape.id);
-                      setSelectedTextBoxId(null);
-                    }}
-                    onUpdate={(updates) => {
-                      const updated = shapes.map((s) =>
-                        s.id === shape.id ? { ...s, ...updates } : s
-                      );
-                      setShapes(updated);
-                    }}
-                    onDelete={() => {
-                      setShapes(shapes.filter((s) => s.id !== shape.id));
-                      if (selectedShapeId === shape.id) {
-                        setSelectedShapeId(null);
-                      }
-                    }}
-                    containerRef={previewContainerRef}
-                  />
-                ))}
-              </div>
-            )}
-            {/* Text Boxes Overlay - Only for blank template */}
-            {!template && textBoxes.length > 0 && (
-              <div
-                className="absolute inset-0"
-                style={{ zIndex: 11, pointerEvents: "none" }}
-              >
-                {textBoxes.map((textBox) => (
-                  <EditableTextBox
-                    key={textBox.id}
-                    textBox={textBox}
-                    isSelected={selectedTextBoxId === textBox.id}
-                    onSelect={() => {
-                      setSelectedTextBoxId(textBox.id);
-                      setSelectedShapeId(null);
-                    }}
-                    onUpdate={(updates) => {
-                      const updated = textBoxes.map((tb) =>
-                        tb.id === textBox.id ? { ...tb, ...updates } : tb
-                      );
-                      setTextBoxes(updated);
-                    }}
-                    onDelete={() => {
-                      setTextBoxes(
-                        textBoxes.filter((tb) => tb.id !== textBox.id)
-                      );
-                      if (selectedTextBoxId === textBox.id) {
+            >
+              <InvitationPreview
+                templateType={template?.name || "blank"}
+                config={config}
+                designData={{
+                  ...designData,
+                  shapes: shapes.length > 0 ? shapes : undefined,
+                  textBoxes:
+                    !template && textBoxes.length > 0 ? textBoxes : undefined,
+                  orientation: !template ? orientation : undefined,
+                }}
+              />
+              {/* Shapes Overlay */}
+              {shapes.length > 0 && (
+                <div
+                  className="absolute inset-0"
+                  style={{ zIndex: 10, pointerEvents: "none" }}
+                >
+                  {shapes.map((shape) => (
+                    <EditableShape
+                      key={shape.id}
+                      shape={shape}
+                      isSelected={selectedShapeId === shape.id}
+                      onSelect={() => {
+                        setSelectedShapeId(shape.id);
                         setSelectedTextBoxId(null);
-                      }
-                    }}
-                    containerRef={previewContainerRef}
-                  />
-                ))}
-              </div>
-            )}
+                      }}
+                      onUpdate={(updates) => {
+                        const updated = shapes.map((s) =>
+                          s.id === shape.id ? { ...s, ...updates } : s
+                        );
+                        setShapes(updated);
+                      }}
+                      onDelete={() => {
+                        setShapes(shapes.filter((s) => s.id !== shape.id));
+                        if (selectedShapeId === shape.id) {
+                          setSelectedShapeId(null);
+                        }
+                      }}
+                      containerRef={previewContainerRef}
+                    />
+                  ))}
+                </div>
+              )}
+              {/* Text Boxes Overlay - Only for blank template */}
+              {!template && textBoxes.length > 0 && (
+                <div
+                  className="absolute inset-0"
+                  style={{ zIndex: 11, pointerEvents: "none" }}
+                >
+                  {textBoxes.map((textBox) => (
+                    <EditableTextBox
+                      key={textBox.id}
+                      textBox={textBox}
+                      isSelected={selectedTextBoxId === textBox.id}
+                      onSelect={() => {
+                        setSelectedTextBoxId(textBox.id);
+                        setSelectedShapeId(null);
+                      }}
+                      onUpdate={(updates) => {
+                        const updated = textBoxes.map((tb) =>
+                          tb.id === textBox.id ? { ...tb, ...updates } : tb
+                        );
+                        setTextBoxes(updated);
+                      }}
+                      onDelete={() => {
+                        setTextBoxes(
+                          textBoxes.filter((tb) => tb.id !== textBox.id)
+                        );
+                        if (selectedTextBoxId === textBox.id) {
+                          setSelectedTextBoxId(null);
+                        }
+                      }}
+                      containerRef={previewContainerRef}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
         {existingDesign?.customImage && (

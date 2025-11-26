@@ -47,6 +47,7 @@ interface InvitationPreviewProps {
       fontWeight?: string
       textAlign?: 'left' | 'center' | 'right'
     }>
+    orientation?: 'portrait' | 'landscape'
   }
   onPreviewGenerated?: (previewUrl: string) => void
 }
@@ -203,7 +204,13 @@ export function InvitationPreview({
       </div>
 
       {/* Visible preview - Always show live preview, static preview is optional */}
-      <div className="w-full aspect-[4/5] bg-white rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm relative">
+      <div 
+        className="w-full bg-white rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm relative"
+        style={{
+          aspectRatio: designData.orientation === 'landscape' ? '3/2' : '4/5',
+          minHeight: designData.orientation === 'landscape' ? '400px' : '500px',
+        }}
+      >
         {/* Show static preview if available and not generating */}
         {previewImage && !isGenerating ? (
           <div className="relative w-full h-full">
