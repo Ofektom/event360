@@ -52,6 +52,17 @@ export function EditableTextBox({
       }
     }
   }, [isEditing, textBox.text])
+  
+  // Auto-start editing for newly created empty text boxes
+  useEffect(() => {
+    if (!textBox.text && !isEditing && isSelected) {
+      // Small delay to ensure the component is fully mounted
+      const timer = setTimeout(() => {
+        setIsEditing(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [textBox.id, textBox.text, isEditing, isSelected])
 
   // Auto-resize width based on text content
   useEffect(() => {
@@ -100,6 +111,15 @@ export function EditableTextBox({
     // Single click on empty or new text box should start editing
     if (!textBox.text || textBox.text.trim() === '') {
       setIsEditing(true)
+    }
+    // Also start editing if clicking directly on the text content
+    if ((e.target as HTMLElement).tagName !== 'TEXTAREA') {
+      // Small delay to allow selection to happen first
+      setTimeout(() => {
+        if (!isEditing && (!textBox.text || textBox.text.trim() === '')) {
+          setIsEditing(true)
+        }
+      }, 100)
     }
   }
 

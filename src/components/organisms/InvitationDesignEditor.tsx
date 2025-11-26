@@ -1703,7 +1703,8 @@ export function InvitationDesignEditor({
                   };
                   setTextBoxes([...textBoxes, newTextBox]);
                   setSelectedTextBoxId(newTextBox.id);
-                  setTextBoxMode(false); // Exit text box mode after creating
+                  // Don't exit text box mode - allow creating multiple text boxes
+                  // User can click the button again to exit
                 }
               }}
             >
