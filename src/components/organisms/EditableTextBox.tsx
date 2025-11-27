@@ -43,15 +43,25 @@ export function EditableTextBox({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [resizeStart, setResizeStart] = useState({ width: 0, height: 0, x: 0, y: 0 })
   const [autoWidth, setAutoWidth] = useState(true) // Auto-resize width based on content
+  const [localText, setLocalText] = useState<string>('') // Local state for textarea value
   const textBoxRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const measureRef = useRef<HTMLSpanElement>(null)
-  const lastTextUpdateRef = useRef<string>('') // Track last text update to prevent duplicates
+  const isUpdatingRef = useRef<boolean>(false) // Track if we're currently updating
 
-  // Update the ref when textBox.text changes from parent to prevent duplicate updates
+  // Sync local text with textBox.text when it changes from parent (but not when we're updating)
   useEffect(() => {
-    lastTextUpdateRef.current = textBox.text || ''
+    if (!isUpdatingRef.current) {
+      setLocalText(textBox.text || '')
+    }
   }, [textBox.text])
+  
+  // Initialize local text when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setLocalText(textBox.text || '')
+    }
+  }, [isEditing])
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -335,18 +345,22 @@ export function EditableTextBox({
         {isEditing ? (
           <textarea
             ref={textareaRef}
-            value={textBox.text || ''}
+            value={localText}
             onChange={(e) => {
               e.stopPropagation() // Prevent event bubbling
               const newText = e.target.value
-              // Prevent duplicate text updates using ref
-              // Only update if the text actually changed and we haven't already processed this value
-              if (newText !== lastTextUpdateRef.current) {
-                lastTextUpdateRef.current = newText
-                // Only call onUpdate if the text is different from the current textBox.text
-                if (newText !== textBox.text) {
-                  onUpdate({ text: newText })
-                }
+              
+              // Update local state immediately for responsive typing
+              setLocalText(newText)
+              
+              // Update parent only if text actually changed
+              if (newText !== textBox.text && !isUpdatingRef.current) {
+                isUpdatingRef.current = true
+                onUpdate({ text: newText })
+                // Reset the flag after a short delay to allow parent update to complete
+                setTimeout(() => {
+                  isUpdatingRef.current = false
+                }, 0)
               }
               
               // Auto-resize height
