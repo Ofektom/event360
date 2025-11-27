@@ -57,16 +57,9 @@ export function EditableTextBox({
     }
   }, [isEditing, textBox.text])
   
-  // Auto-start editing for newly created empty text boxes
-  useEffect(() => {
-    if (!textBox.text && !isEditing && isSelected) {
-      // Small delay to ensure the component is fully mounted
-      const timer = setTimeout(() => {
-        setIsEditing(true)
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [textBox.id, textBox.text, isEditing, isSelected])
+  // Don't auto-start editing - let user explicitly choose to edit
+  // This allows the drag handle to be visible when text box is selected
+  // User can double-click or click on textarea to edit
 
   // Auto-resize width based on text content
   useEffect(() => {
@@ -142,15 +135,12 @@ export function EditableTextBox({
         }
       }
       
-      // If clicking on text content (not border), start editing
-      // If already selected, reactivate editing
-      if (isSelected) {
-        setIsEditing(true)
-      } else {
-        // If not selected, select and start editing
+      // If clicking on text content (not border), just select
+      // Don't auto-start editing - user must double-click to edit
+      if (!isSelected) {
         onSelect()
-        setIsEditing(true)
       }
+      // Don't auto-start editing on single click - allows drag handle to be visible
       return
     }
     
@@ -176,19 +166,9 @@ export function EditableTextBox({
   }
   
   const handleClick = (e: React.MouseEvent) => {
-    // Single click on empty or new text box should start editing
-    if (!textBox.text || textBox.text.trim() === '') {
-      setIsEditing(true)
-    }
-    // Also start editing if clicking directly on the text content
-    if ((e.target as HTMLElement).tagName !== 'TEXTAREA') {
-      // Small delay to allow selection to happen first
-      setTimeout(() => {
-        if (!isEditing && (!textBox.text || textBox.text.trim() === '')) {
-          setIsEditing(true)
-        }
-      }, 100)
-    }
+    // Don't auto-start editing on click - let user explicitly choose to edit
+    // This allows the drag handle to be visible when text box is selected
+    e.stopPropagation()
   }
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
@@ -272,11 +252,34 @@ export function EditableTextBox({
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
     >
+      {/* Delete Button - Always on top, positioned outside drag handle area */}
+      {isSelected && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            onDelete()
+          }}
+          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 shadow-lg"
+          style={{
+            zIndex: 200,
+            pointerEvents: 'all',
+          }}
+          title="Delete text box"
+        >
+          ×
+        </button>
+      )}
+
       {/* Drag Handle - Show at top when selected for easier dragging */}
       {isSelected && !isEditing && (
         <div
-          className="drag-handle absolute -top-1 left-0 w-full h-7 cursor-move"
+          className="drag-handle absolute -top-1 left-0 cursor-move"
           onMouseDown={(e) => {
+            // Don't start dragging if clicking on delete button
+            if ((e.target as HTMLElement).closest('button')) {
+              return
+            }
             e.stopPropagation()
             e.preventDefault()
             onSelect()
@@ -290,13 +293,15 @@ export function EditableTextBox({
             }
           }}
           style={{
+            width: 'calc(100% - 24px)', // Leave space for delete button
+            height: '28px',
             background: 'linear-gradient(to bottom, rgba(147, 51, 234, 0.4), rgba(147, 51, 234, 0.2))',
             borderTop: '3px solid #9333ea',
             borderLeft: '2px solid rgba(147, 51, 234, 0.3)',
             borderRight: '2px solid rgba(147, 51, 234, 0.3)',
             pointerEvents: 'all',
             borderRadius: '4px 4px 0 0',
-            zIndex: 100,
+            zIndex: 10,
             boxShadow: '0 2px 4px rgba(147, 51, 234, 0.2)',
           }}
           title="Drag to move"
@@ -324,10 +329,13 @@ export function EditableTextBox({
         {isEditing ? (
           <textarea
             ref={textareaRef}
-            value={textBox.text}
+            value={textBox.text || ''}
             onChange={(e) => {
               const newText = e.target.value
-              onUpdate({ text: newText })
+              // Prevent duplicate text updates
+              if (newText !== textBox.text) {
+                onUpdate({ text: newText })
+              }
               
               // Auto-resize height
               if (textareaRef.current) {
@@ -418,7 +426,7 @@ export function EditableTextBox({
           />
         ) : (
           <div
-            onClick={handleClick}
+            onDoubleClick={() => setIsEditing(true)}
             style={{
               fontSize: `${textBox.fontSize}px`,
               color: textBox.color,
@@ -428,10 +436,10 @@ export function EditableTextBox({
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',
               minHeight: `${textBox.size.height}px`,
-              cursor: 'text',
+              cursor: isSelected && !isEditing ? 'move' : 'text',
             }}
           >
-            {textBox.text || <span style={{ opacity: 0.5 }}>Click to edit</span>}
+            {textBox.text || <span style={{ opacity: 0.5 }}>Double-click to edit</span>}
           </div>
         )}
 
@@ -443,19 +451,6 @@ export function EditableTextBox({
             style={{ transform: 'translate(50%, 50%)' }}
             title="Drag to resize"
           />
-        )}
-
-        {/* Delete Button */}
-        {isSelected && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete()
-            }}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
-          >
-            ×
-          </button>
         )}
       </div>
     </div>
