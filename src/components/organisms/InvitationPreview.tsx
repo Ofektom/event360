@@ -222,10 +222,11 @@ export function InvitationPreview({
 
       {/* Visible preview - Always show live preview, static preview is optional */}
       <div 
-        className="w-full bg-white rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm relative"
+        className="w-full rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm relative"
         style={{
           aspectRatio: designData.orientation === 'landscape' ? '3/2' : '4/5',
           minHeight: designData.orientation === 'landscape' ? '400px' : '500px',
+          backgroundColor: designData.colors?.background || '#ffffff',
         }}
       >
         {/* Show static preview if available and not generating */}
@@ -246,7 +247,10 @@ export function InvitationPreview({
             </div>
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-50 relative overflow-auto" style={{ minHeight: '500px' }}>
+          <div className="w-full h-full flex items-center justify-center relative overflow-hidden" style={{ 
+            minHeight: designData.orientation === 'landscape' ? '400px' : '500px',
+            backgroundColor: designData.colors?.background || '#ffffff',
+          }}>
             {isGenerating && (
               <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10 rounded-lg">
                 <div className="text-center">
@@ -256,7 +260,13 @@ export function InvitationPreview({
               </div>
             )}
             {/* Live preview - always visible */}
-            <div className="w-full h-full flex items-center justify-center p-2 sm:p-4" style={{ maxWidth: '100%', maxHeight: '500px' }}>
+            <div className="w-full h-full flex items-center justify-center" style={{ 
+              width: designData.orientation === 'landscape' ? '600px' : '400px',
+              height: designData.orientation === 'landscape' ? '400px' : '500px',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              padding: '0',
+            }}>
               <TemplateRenderer
                 templateType={templateType}
                 config={config}

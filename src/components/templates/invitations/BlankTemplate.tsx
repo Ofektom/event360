@@ -77,6 +77,8 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
       style={{
         width,
         height,
+        minWidth: width,
+        minHeight: height,
         backgroundColor,
         padding: `${padding}px`,
         display: 'flex',
