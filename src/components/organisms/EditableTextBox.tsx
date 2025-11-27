@@ -97,6 +97,47 @@ export function EditableTextBox({
     
     // If clicking on the text content area
     if ((e.target as HTMLElement).closest('.textbox-content')) {
+      const target = e.target as HTMLElement
+      
+      // If clicking on textarea directly, start editing
+      if (target.tagName === 'TEXTAREA') {
+        onSelect()
+        setIsEditing(true)
+        return
+      }
+      
+      // Check if clicking on the border/padding area (not the actual text)
+      const contentDiv = target.closest('.textbox-content')
+      if (contentDiv) {
+        const rect = contentDiv.getBoundingClientRect()
+        const clickX = e.clientX - rect.left
+        const clickY = e.clientY - rect.top
+        const padding = 8 // padding value
+        
+        // If clicking near the edges (border area), start dragging instead of editing
+        const isNearEdge = 
+          clickX < padding || 
+          clickX > rect.width - padding ||
+          clickY < padding || 
+          clickY > rect.height - padding
+        
+        // If already selected and clicking near edge, start dragging
+        // Or if holding Ctrl/Cmd key, allow dragging from anywhere
+        if ((isNearEdge || e.ctrlKey || e.metaKey) && !isEditing) {
+          onSelect()
+          setIsDragging(true)
+          const containerRect = containerRef.current?.getBoundingClientRect()
+          if (containerRect) {
+            setDragStart({
+              x: e.clientX - containerRect.left - textBox.position.x,
+              y: e.clientY - containerRect.top - textBox.position.y,
+            })
+          }
+          return
+        }
+      }
+      
+      // If clicking on text content (not border), start editing
       // If already selected, reactivate editing
       if (isSelected) {
         setIsEditing(true)
@@ -108,7 +149,7 @@ export function EditableTextBox({
       return
     }
     
-    // Otherwise, select the text box and start dragging (clicking on border/background)
+    // Otherwise, clicking on the outer container - start dragging
     onSelect()
     if (!isEditing) {
       setIsDragging(true)
@@ -349,12 +390,35 @@ export function EditableTextBox({
           </div>
         )}
 
-        {/* Resize Handle */}
-        {isSelected && !autoWidth && (
+        {/* Resize Handle - Always show when selected */}
+        {isSelected && (
           <div
-            className="resize-handle absolute bottom-0 right-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize"
+            className="resize-handle absolute bottom-0 right-0 w-5 h-5 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600"
             onMouseDown={handleResizeMouseDown}
             style={{ transform: 'translate(50%, 50%)' }}
+            title="Drag to resize"
+          />
+        )}
+        
+        {/* Drag Handle - Show at top when selected for easier dragging */}
+        {isSelected && !isEditing && (
+          <div
+            className="absolute top-0 left-0 w-full h-3 cursor-move z-10"
+            onMouseDown={(e) => {
+              e.stopPropagation()
+              setIsDragging(true)
+              const rect = containerRef.current?.getBoundingClientRect()
+              if (rect) {
+                setDragStart({
+                  x: e.clientX - rect.left - textBox.position.x,
+                  y: e.clientY - rect.top - textBox.position.y,
+                })
+              }
+            }}
+            style={{
+              background: 'linear-gradient(to bottom, rgba(147, 51, 234, 0.15), transparent)',
+            }}
+            title="Drag to move"
           />
         )}
 
