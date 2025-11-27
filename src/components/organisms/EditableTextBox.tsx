@@ -155,8 +155,8 @@ export function EditableTextBox({
     }
     
     // Otherwise, clicking on the outer container (border area) - start dragging
-    onSelect()
-    if (!isEditing) {
+    // Only start dragging if not editing and text box is already selected
+    if (isSelected && !isEditing) {
       setIsDragging(true)
       const rect = containerRef.current?.getBoundingClientRect()
       if (rect) {
@@ -166,7 +166,7 @@ export function EditableTextBox({
         })
       }
     } else {
-      // If editing, just select (don't drag)
+      // If not selected or editing, just select
       onSelect()
     }
   }
@@ -267,7 +267,7 @@ export function EditableTextBox({
         width: `${textBox.size.width}px`,
         minHeight: `${textBox.size.height}px`,
         pointerEvents: 'all',
-        cursor: isEditing ? 'text' : (isSelected ? 'move' : 'default'),
+        cursor: isEditing ? 'text' : (isSelected && !isEditing ? 'move' : 'default'),
       }}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
@@ -275,7 +275,7 @@ export function EditableTextBox({
       {/* Drag Handle - Show at top when selected for easier dragging */}
       {isSelected && !isEditing && (
         <div
-          className="drag-handle absolute top-0 left-0 w-full h-4 cursor-move z-30"
+          className="drag-handle absolute -top-1 left-0 w-full h-7 cursor-move"
           onMouseDown={(e) => {
             e.stopPropagation()
             e.preventDefault()
@@ -290,11 +290,21 @@ export function EditableTextBox({
             }
           }}
           style={{
-            background: 'linear-gradient(to bottom, rgba(147, 51, 234, 0.2), transparent)',
+            background: 'linear-gradient(to bottom, rgba(147, 51, 234, 0.4), rgba(147, 51, 234, 0.2))',
+            borderTop: '3px solid #9333ea',
+            borderLeft: '2px solid rgba(147, 51, 234, 0.3)',
+            borderRight: '2px solid rgba(147, 51, 234, 0.3)',
             pointerEvents: 'all',
+            borderRadius: '4px 4px 0 0',
+            zIndex: 100,
+            boxShadow: '0 2px 4px rgba(147, 51, 234, 0.2)',
           }}
           title="Drag to move"
-        />
+        >
+          <div className="flex items-center justify-center h-full">
+            <div className="w-8 h-1 bg-purple-500 rounded-full opacity-60"></div>
+          </div>
+        </div>
       )}
 
       {/* Text Box Content */}
@@ -308,6 +318,7 @@ export function EditableTextBox({
           borderRadius: '4px',
           padding: '8px',
           minHeight: '100%',
+          zIndex: isSelected && !isEditing ? 1 : 'auto',
         }}
       >
         {isEditing ? (
