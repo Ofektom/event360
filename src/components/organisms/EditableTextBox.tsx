@@ -46,6 +46,12 @@ export function EditableTextBox({
   const textBoxRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const measureRef = useRef<HTMLSpanElement>(null)
+  const lastTextUpdateRef = useRef<string>('') // Track last text update to prevent duplicates
+
+  // Update the ref when textBox.text changes from parent to prevent duplicate updates
+  useEffect(() => {
+    lastTextUpdateRef.current = textBox.text || ''
+  }, [textBox.text])
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -331,10 +337,16 @@ export function EditableTextBox({
             ref={textareaRef}
             value={textBox.text || ''}
             onChange={(e) => {
+              e.stopPropagation() // Prevent event bubbling
               const newText = e.target.value
-              // Prevent duplicate text updates
-              if (newText !== textBox.text) {
-                onUpdate({ text: newText })
+              // Prevent duplicate text updates using ref
+              // Only update if the text actually changed and we haven't already processed this value
+              if (newText !== lastTextUpdateRef.current) {
+                lastTextUpdateRef.current = newText
+                // Only call onUpdate if the text is different from the current textBox.text
+                if (newText !== textBox.text) {
+                  onUpdate({ text: newText })
+                }
               }
               
               // Auto-resize height
