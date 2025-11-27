@@ -155,41 +155,8 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
         </>
       )}
 
-      {/* Render text boxes */}
-      {designData.textBoxes && designData.textBoxes.length > 0 && (
-        <>
-          {designData.textBoxes.map((textBox) => (
-            <div
-              key={textBox.id}
-              style={{
-                position: 'absolute',
-                left: `${textBox.position.x}px`,
-                top: `${textBox.position.y}px`,
-                width: `${textBox.size.width}px`,
-                minHeight: `${textBox.size.height}px`,
-                backgroundColor: textBox.hasFill ? (textBox.backgroundColor || '#ffffff') : 'transparent',
-                border: textBox.showBorder ? '1px solid rgba(0,0,0,0.3)' : 'none',
-                borderRadius: '4px',
-                padding: '8px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: `${textBox.fontSize}px`,
-                  color: textBox.color,
-                  fontFamily: textBox.fontFamily || 'inherit',
-                  fontWeight: textBox.isBold ? 'bold' : (textBox.fontWeight || 'normal'),
-                  textAlign: textBox.textAlign || 'left',
-                  wordWrap: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
-                {textBox.text}
-              </div>
-            </div>
-          ))}
-        </>
-      )}
+      {/* Text boxes are rendered separately as EditableTextBox components in InvitationDesignEditor */}
+      {/* Do not render them here to avoid duplication */}
     </div>
   )
 }
