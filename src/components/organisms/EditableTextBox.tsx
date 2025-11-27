@@ -61,7 +61,7 @@ export function EditableTextBox({
     if (isEditing) {
       setLocalText(textBox.text || '')
     }
-  }, [isEditing])
+  }, [isEditing, textBox.text])
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -398,15 +398,44 @@ export function EditableTextBox({
               }
             }}
             onBlur={() => {
-              setIsEditing(false)
-              // Update height based on final content
+              // Ensure the text is saved before exiting editing mode
+              const finalText = localText
+              
+              // Calculate height before updating to prevent text cutoff
+              let finalHeight = textBox.size.height
               if (textareaRef.current) {
-                const height = Math.max(40, textareaRef.current.scrollHeight)
-                onUpdate({ size: { ...textBox.size, height } })
+                // Reset height to auto to get accurate scrollHeight
+                textareaRef.current.style.height = 'auto'
+                finalHeight = Math.max(40, textareaRef.current.scrollHeight)
               }
+              
+              // Update both text and height together to prevent text cutoff
+              if (finalText !== textBox.text || finalHeight !== textBox.size.height) {
+                onUpdate({ 
+                  text: finalText,
+                  size: { ...textBox.size, height: finalHeight }
+                })
+              }
+              
+              setIsEditing(false)
             }}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
+                // Save text and height before exiting
+                const finalText = localText
+                let finalHeight = textBox.size.height
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = 'auto'
+                  finalHeight = Math.max(40, textareaRef.current.scrollHeight)
+                }
+                
+                if (finalText !== textBox.text || finalHeight !== textBox.size.height) {
+                  onUpdate({ 
+                    text: finalText,
+                    size: { ...textBox.size, height: finalHeight }
+                  })
+                }
+                
                 setIsEditing(false)
                 e.preventDefault()
                 // Deselect text box when pressing Escape
@@ -417,6 +446,21 @@ export function EditableTextBox({
               // Enter key exits editing mode, deselects text box, and keeps formatting
               // Shift+Enter creates a new line
               if (e.key === 'Enter' && !e.shiftKey) {
+                // Save text and height before exiting
+                const finalText = localText
+                let finalHeight = textBox.size.height
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = 'auto'
+                  finalHeight = Math.max(40, textareaRef.current.scrollHeight)
+                }
+                
+                if (finalText !== textBox.text || finalHeight !== textBox.size.height) {
+                  onUpdate({ 
+                    text: finalText,
+                    size: { ...textBox.size, height: finalHeight }
+                  })
+                }
+                
                 setIsEditing(false)
                 e.preventDefault()
                 // Blur the textarea to ensure editing state is cleared
@@ -462,10 +506,12 @@ export function EditableTextBox({
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',
               minHeight: `${textBox.size.height}px`,
+              height: 'auto',
               cursor: isSelected && !isEditing ? 'move' : 'text',
+              width: '100%',
             }}
           >
-            {textBox.text || <span style={{ opacity: 0.5 }}>Double-click to edit</span>}
+            {(textBox.text || localText) || <span style={{ opacity: 0.5 }}>Double-click to edit</span>}
           </div>
         )}
 
