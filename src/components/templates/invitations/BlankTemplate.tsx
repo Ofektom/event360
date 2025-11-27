@@ -68,12 +68,15 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
   const orientation = designData.orientation || 'portrait'
   const isLandscape = orientation === 'landscape'
 
+  // Calculate dimensions based on orientation
+  const width = isLandscape ? '600px' : '400px'
+  const height = isLandscape ? '400px' : '500px'
+  
   return (
     <div
       style={{
-        width: '100%',
-        height: '100%',
-        minHeight: isLandscape ? '400px' : '500px',
+        width,
+        height,
         backgroundColor,
         padding: `${padding}px`,
         display: 'flex',
@@ -82,6 +85,8 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
         justifyContent: 'center',
         position: 'relative',
         boxSizing: 'border-box',
+        overflow: 'hidden',
+        flexShrink: 0,
       }}
     >
       {/* Render custom text fields */}
