@@ -95,6 +95,13 @@ export function EditableTextBox({
       return
     }
     
+    // If clicking on drag handle, start dragging (handled by drag handle's own onMouseDown)
+    if ((e.target as HTMLElement).closest('.drag-handle')) {
+      // The drag handle has its own handler, just select
+      onSelect()
+      return
+    }
+    
     // If clicking on the text content area
     if ((e.target as HTMLElement).closest('.textbox-content')) {
       const target = e.target as HTMLElement
@@ -108,23 +115,21 @@ export function EditableTextBox({
       
       // Check if clicking on the border/padding area (not the actual text)
       const contentDiv = target.closest('.textbox-content')
-      if (contentDiv) {
+      if (contentDiv && isSelected && !isEditing) {
         const rect = contentDiv.getBoundingClientRect()
         const clickX = e.clientX - rect.left
         const clickY = e.clientY - rect.top
         const padding = 8 // padding value
         
-        // If clicking near the edges (border area), start dragging instead of editing
+        // If clicking near the edges (border area), start dragging
         const isNearEdge = 
           clickX < padding || 
           clickX > rect.width - padding ||
           clickY < padding || 
           clickY > rect.height - padding
         
-        // If already selected and clicking near edge, start dragging
-        // Or if holding Ctrl/Cmd key, allow dragging from anywhere
-        if ((isNearEdge || e.ctrlKey || e.metaKey) && !isEditing) {
-          onSelect()
+        // If clicking on border area when selected, start dragging
+        if (isNearEdge) {
           setIsDragging(true)
           const containerRect = containerRef.current?.getBoundingClientRect()
           if (containerRect) {
@@ -149,7 +154,7 @@ export function EditableTextBox({
       return
     }
     
-    // Otherwise, clicking on the outer container - start dragging
+    // Otherwise, clicking on the outer container (border area) - start dragging
     onSelect()
     if (!isEditing) {
       setIsDragging(true)
@@ -160,6 +165,9 @@ export function EditableTextBox({
           y: e.clientY - rect.top - textBox.position.y,
         })
       }
+    } else {
+      // If editing, just select (don't drag)
+      onSelect()
     }
   }
 
@@ -252,17 +260,43 @@ export function EditableTextBox({
   return (
     <div
       ref={textBoxRef}
-      className={`absolute cursor-move ${isSelected ? 'z-10' : 'z-0'}`}
+      className={`editable-textbox absolute ${isSelected ? 'z-10' : 'z-0'}`}
       style={{
         left: `${textBox.position.x}px`,
         top: `${textBox.position.y}px`,
         width: `${textBox.size.width}px`,
         minHeight: `${textBox.size.height}px`,
         pointerEvents: 'all',
+        cursor: isEditing ? 'text' : (isSelected ? 'move' : 'default'),
       }}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
     >
+      {/* Drag Handle - Show at top when selected for easier dragging */}
+      {isSelected && !isEditing && (
+        <div
+          className="drag-handle absolute top-0 left-0 w-full h-4 cursor-move z-30"
+          onMouseDown={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            onSelect()
+            setIsDragging(true)
+            const rect = containerRef.current?.getBoundingClientRect()
+            if (rect) {
+              setDragStart({
+                x: e.clientX - rect.left - textBox.position.x,
+                y: e.clientY - rect.top - textBox.position.y,
+              })
+            }
+          }}
+          style={{
+            background: 'linear-gradient(to bottom, rgba(147, 51, 234, 0.2), transparent)',
+            pointerEvents: 'all',
+          }}
+          title="Drag to move"
+        />
+      )}
+
       {/* Text Box Content */}
       <div
         className="textbox-content w-full h-full relative"
@@ -397,28 +431,6 @@ export function EditableTextBox({
             onMouseDown={handleResizeMouseDown}
             style={{ transform: 'translate(50%, 50%)' }}
             title="Drag to resize"
-          />
-        )}
-        
-        {/* Drag Handle - Show at top when selected for easier dragging */}
-        {isSelected && !isEditing && (
-          <div
-            className="absolute top-0 left-0 w-full h-3 cursor-move z-10"
-            onMouseDown={(e) => {
-              e.stopPropagation()
-              setIsDragging(true)
-              const rect = containerRef.current?.getBoundingClientRect()
-              if (rect) {
-                setDragStart({
-                  x: e.clientX - rect.left - textBox.position.x,
-                  y: e.clientY - rect.top - textBox.position.y,
-                })
-              }
-            }}
-            style={{
-              background: 'linear-gradient(to bottom, rgba(147, 51, 234, 0.15), transparent)',
-            }}
-            title="Drag to move"
           />
         )}
 
