@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "seed:templates": "tsx scripts/seed-templates.ts",
-    "seed:shapes": "tsx scripts/seed-shapes.ts"
+    "seed:shapes": "tsx scripts/seed-shapes.ts",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
