@@ -119,6 +119,7 @@ export function InvitationDesignEditor({
     textBoxes?: TextBox[];
     customFields?: CustomTextField[];
     customGraphics?: CustomGraphic[];
+    orientation?: "portrait" | "landscape";
   }>({
     text: {},
     colors: {},
@@ -310,6 +311,8 @@ export function InvitationDesignEditor({
           customGraphics: savedData.customGraphics,
         }),
         ...(savedData.shapes && { shapes: savedData.shapes }),
+        ...(savedData.textBoxes && { textBoxes: savedData.textBoxes }),
+        ...(savedData.orientation && { orientation: savedData.orientation }),
       };
 
       console.log("Loading saved design data:", completeDesignData); // Debug log
@@ -348,6 +351,7 @@ export function InvitationDesignEditor({
 
       // Load text boxes - ensure they're properly restored
       if (savedData.textBoxes && Array.isArray(savedData.textBoxes)) {
+        console.log("Loading text boxes:", savedData.textBoxes); // Debug log
         setTextBoxes(savedData.textBoxes);
       } else {
         setTextBoxes([]);
@@ -356,6 +360,11 @@ export function InvitationDesignEditor({
       // Load orientation if it exists (for blank templates)
       if (savedData.orientation) {
         setOrientation(savedData.orientation);
+      }
+
+      // For blank templates (no templateId), ensure template state is null
+      if (!data.templateId) {
+        setTemplate(null);
       }
 
       // fontSizeInputs will be synced by the useEffect that watches designData.styles.fontSize
@@ -686,12 +695,14 @@ export function InvitationDesignEditor({
         : `/api/invitations/designs`;
       const method = designId ? "PATCH" : "POST";
 
-      // Include custom fields, graphics, and shapes in design data
+      // Include custom fields, graphics, shapes, textBoxes, and orientation in design data
       const saveData = {
         ...designData,
         customFields,
         customGraphics,
         shapes,
+        ...(textBoxes.length > 0 && { textBoxes }), // Include text boxes if they exist
+        ...(orientation && { orientation }), // Include orientation for blank templates
       };
 
       const response = await fetch(url, {
@@ -1898,7 +1909,12 @@ export function InvitationDesignEditor({
                 designData={{
                   ...designData,
                   shapes: shapes.length > 0 ? shapes : undefined,
-                  textBoxes: !template ? textBoxes : undefined, // Always pass text boxes for blank template
+                  // Use textBoxes from state if available, otherwise from designData (for saved designs)
+                  textBoxes: !template
+                    ? textBoxes.length > 0
+                      ? textBoxes
+                      : designData.textBoxes
+                    : undefined,
                   orientation: !template ? orientation : undefined,
                 }}
               />
