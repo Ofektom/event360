@@ -64,6 +64,13 @@ export function EditableShape({
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement
+    
+    // Don't start dragging if clicking on resize handle or delete button
+    if (target.closest('.resize-handle') || target.closest('button[title="Delete shape"]')) {
+      return
+    }
+    
     e.stopPropagation()
     handleMouseDown(e)
   }
@@ -112,8 +119,8 @@ export function EditableShape({
         const newY = clientY - rect.top - dragStart.y
         
         // Constrain to container bounds
-        const maxX = rect.width - shape.size.width
-        const maxY = rect.height - shape.size.height
+        const maxX = Math.max(0, rect.width - shape.size.width)
+        const maxY = Math.max(0, rect.height - shape.size.height)
         
         onUpdate({
           position: {
@@ -125,14 +132,18 @@ export function EditableShape({
         const deltaX = clientX - rect.left - resizeStart.x
         const deltaY = clientY - rect.top - resizeStart.y
         
-        // Maintain aspect ratio or allow free resize
+        // Calculate new size based on delta
         const newWidth = Math.max(20, resizeStart.width + deltaX)
         const newHeight = Math.max(20, resizeStart.height + deltaY)
         
+        // Constrain to container bounds
+        const maxWidth = rect.width - shape.position.x
+        const maxHeight = rect.height - shape.position.y
+        
         onUpdate({
           size: {
-            width: newWidth,
-            height: newHeight,
+            width: Math.min(newWidth, maxWidth),
+            height: Math.min(newHeight, maxHeight),
           },
         })
       }
@@ -161,7 +172,7 @@ export function EditableShape({
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleMouseUp)
     }
-  }, [isDragging, isResizing, dragStart, resizeStart, shape.size, containerRef, onUpdate])
+  }, [isDragging, isResizing, dragStart, resizeStart, shape.size, shape.position, containerRef, onUpdate])
 
   return (
     <div
@@ -178,7 +189,7 @@ export function EditableShape({
       onTouchStart={handleTouchStart}
     >
       {/* Shape Content */}
-      <div className="shape-content w-full h-full relative" style={{ pointerEvents: 'auto', position: 'relative' }}>
+      <div className="shape-content w-full h-full relative" style={{ position: 'relative' }}>
         <svg
           width="100%"
           height="100%"

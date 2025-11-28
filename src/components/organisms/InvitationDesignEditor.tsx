@@ -1986,40 +1986,28 @@ export function InvitationDesignEditor({
                   style={{ zIndex: 10, pointerEvents: "none" }}
                 >
                   {shapes.map((shape) => (
-                    <div
+                    <EditableShape
                       key={shape.id}
-                      style={{ pointerEvents: "auto" }}
-                      onClick={(e) => {
-                        // Stop propagation to prevent canvas click from deselecting
-                        e.stopPropagation();
+                      shape={shape}
+                      isSelected={selectedShapeId === shape.id}
+                      onSelect={() => {
+                        setSelectedShapeId(shape.id);
+                        setSelectedTextBoxId(null);
                       }}
-                      onTouchStart={(e) => {
-                        // Stop propagation to prevent canvas touch from deselecting
-                        e.stopPropagation();
+                      onUpdate={(updates) => {
+                        const updated = shapes.map((s) =>
+                          s.id === shape.id ? { ...s, ...updates } : s
+                        );
+                        setShapes(updated);
                       }}
-                    >
-                      <EditableShape
-                        shape={shape}
-                        isSelected={selectedShapeId === shape.id}
-                        onSelect={() => {
-                          setSelectedShapeId(shape.id);
-                          setSelectedTextBoxId(null);
-                        }}
-                        onUpdate={(updates) => {
-                          const updated = shapes.map((s) =>
-                            s.id === shape.id ? { ...s, ...updates } : s
-                          );
-                          setShapes(updated);
-                        }}
-                        onDelete={() => {
-                          setShapes(shapes.filter((s) => s.id !== shape.id));
-                          if (selectedShapeId === shape.id) {
-                            setSelectedShapeId(null);
-                          }
-                        }}
-                        containerRef={previewContainerRef}
-                      />
-                    </div>
+                      onDelete={() => {
+                        setShapes(shapes.filter((s) => s.id !== shape.id));
+                        if (selectedShapeId === shape.id) {
+                          setSelectedShapeId(null);
+                        }
+                      }}
+                      containerRef={previewContainerRef}
+                    />
                   ))}
                 </div>
               )}
