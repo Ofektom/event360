@@ -906,248 +906,258 @@ export function InvitationDesignEditor({
             </div>
           </div>
 
-          {/* Text Colors - Clear labels with font sizes */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-800 mt-4">
-              Text Colors & Sizes
-            </h4>
+          {/* Text Colors - Clear labels with font sizes - Only for template-based designs */}
+          {template && (
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-800 mt-4">
+                Text Colors & Sizes
+              </h4>
 
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Couple Names (Primary)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Color and size for the main heading (e.g., &quot;Bride &amp;
+                    Groom&quot;)
+                  </p>
+                  <div className="flex gap-2 items-end">
+                    <input
+                      type="color"
+                      value={currentThemeColors.primary}
+                      onChange={(e) =>
+                        handleColorChange("primary", e.target.value)
+                      }
+                      className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <Input
+                      type="text"
+                      value={currentThemeColors.primary}
+                      onChange={(e) =>
+                        handleColorChange("primary", e.target.value)
+                      }
+                      className="flex-1"
+                      placeholder="#9333ea"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-600 whitespace-nowrap">
+                        Size:
+                      </label>
+                      <Input
+                        type="number"
+                        min="12"
+                        max="72"
+                        value={designData.styles?.fontSize?.heading || 32}
+                        onChange={(e) =>
+                          handleStyleChange(
+                            "fontSize.heading",
+                            parseInt(e.target.value) || 32
+                          )
+                        }
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date & Subheading
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Color and size for date, venue, and subheadings
+                  </p>
+                  <div className="flex gap-2 items-end">
+                    <input
+                      type="color"
+                      value={currentTextColors.heading}
+                      onChange={(e) =>
+                        handleColorChange("heading", e.target.value)
+                      }
+                      className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <Input
+                      type="text"
+                      value={currentTextColors.heading}
+                      onChange={(e) =>
+                        handleColorChange("heading", e.target.value)
+                      }
+                      className="flex-1"
+                      placeholder="#111827"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-600 whitespace-nowrap">
+                        Size:
+                      </label>
+                      <Input
+                        type="number"
+                        min="12"
+                        max="48"
+                        value={designData.styles?.fontSize?.subheading || 24}
+                        onChange={(e) =>
+                          handleStyleChange(
+                            "fontSize.subheading",
+                            parseInt(e.target.value) || 24
+                          )
+                        }
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Body Text
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Color and size for description and message text
+                  </p>
+                  <div className="flex gap-2 items-end">
+                    <input
+                      type="color"
+                      value={currentTextColors.body}
+                      onChange={(e) =>
+                        handleColorChange("body", e.target.value)
+                      }
+                      className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <Input
+                      type="text"
+                      value={currentTextColors.body}
+                      onChange={(e) =>
+                        handleColorChange("body", e.target.value)
+                      }
+                      className="flex-1"
+                      placeholder="#4b5563"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-600 whitespace-nowrap">
+                        Size:
+                      </label>
+                      <Input
+                        type="number"
+                        min="10"
+                        max="24"
+                        value={designData.styles?.fontSize?.body || 16}
+                        onChange={(e) =>
+                          handleStyleChange(
+                            "fontSize.body",
+                            parseInt(e.target.value) || 16
+                          )
+                        }
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Accent Color
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Color for decorative elements and dividers
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={currentThemeColors.secondary}
+                      onChange={(e) =>
+                        handleColorChange("secondary", e.target.value)
+                      }
+                      className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <Input
+                      type="text"
+                      value={currentThemeColors.secondary}
+                      onChange={(e) =>
+                        handleColorChange("secondary", e.target.value)
+                      }
+                      className="flex-1"
+                      placeholder="#ec4899"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Spacing Settings - Clear labels - Only for template-based designs */}
+        {template && (
+          <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Spacing
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Couple Names (Primary)
+                  Card Padding
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Color and size for the main heading (e.g., &quot;Bride &amp;
-                  Groom&quot;)
+                  Space around the edges of the invitation card
                 </p>
-                <div className="flex gap-2 items-end">
-                  <input
-                    type="color"
-                    value={currentThemeColors.primary}
-                    onChange={(e) =>
-                      handleColorChange("primary", e.target.value)
-                    }
-                    className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={currentThemeColors.primary}
-                    onChange={(e) =>
-                      handleColorChange("primary", e.target.value)
-                    }
-                    className="flex-1"
-                    placeholder="#9333ea"
-                  />
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600 whitespace-nowrap">
-                      Size:
-                    </label>
-                    <Input
-                      type="number"
-                      min="12"
-                      max="72"
-                      value={designData.styles?.fontSize?.heading || 32}
-                      onChange={(e) =>
-                        handleStyleChange(
-                          "fontSize.heading",
-                          parseInt(e.target.value) || 32
-                        )
-                      }
-                      className="w-20"
-                    />
-                  </div>
-                </div>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={designData.styles?.spacing?.padding || 40}
+                  onChange={(e) =>
+                    handleStyleChange(
+                      "spacing.padding",
+                      parseInt(e.target.value) || 40
+                    )
+                  }
+                  className="w-full"
+                />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date & Subheading
+                  Top Spacing
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Color and size for date, venue, and subheadings
+                  Space above headings and main elements
                 </p>
-                <div className="flex gap-2 items-end">
-                  <input
-                    type="color"
-                    value={currentTextColors.heading}
-                    onChange={(e) =>
-                      handleColorChange("heading", e.target.value)
-                    }
-                    className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={currentTextColors.heading}
-                    onChange={(e) =>
-                      handleColorChange("heading", e.target.value)
-                    }
-                    className="flex-1"
-                    placeholder="#111827"
-                  />
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600 whitespace-nowrap">
-                      Size:
-                    </label>
-                    <Input
-                      type="number"
-                      min="12"
-                      max="48"
-                      value={designData.styles?.fontSize?.subheading || 24}
-                      onChange={(e) =>
-                        handleStyleChange(
-                          "fontSize.subheading",
-                          parseInt(e.target.value) || 24
-                        )
-                      }
-                      className="w-20"
-                    />
-                  </div>
-                </div>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={designData.styles?.spacing?.margin?.top || 20}
+                  onChange={(e) =>
+                    handleStyleChange(
+                      "spacing.margin.top",
+                      parseInt(e.target.value) || 20
+                    )
+                  }
+                  className="w-full"
+                />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Body Text
+                  Bottom Spacing
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Color and size for description and message text
+                  Space below headings and main elements
                 </p>
-                <div className="flex gap-2 items-end">
-                  <input
-                    type="color"
-                    value={currentTextColors.body}
-                    onChange={(e) => handleColorChange("body", e.target.value)}
-                    className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={currentTextColors.body}
-                    onChange={(e) => handleColorChange("body", e.target.value)}
-                    className="flex-1"
-                    placeholder="#4b5563"
-                  />
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600 whitespace-nowrap">
-                      Size:
-                    </label>
-                    <Input
-                      type="number"
-                      min="10"
-                      max="24"
-                      value={designData.styles?.fontSize?.body || 16}
-                      onChange={(e) =>
-                        handleStyleChange(
-                          "fontSize.body",
-                          parseInt(e.target.value) || 16
-                        )
-                      }
-                      className="w-20"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Accent Color
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Color for decorative elements and dividers
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={currentThemeColors.secondary}
-                    onChange={(e) =>
-                      handleColorChange("secondary", e.target.value)
-                    }
-                    className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={currentThemeColors.secondary}
-                    onChange={(e) =>
-                      handleColorChange("secondary", e.target.value)
-                    }
-                    className="flex-1"
-                    placeholder="#ec4899"
-                  />
-                </div>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={designData.styles?.spacing?.margin?.bottom || 20}
+                  onChange={(e) =>
+                    handleStyleChange(
+                      "spacing.margin.bottom",
+                      parseInt(e.target.value) || 20
+                    )
+                  }
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Spacing Settings - Clear labels */}
-        <div className="space-y-6 mb-6 border-t border-gray-200 pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Spacing</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Card Padding
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Space around the edges of the invitation card
-              </p>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={designData.styles?.spacing?.padding || 40}
-                onChange={(e) =>
-                  handleStyleChange(
-                    "spacing.padding",
-                    parseInt(e.target.value) || 40
-                  )
-                }
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Top Spacing
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Space above headings and main elements
-              </p>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={designData.styles?.spacing?.margin?.top || 20}
-                onChange={(e) =>
-                  handleStyleChange(
-                    "spacing.margin.top",
-                    parseInt(e.target.value) || 20
-                  )
-                }
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bottom Spacing
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Space below headings and main elements
-              </p>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={designData.styles?.spacing?.margin?.bottom || 20}
-                onChange={(e) =>
-                  handleStyleChange(
-                    "spacing.margin.bottom",
-                    parseInt(e.target.value) || 20
-                  )
-                }
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Text Boxes - Only for blank template */}
         {!template && (
