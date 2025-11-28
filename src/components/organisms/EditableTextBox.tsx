@@ -444,9 +444,6 @@ export function EditableTextBox({
           <textarea
             ref={textareaRef}
             value={localText}
-            style={{
-              touchAction: 'manipulation', // Allow text selection and editing on mobile
-            }}
             onChange={(e) => {
               e.stopPropagation() // Prevent event bubbling
               const newText = e.target.value
@@ -591,6 +588,7 @@ export function EditableTextBox({
               overflow: 'hidden',
               wordWrap: 'break-word',
               whiteSpace: 'pre-wrap',
+              touchAction: 'manipulation', // Allow text selection and editing on mobile
             }}
             className="w-full"
             placeholder="Type here..."
