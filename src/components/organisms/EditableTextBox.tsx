@@ -48,6 +48,7 @@ export function EditableTextBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const measureRef = useRef<HTMLSpanElement>(null)
   const isUpdatingRef = useRef<boolean>(false) // Track if we're currently updating
+  const lastTapTimeRef = useRef<number>(0) // Track last tap time for double-tap detection on mobile
 
   // Sync local text with textBox.text when it changes from parent (but not when we're updating)
   useEffect(() => {
@@ -208,6 +209,23 @@ export function EditableTextBox({
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.stopPropagation()
+    
+    // Handle double-tap for editing on mobile
+    if (!isEditing && isSelected) {
+      const now = Date.now()
+      const timeSinceLastTap = now - lastTapTimeRef.current
+      
+      if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+        // Double tap detected - start editing
+        e.preventDefault()
+        setIsEditing(true)
+        lastTapTimeRef.current = 0
+        return
+      } else {
+        lastTapTimeRef.current = now
+      }
+    }
+    
     // Prevent click event from firing after touch
     e.preventDefault()
   }
@@ -315,6 +333,7 @@ export function EditableTextBox({
         minHeight: `${textBox.size.height}px`,
         pointerEvents: 'all',
         cursor: isEditing ? 'text' : (isSelected && !isEditing ? 'move' : 'default'),
+        touchAction: 'none', // Prevent default touch behaviors (scrolling, zooming)
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
@@ -329,10 +348,17 @@ export function EditableTextBox({
             e.preventDefault()
             onDelete()
           }}
-          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 shadow-lg"
+          onTouchStart={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            onDelete()
+          }}
+          className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 active:bg-red-700 shadow-lg"
           style={{
             zIndex: 200,
             pointerEvents: 'all',
+            minWidth: '44px', // Minimum touch target size for mobile
+            minHeight: '44px',
           }}
           title="Delete text box"
         >
@@ -418,6 +444,9 @@ export function EditableTextBox({
           <textarea
             ref={textareaRef}
             value={localText}
+            style={{
+              touchAction: 'manipulation', // Allow text selection and editing on mobile
+            }}
             onChange={(e) => {
               e.stopPropagation() // Prevent event bubbling
               const newText = e.target.value
@@ -569,6 +598,23 @@ export function EditableTextBox({
         ) : (
           <div
             onDoubleClick={() => setIsEditing(true)}
+            onTouchEnd={(e) => {
+              // Handle double-tap for editing on mobile
+              if (!isEditing && isSelected) {
+                const now = Date.now()
+                const timeSinceLastTap = now - lastTapTimeRef.current
+                
+                if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+                  // Double tap detected - start editing
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsEditing(true)
+                  lastTapTimeRef.current = 0
+                } else {
+                  lastTapTimeRef.current = now
+                }
+              }
+            }}
             style={{
               fontSize: `${textBox.fontSize}px`,
               color: textBox.color,
@@ -581,6 +627,7 @@ export function EditableTextBox({
               height: 'auto',
               cursor: isSelected && !isEditing ? 'move' : 'text',
               width: '100%',
+              touchAction: 'manipulation', // Allow single-finger pan and double-tap zoom
             }}
           >
             {(textBox.text || localText) || <span style={{ opacity: 0.5 }}>Double-click to edit</span>}
@@ -590,10 +637,16 @@ export function EditableTextBox({
         {/* Resize Handle - Always show when selected */}
         {isSelected && (
           <div
-            className="resize-handle absolute bottom-0 right-0 w-5 h-5 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600"
+            className="resize-handle absolute bottom-0 right-0 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600 active:bg-purple-700"
             onMouseDown={handleResizeMouseDown}
             onTouchStart={handleResizeTouchStart}
-            style={{ transform: 'translate(50%, 50%)' }}
+            style={{ 
+              transform: 'translate(50%, 50%)',
+              width: '44px', // Minimum touch target size for mobile
+              height: '44px',
+              minWidth: '44px',
+              minHeight: '44px',
+            }}
             title="Drag to resize"
           />
         )}

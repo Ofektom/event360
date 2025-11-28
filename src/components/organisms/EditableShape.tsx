@@ -194,10 +194,16 @@ export function EditableShape({
         {/* Resize Handle */}
         {isSelected && (
           <div
-            className="resize-handle absolute bottom-0 right-0 w-5 h-5 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600"
+            className="resize-handle absolute bottom-0 right-0 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600 active:bg-purple-700"
             onMouseDown={handleResizeMouseDown}
             onTouchStart={handleResizeTouchStart}
-            style={{ transform: 'translate(50%, 50%)' }}
+            style={{ 
+              transform: 'translate(50%, 50%)',
+              width: '44px', // Minimum touch target size for mobile
+              height: '44px',
+              minWidth: '44px',
+              minHeight: '44px',
+            }}
             title="Drag to resize"
           />
         )}
@@ -214,8 +220,17 @@ export function EditableShape({
               e.stopPropagation()
               e.preventDefault()
             }}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 z-30"
-            style={{ pointerEvents: 'all' }}
+            onTouchStart={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              onDelete()
+            }}
+            className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 active:bg-red-700 z-30"
+            style={{ 
+              pointerEvents: 'all',
+              minWidth: '44px', // Minimum touch target size for mobile
+              minHeight: '44px',
+            }}
             title="Delete shape"
           >
             ×

@@ -1907,20 +1907,27 @@ export function InvitationDesignEditor({
                 }
               }}
               onTouchStart={(e) => {
+                const target = e.target as HTMLElement;
+
+                // Don't do anything if touching an existing text box or shape
+                if (
+                  target.closest(".textbox-content") ||
+                  target.closest(".editable-shape") ||
+                  target.closest(".editable-textbox") ||
+                  target.closest(".shape-content") ||
+                  target.tagName === "TEXTAREA" ||
+                  target.closest("button") ||
+                  target.closest("svg")
+                ) {
+                  return;
+                }
+
+                // Deselect shapes and text boxes when touching canvas
+                setSelectedShapeId(null);
+                setSelectedTextBoxId(null);
+
                 // Handle touch events for mobile - create text box on tap
                 if (!template) {
-                  const target = e.target as HTMLElement;
-
-                  // Don't do anything if touching an existing text box or shape
-                  if (
-                    target.closest(".textbox-content") ||
-                    target.closest(".editable-shape") ||
-                    target.closest(".editable-textbox") ||
-                    target.tagName === "TEXTAREA"
-                  ) {
-                    return;
-                  }
-
                   // Only create text box if text box mode is active
                   if (
                     textBoxMode &&
@@ -1951,14 +1958,7 @@ export function InvitationDesignEditor({
                     setTextBoxes([...textBoxes, newTextBox]);
                     setSelectedTextBoxId(newTextBox.id);
                     setTextBoxMode(false);
-                  } else {
-                    // If text box mode is not active, deselect any selected text box
-                    setSelectedTextBoxId(null);
                   }
-                } else {
-                  // For templates, deselect shapes and text boxes when clicking canvas
-                  setSelectedShapeId(null);
-                  setSelectedTextBoxId(null);
                 }
               }}
             >
@@ -1991,6 +1991,10 @@ export function InvitationDesignEditor({
                       style={{ pointerEvents: "auto" }}
                       onClick={(e) => {
                         // Stop propagation to prevent canvas click from deselecting
+                        e.stopPropagation();
+                      }}
+                      onTouchStart={(e) => {
+                        // Stop propagation to prevent canvas touch from deselecting
                         e.stopPropagation();
                       }}
                     >
