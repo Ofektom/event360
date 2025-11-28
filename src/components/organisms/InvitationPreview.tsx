@@ -268,6 +268,7 @@ export function InvitationPreview({
               padding: '0',
             }}>
               <TemplateRenderer
+                key={JSON.stringify(designData?.styles || {})}
                 templateType={templateType}
                 config={config}
                 designData={designData}
