@@ -238,7 +238,9 @@ export function EditableTextBox({
       if ('touches' in e && e.touches.length > 0) {
         return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }
       }
-      return { clientX: e.clientX, clientY: e.clientY }
+      // TypeScript knows this is MouseEvent after the TouchEvent check
+      const mouseEvent = e as MouseEvent
+      return { clientX: mouseEvent.clientX, clientY: mouseEvent.clientY }
     }
 
     const handleMouseMove = (e: MouseEvent | TouchEvent) => {
