@@ -1959,7 +1959,9 @@ export function InvitationDesignEditor({
                 config={config}
                 designData={{
                   ...designData,
-                  shapes: shapes.length > 0 ? shapes : undefined,
+                  // Use shapes from state if available, otherwise from designData (for saved designs)
+                  shapes:
+                    shapes.length > 0 ? shapes : designData.shapes || undefined,
                   // Use textBoxes from state if available, otherwise from designData (for saved designs)
                   textBoxes: !template
                     ? textBoxes.length > 0

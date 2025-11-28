@@ -37,6 +37,14 @@ interface ElegantWeddingTemplateProps {
         }
       }
     }
+    shapes?: Array<{
+      id: string
+      name: string
+      svgPath: string
+      color: string
+      position: { x: number; y: number }
+      size: { width: number; height: number }
+    }>
   }
 }
 
@@ -179,6 +187,34 @@ export function ElegantWeddingTemplate({ config, designData }: ElegantWeddingTem
           {text.message || config.textFields.find((f) => f.id === 'message')?.default || ''}
         </p>
       </div>
+
+      {/* Render shapes */}
+      {designData.shapes && designData.shapes.length > 0 && (
+        <>
+          {designData.shapes.map((shape) => (
+            <div
+              key={shape.id}
+              style={{
+                position: 'absolute',
+                left: `${shape.position.x}px`,
+                top: `${shape.position.y}px`,
+                width: `${shape.size.width}px`,
+                height: `${shape.size.height}px`,
+                zIndex: 1,
+              }}
+            >
+              <svg
+                width="100%"
+                height="100%"
+                viewBox="0 0 100 100"
+                style={{ color: shape.color }}
+              >
+                <g dangerouslySetInnerHTML={{ __html: shape.svgPath }} />
+              </svg>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }

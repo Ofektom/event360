@@ -43,6 +43,14 @@ interface TemplateRendererProps {
         }
       }
     }
+    shapes?: Array<{
+      id: string
+      name: string
+      svgPath: string
+      color: string
+      position: { x: number; y: number }
+      size: { width: number; height: number }
+    }>
   }
   ref?: React.Ref<HTMLDivElement>
 }
