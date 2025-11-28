@@ -37,20 +37,27 @@ export function EditableShape({
 
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
+    const target = e.target as HTMLElement
+    
+    // Don't start dragging if clicking on resize handle or delete button
+    if (target.closest('.resize-handle') || target.closest('button')) {
+      return
+    }
+    
     onSelect()
+    setIsResizing(false) // Prevent resizing when dragging
     
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
     
-    if (e.target === shapeRef.current || (e.target as HTMLElement).closest('.shape-content')) {
-      setIsDragging(true)
-      const rect = containerRef.current?.getBoundingClientRect()
-      if (rect) {
-        setDragStart({
-          x: clientX - rect.left - shape.position.x,
-          y: clientY - rect.top - shape.position.y,
-        })
-      }
+    // Start dragging when clicking anywhere on the shape
+    setIsDragging(true)
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (rect) {
+      setDragStart({
+        x: clientX - rect.left - shape.position.x,
+        y: clientY - rect.top - shape.position.y,
+      })
     }
   }
 
@@ -61,7 +68,9 @@ export function EditableShape({
 
   const handleResizeMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
+    e.preventDefault()
     setIsResizing(true)
+    setIsDragging(false) // Prevent dragging when resizing
     const rect = containerRef.current?.getBoundingClientRect()
     if (rect) {
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
@@ -166,12 +175,12 @@ export function EditableShape({
       onTouchStart={handleTouchStart}
     >
       {/* Shape Content */}
-      <div className="shape-content w-full h-full relative">
+      <div className="shape-content w-full h-full relative" style={{ pointerEvents: 'auto' }}>
         <svg
           width="100%"
           height="100%"
           viewBox="0 0 100 100"
-          style={{ color: shape.color }}
+          style={{ color: shape.color, pointerEvents: 'auto' }}
           className="w-full h-full"
         >
           <g dangerouslySetInnerHTML={{ __html: shape.svgPath }} />
@@ -185,10 +194,11 @@ export function EditableShape({
         {/* Resize Handle */}
         {isSelected && (
           <div
-            className="absolute bottom-0 right-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize"
+            className="resize-handle absolute bottom-0 right-0 w-5 h-5 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600"
             onMouseDown={handleResizeMouseDown}
             onTouchStart={handleResizeTouchStart}
             style={{ transform: 'translate(50%, 50%)' }}
+            title="Drag to resize"
           />
         )}
 
@@ -197,9 +207,16 @@ export function EditableShape({
           <button
             onClick={(e) => {
               e.stopPropagation()
+              e.preventDefault()
               onDelete()
             }}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+            onMouseDown={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+            }}
+            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 z-30"
+            style={{ pointerEvents: 'all' }}
+            title="Delete shape"
           >
             ×
           </button>

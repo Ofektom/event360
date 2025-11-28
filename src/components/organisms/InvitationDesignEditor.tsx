@@ -1857,19 +1857,26 @@ export function InvitationDesignEditor({
                 cursor: textBoxMode ? "text" : "default",
               }}
               onClick={(e) => {
+                const target = e.target as HTMLElement;
+
+                // Don't do anything if clicking on an existing text box or shape
+                if (
+                  target.closest(".textbox-content") ||
+                  target.closest(".editable-shape") ||
+                  target.closest(".editable-textbox") ||
+                  target.closest(".shape-content") ||
+                  target.tagName === "TEXTAREA" ||
+                  target.closest("button") ||
+                  target.closest("svg")
+                ) {
+                  return;
+                }
+
+                // Deselect shapes and text boxes when clicking on canvas
+                setSelectedShapeId(null);
+                setSelectedTextBoxId(null);
+
                 if (!template) {
-                  const target = e.target as HTMLElement;
-
-                  // Don't do anything if clicking on an existing text box or shape
-                  if (
-                    target.closest(".textbox-content") ||
-                    target.closest(".editable-shape") ||
-                    target.closest(".editable-textbox") ||
-                    target.tagName === "TEXTAREA"
-                  ) {
-                    return;
-                  }
-
                   // Only create text box if text box mode is active
                   if (textBoxMode && previewContainerRef.current) {
                     const canvasRect = e.currentTarget.getBoundingClientRect();
@@ -1896,9 +1903,6 @@ export function InvitationDesignEditor({
                     setSelectedTextBoxId(newTextBox.id);
                     // Exit text box mode after creating one text box
                     setTextBoxMode(false);
-                  } else {
-                    // If text box mode is not active, deselect any selected text box
-                    setSelectedTextBoxId(null);
                   }
                 }
               }}
@@ -1951,6 +1955,10 @@ export function InvitationDesignEditor({
                     // If text box mode is not active, deselect any selected text box
                     setSelectedTextBoxId(null);
                   }
+                } else {
+                  // For templates, deselect shapes and text boxes when clicking canvas
+                  setSelectedShapeId(null);
+                  setSelectedTextBoxId(null);
                 }
               }}
             >
@@ -1978,28 +1986,36 @@ export function InvitationDesignEditor({
                   style={{ zIndex: 10, pointerEvents: "none" }}
                 >
                   {shapes.map((shape) => (
-                    <EditableShape
+                    <div
                       key={shape.id}
-                      shape={shape}
-                      isSelected={selectedShapeId === shape.id}
-                      onSelect={() => {
-                        setSelectedShapeId(shape.id);
-                        setSelectedTextBoxId(null);
+                      style={{ pointerEvents: "auto" }}
+                      onClick={(e) => {
+                        // Stop propagation to prevent canvas click from deselecting
+                        e.stopPropagation();
                       }}
-                      onUpdate={(updates) => {
-                        const updated = shapes.map((s) =>
-                          s.id === shape.id ? { ...s, ...updates } : s
-                        );
-                        setShapes(updated);
-                      }}
-                      onDelete={() => {
-                        setShapes(shapes.filter((s) => s.id !== shape.id));
-                        if (selectedShapeId === shape.id) {
-                          setSelectedShapeId(null);
-                        }
-                      }}
-                      containerRef={previewContainerRef}
-                    />
+                    >
+                      <EditableShape
+                        shape={shape}
+                        isSelected={selectedShapeId === shape.id}
+                        onSelect={() => {
+                          setSelectedShapeId(shape.id);
+                          setSelectedTextBoxId(null);
+                        }}
+                        onUpdate={(updates) => {
+                          const updated = shapes.map((s) =>
+                            s.id === shape.id ? { ...s, ...updates } : s
+                          );
+                          setShapes(updated);
+                        }}
+                        onDelete={() => {
+                          setShapes(shapes.filter((s) => s.id !== shape.id));
+                          if (selectedShapeId === shape.id) {
+                            setSelectedShapeId(null);
+                          }
+                        }}
+                        containerRef={previewContainerRef}
+                      />
+                    </div>
                   ))}
                 </div>
               )}
