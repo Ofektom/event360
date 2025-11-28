@@ -157,6 +157,22 @@ export function InvitationDesignEditor({
   const [textBoxMode, setTextBoxMode] = useState(false); // PowerPoint-style text box mode
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
+  // Local state for font size inputs to allow proper editing
+  const [fontSizeInputs, setFontSizeInputs] = useState({
+    heading: String(designData.styles?.fontSize?.heading || 32),
+    subheading: String(designData.styles?.fontSize?.subheading || 24),
+    body: String(designData.styles?.fontSize?.body || 16),
+  });
+
+  // Sync local input state with designData
+  useEffect(() => {
+    setFontSizeInputs({
+      heading: String(designData.styles?.fontSize?.heading || 32),
+      subheading: String(designData.styles?.fontSize?.subheading || 24),
+      body: String(designData.styles?.fontSize?.body || 16),
+    });
+  }, [designData.styles?.fontSize]);
+
   // Exit text box mode when clicking outside the canvas
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -951,10 +967,25 @@ export function InvitationDesignEditor({
                         type="number"
                         min="12"
                         max="72"
-                        value={designData.styles?.fontSize?.heading || 32}
+                        value={String(
+                          designData.styles?.fontSize?.heading || 32
+                        )}
                         onChange={(e) => {
+                          const inputValue = e.target.value;
+                          // Allow empty string for editing
+                          if (inputValue === "") {
+                            return; // Don't update yet, let user continue typing
+                          }
+                          const val = parseInt(inputValue, 10);
+                          if (!isNaN(val) && val >= 12 && val <= 72) {
+                            handleStyleChange("fontSize.heading", val);
+                          }
+                        }}
+                        onBlur={(e) => {
                           const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val)) {
+                          if (isNaN(val) || val < 12 || val > 72) {
+                            handleStyleChange("fontSize.heading", 32);
+                          } else {
                             handleStyleChange("fontSize.heading", val);
                           }
                         }}
@@ -997,10 +1028,23 @@ export function InvitationDesignEditor({
                         type="number"
                         min="12"
                         max="48"
-                        value={designData.styles?.fontSize?.subheading || 24}
+                        value={fontSizeInputs.subheading}
                         onChange={(e) => {
+                          const inputValue = e.target.value;
+                          setFontSizeInputs((prev) => ({
+                            ...prev,
+                            subheading: inputValue,
+                          }));
+                        }}
+                        onBlur={(e) => {
                           const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val)) {
+                          if (isNaN(val) || val < 12 || val > 48) {
+                            handleStyleChange("fontSize.subheading", 24);
+                            setFontSizeInputs((prev) => ({
+                              ...prev,
+                              subheading: "24",
+                            }));
+                          } else {
                             handleStyleChange("fontSize.subheading", val);
                           }
                         }}
@@ -1043,10 +1087,23 @@ export function InvitationDesignEditor({
                         type="number"
                         min="10"
                         max="24"
-                        value={designData.styles?.fontSize?.body || 16}
+                        value={fontSizeInputs.body}
                         onChange={(e) => {
+                          const inputValue = e.target.value;
+                          setFontSizeInputs((prev) => ({
+                            ...prev,
+                            body: inputValue,
+                          }));
+                        }}
+                        onBlur={(e) => {
                           const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val)) {
+                          if (isNaN(val) || val < 10 || val > 24) {
+                            handleStyleChange("fontSize.body", 16);
+                            setFontSizeInputs((prev) => ({
+                              ...prev,
+                              body: "16",
+                            }));
+                          } else {
                             handleStyleChange("fontSize.body", val);
                           }
                         }}
