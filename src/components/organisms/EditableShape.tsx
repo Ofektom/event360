@@ -35,45 +35,68 @@ export function EditableShape({
   const [resizeStart, setResizeStart] = useState({ width: 0, height: 0, x: 0, y: 0 })
   const shapeRef = useRef<HTMLDivElement>(null)
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
     onSelect()
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
     
     if (e.target === shapeRef.current || (e.target as HTMLElement).closest('.shape-content')) {
       setIsDragging(true)
       const rect = containerRef.current?.getBoundingClientRect()
       if (rect) {
         setDragStart({
-          x: e.clientX - rect.left - shape.position.x,
-          y: e.clientY - rect.top - shape.position.y,
+          x: clientX - rect.left - shape.position.x,
+          y: clientY - rect.top - shape.position.y,
         })
       }
     }
   }
 
-  const handleResizeMouseDown = (e: React.MouseEvent) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation()
+    handleMouseDown(e)
+  }
+
+  const handleResizeMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
     setIsResizing(true)
     const rect = containerRef.current?.getBoundingClientRect()
     if (rect) {
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
       setResizeStart({
         width: shape.size.width,
         height: shape.size.height,
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+        x: clientX - rect.left,
+        y: clientY - rect.top,
       })
     }
   }
 
+  const handleResizeTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation()
+    handleResizeMouseDown(e)
+  }
+
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const getClientCoordinates = (e: MouseEvent | TouchEvent) => {
+      if ('touches' in e && e.touches.length > 0) {
+        return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }
+      }
+      return { clientX: e.clientX, clientY: e.clientY }
+    }
+
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
       if (!containerRef.current) return
 
       const rect = containerRef.current.getBoundingClientRect()
+      const { clientX, clientY } = getClientCoordinates(e)
 
       if (isDragging) {
-        const newX = e.clientX - rect.left - dragStart.x
-        const newY = e.clientY - rect.top - dragStart.y
+        const newX = clientX - rect.left - dragStart.x
+        const newY = clientY - rect.top - dragStart.y
         
         // Constrain to container bounds
         const maxX = rect.width - shape.size.width
@@ -86,8 +109,8 @@ export function EditableShape({
           },
         })
       } else if (isResizing) {
-        const deltaX = e.clientX - rect.left - resizeStart.x
-        const deltaY = e.clientY - rect.top - resizeStart.y
+        const deltaX = clientX - rect.left - resizeStart.x
+        const deltaY = clientY - rect.top - resizeStart.y
         
         // Maintain aspect ratio or allow free resize
         const newWidth = Math.max(20, resizeStart.width + deltaX)
@@ -107,14 +130,23 @@ export function EditableShape({
       setIsResizing(false)
     }
 
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault() // Prevent scrolling while dragging
+      handleMouseMove(e)
+    }
+
     if (isDragging || isResizing) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleMouseUp)
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleMouseUp)
     }
   }, [isDragging, isResizing, dragStart, resizeStart, shape.size, containerRef, onUpdate])
 
@@ -129,6 +161,7 @@ export function EditableShape({
         height: `${shape.size.height}px`,
       }}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {/* Shape Content */}
       <div className="shape-content w-full h-full relative">
@@ -152,6 +185,7 @@ export function EditableShape({
           <div
             className="absolute bottom-0 right-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize"
             onMouseDown={handleResizeMouseDown}
+            onTouchStart={handleResizeTouchStart}
             style={{ transform: 'translate(50%, 50%)' }}
           />
         )}

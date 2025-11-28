@@ -1902,6 +1902,57 @@ export function InvitationDesignEditor({
                   }
                 }
               }}
+              onTouchStart={(e) => {
+                // Handle touch events for mobile - create text box on tap
+                if (!template) {
+                  const target = e.target as HTMLElement;
+
+                  // Don't do anything if touching an existing text box or shape
+                  if (
+                    target.closest(".textbox-content") ||
+                    target.closest(".editable-shape") ||
+                    target.closest(".editable-textbox") ||
+                    target.tagName === "TEXTAREA"
+                  ) {
+                    return;
+                  }
+
+                  // Only create text box if text box mode is active
+                  if (
+                    textBoxMode &&
+                    previewContainerRef.current &&
+                    e.touches.length > 0
+                  ) {
+                    const touch = e.touches[0];
+                    const canvasRect = e.currentTarget.getBoundingClientRect();
+                    const x = touch.clientX - canvasRect.left;
+                    const y = touch.clientY - canvasRect.top;
+
+                    // Create new text box at touch location
+                    const newTextBox: TextBox = {
+                      id: `textbox_${Date.now()}`,
+                      text: "",
+                      position: {
+                        x: Math.max(0, x - 10),
+                        y: Math.max(0, y - 10),
+                      },
+                      size: { width: 200, height: 40 },
+                      fontSize: designData.styles?.fontSize?.body || 16,
+                      color: designData.colors?.text || "#111827",
+                      hasFill: false,
+                      textAlign: "left",
+                      showBorder: false,
+                      isBold: false,
+                    };
+                    setTextBoxes([...textBoxes, newTextBox]);
+                    setSelectedTextBoxId(newTextBox.id);
+                    setTextBoxMode(false);
+                  } else {
+                    // If text box mode is not active, deselect any selected text box
+                    setSelectedTextBoxId(null);
+                  }
+                }
+              }}
             >
               <InvitationPreview
                 templateType={template?.name || "blank"}
