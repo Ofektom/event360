@@ -485,6 +485,9 @@ export function InvitationDesignEditor({
   };
 
   const handleStyleChange = (stylePath: string, value: number) => {
+    // Ensure value is a valid number
+    const numValue = isNaN(value) || value < 0 ? 0 : value;
+
     setDesignData((prevData) => {
       const currentStyles = prevData.styles || {
         fontSize: { heading: 32, subheading: 24, body: 16 },
@@ -500,7 +503,7 @@ export function InvitationDesignEditor({
             ...currentStyles,
             fontSize: {
               ...currentStyles.fontSize,
-              [subKey]: value,
+              [subKey]: numValue,
             },
           },
         };
@@ -516,7 +519,7 @@ export function InvitationDesignEditor({
                   ...((currentStyles.spacing[
                     key as keyof typeof currentStyles.spacing
                   ] as object) || {}),
-                  [subKey]: value,
+                  [subKey]: numValue,
                 },
               },
             },
@@ -528,7 +531,7 @@ export function InvitationDesignEditor({
               ...currentStyles,
               spacing: {
                 ...currentStyles.spacing,
-                [key]: value,
+                [key]: numValue,
               },
             },
           };
@@ -949,12 +952,12 @@ export function InvitationDesignEditor({
                         min="12"
                         max="72"
                         value={designData.styles?.fontSize?.heading || 32}
-                        onChange={(e) =>
-                          handleStyleChange(
-                            "fontSize.heading",
-                            parseInt(e.target.value) || 32
-                          )
-                        }
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val)) {
+                            handleStyleChange("fontSize.heading", val);
+                          }
+                        }}
                         className="w-20"
                       />
                     </div>
@@ -995,12 +998,12 @@ export function InvitationDesignEditor({
                         min="12"
                         max="48"
                         value={designData.styles?.fontSize?.subheading || 24}
-                        onChange={(e) =>
-                          handleStyleChange(
-                            "fontSize.subheading",
-                            parseInt(e.target.value) || 24
-                          )
-                        }
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val)) {
+                            handleStyleChange("fontSize.subheading", val);
+                          }
+                        }}
                         className="w-20"
                       />
                     </div>
@@ -1041,12 +1044,12 @@ export function InvitationDesignEditor({
                         min="10"
                         max="24"
                         value={designData.styles?.fontSize?.body || 16}
-                        onChange={(e) =>
-                          handleStyleChange(
-                            "fontSize.body",
-                            parseInt(e.target.value) || 16
-                          )
-                        }
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val)) {
+                            handleStyleChange("fontSize.body", val);
+                          }
+                        }}
                         className="w-20"
                       />
                     </div>
