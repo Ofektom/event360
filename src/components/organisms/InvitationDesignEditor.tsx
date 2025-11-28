@@ -164,14 +164,28 @@ export function InvitationDesignEditor({
     body: String(designData.styles?.fontSize?.body || 16),
   });
 
-  // Sync local input state with designData
+  // Sync local input state with designData - only when values actually change
   useEffect(() => {
-    setFontSizeInputs({
-      heading: String(designData.styles?.fontSize?.heading || 32),
-      subheading: String(designData.styles?.fontSize?.subheading || 24),
-      body: String(designData.styles?.fontSize?.body || 16),
+    const heading = String(designData.styles?.fontSize?.heading || 32);
+    const subheading = String(designData.styles?.fontSize?.subheading || 24);
+    const body = String(designData.styles?.fontSize?.body || 16);
+
+    // Only update if values actually changed to prevent loops
+    setFontSizeInputs((prev) => {
+      if (
+        prev.heading !== heading ||
+        prev.subheading !== subheading ||
+        prev.body !== body
+      ) {
+        return { heading, subheading, body };
+      }
+      return prev;
     });
-  }, [designData.styles?.fontSize]);
+  }, [
+    designData.styles?.fontSize?.heading,
+    designData.styles?.fontSize?.subheading,
+    designData.styles?.fontSize?.body,
+  ]);
 
   // Exit text box mode when clicking outside the canvas
   useEffect(() => {
@@ -344,12 +358,7 @@ export function InvitationDesignEditor({
         setOrientation(savedData.orientation);
       }
 
-      // Update fontSizeInputs state to match loaded data
-      setFontSizeInputs({
-        heading: String(completeDesignData.styles.fontSize.heading),
-        subheading: String(completeDesignData.styles.fontSize.subheading),
-        body: String(completeDesignData.styles.fontSize.body),
-      });
+      // fontSizeInputs will be synced by the useEffect that watches designData.styles.fontSize
 
       // Fetch template if design has one (but don't overwrite saved data)
       if (data.templateId) {
@@ -378,7 +387,7 @@ export function InvitationDesignEditor({
       }
       setLoading(false);
     }
-  }, [designId]);
+  }, [designId]); // Only depend on designId to prevent re-fetching
 
   const fetchTemplate = useCallback(
     async (id?: string, preserveSavedData: boolean = false) => {
@@ -496,7 +505,8 @@ export function InvitationDesignEditor({
         },
       });
     }
-  }, [templateId, designId, fetchDesign, fetchTemplate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId, designId]); // Only depend on templateId and designId to prevent re-fetching
 
   const handleTextChange = (fieldId: string, value: string) => {
     setDesignData({
