@@ -121,8 +121,10 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
         )
       })}
 
-      {/* If no text, show placeholder */}
-      {Object.keys(textValues).length === 0 && (
+      {/* Show placeholder only if there's no content at all (no text, no text boxes, no shapes) */}
+      {Object.keys(textValues).length === 0 && 
+       (!designData.textBoxes || designData.textBoxes.length === 0) &&
+       (!designData.shapes || designData.shapes.length === 0) && (
         <div
           style={{
             fontSize: `${bodySize}px`,
