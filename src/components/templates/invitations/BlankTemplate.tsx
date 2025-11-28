@@ -121,21 +121,42 @@ export function BlankTemplate({ config, designData }: BlankTemplateProps) {
         )
       })}
 
-      {/* Show placeholder only if there's no content at all (no text, no text boxes, no shapes) */}
-      {Object.keys(textValues).length === 0 && 
-       (!designData.textBoxes || designData.textBoxes.length === 0) &&
-       (!designData.shapes || designData.shapes.length === 0) && (
-        <div
-          style={{
-            fontSize: `${bodySize}px`,
-            color: bodyColor,
-            textAlign: 'center',
-            opacity: 0.5,
-          }}
-        >
-          Add text fields to customize your invitation
-        </div>
-      )}
+      {/* Show placeholder only if canvas is completely untouched (default background, no content) */}
+      {(() => {
+        // Check if background color has been changed from default
+        const isDefaultBackground = backgroundColor === '#ffffff' || backgroundColor === '#FFFFFF' || backgroundColor === 'white';
+        
+        // Check for text values with actual content
+        const hasTextValues = Object.keys(textValues).length > 0 && 
+          Object.values(textValues).some(v => v && String(v).trim() !== '');
+        
+        // Check for text boxes (even empty ones count as content since user has started working)
+        const hasTextBoxes = designData.textBoxes && designData.textBoxes.length > 0;
+        
+        // Check for shapes
+        const hasShapes = designData.shapes && designData.shapes.length > 0;
+        
+        // Hide placeholder if background was changed OR if there's any content
+        const hasBeenCustomized = !isDefaultBackground || hasTextValues || hasTextBoxes || hasShapes;
+        
+        // Only show placeholder if canvas is completely untouched
+        if (hasBeenCustomized) {
+          return null;
+        }
+        
+        return (
+          <div
+            style={{
+              fontSize: `${bodySize}px`,
+              color: bodyColor,
+              textAlign: 'center',
+              opacity: 0.5,
+            }}
+          >
+            Add text fields to customize your invitation
+          </div>
+        );
+      })()}
 
       {/* Render shapes */}
       {designData.shapes && designData.shapes.length > 0 && (
