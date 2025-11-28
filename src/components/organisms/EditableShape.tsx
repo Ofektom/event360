@@ -36,14 +36,16 @@ export function EditableShape({
   const shapeRef = useRef<HTMLDivElement>(null)
 
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation()
     const target = e.target as HTMLElement
     
     // Don't start dragging if clicking on resize handle or delete button
-    if (target.closest('.resize-handle') || target.closest('button')) {
+    // Check BEFORE stopPropagation so those elements can handle their own events
+    if (target.closest('.resize-handle') || target.closest('button[title="Delete shape"]')) {
+      // Let the resize handle or delete button handle the event
       return
     }
     
+    e.stopPropagation()
     onSelect()
     setIsResizing(false) // Prevent resizing when dragging
     
@@ -170,17 +172,18 @@ export function EditableShape({
         top: `${shape.position.y}px`,
         width: `${shape.size.width}px`,
         height: `${shape.size.height}px`,
+        touchAction: 'none', // Prevent default touch behaviors (scrolling, zooming)
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
       {/* Shape Content */}
-      <div className="shape-content w-full h-full relative" style={{ pointerEvents: 'auto' }}>
+      <div className="shape-content w-full h-full relative" style={{ pointerEvents: 'auto', position: 'relative' }}>
         <svg
           width="100%"
           height="100%"
           viewBox="0 0 100 100"
-          style={{ color: shape.color, pointerEvents: 'auto' }}
+          style={{ color: shape.color, pointerEvents: 'none' }}
           className="w-full h-full"
         >
           <g dangerouslySetInnerHTML={{ __html: shape.svgPath }} />
@@ -194,15 +197,25 @@ export function EditableShape({
         {/* Resize Handle */}
         {isSelected && (
           <div
-            className="resize-handle absolute bottom-0 right-0 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600 active:bg-purple-700"
-            onMouseDown={handleResizeMouseDown}
-            onTouchStart={handleResizeTouchStart}
+            className="resize-handle absolute bottom-0 right-0 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize hover:bg-purple-600 active:bg-purple-700"
+            onMouseDown={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              handleResizeMouseDown(e)
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              handleResizeTouchStart(e)
+            }}
             style={{ 
               transform: 'translate(50%, 50%)',
               width: '44px', // Minimum touch target size for mobile
               height: '44px',
               minWidth: '44px',
               minHeight: '44px',
+              pointerEvents: 'all',
+              zIndex: 20,
             }}
             title="Drag to resize"
           />
@@ -211,6 +224,7 @@ export function EditableShape({
         {/* Delete Button */}
         {isSelected && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation()
               e.preventDefault()
@@ -219,17 +233,22 @@ export function EditableShape({
             onMouseDown={(e) => {
               e.stopPropagation()
               e.preventDefault()
+              // Don't trigger drag when clicking delete button
             }}
             onTouchStart={(e) => {
               e.stopPropagation()
               e.preventDefault()
               onDelete()
             }}
-            className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 active:bg-red-700 z-30"
+            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 active:bg-red-700"
             style={{ 
               pointerEvents: 'all',
               minWidth: '44px', // Minimum touch target size for mobile
               minHeight: '44px',
+              width: '44px',
+              height: '44px',
+              fontSize: '20px',
+              zIndex: 30,
             }}
             title="Delete shape"
           >
