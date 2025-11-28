@@ -216,6 +216,11 @@ export function InvitationDesignEditor({
   }, [textBoxMode]);
 
   const fetchDesign = useCallback(async () => {
+    if (!designId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -252,6 +257,7 @@ export function InvitationDesignEditor({
         textBoxes?: TextBox[];
         customFields?: CustomTextField[];
         customGraphics?: CustomGraphic[];
+        orientation?: "portrait" | "landscape";
       } = {};
       try {
         if (typeof data.designData === "string") {
@@ -333,6 +339,18 @@ export function InvitationDesignEditor({
         setTextBoxes([]);
       }
 
+      // Load orientation if it exists (for blank templates)
+      if (savedData.orientation) {
+        setOrientation(savedData.orientation);
+      }
+
+      // Update fontSizeInputs state to match loaded data
+      setFontSizeInputs({
+        heading: String(completeDesignData.styles.fontSize.heading),
+        subheading: String(completeDesignData.styles.fontSize.subheading),
+        body: String(completeDesignData.styles.fontSize.body),
+      });
+
       // Fetch template if design has one (but don't overwrite saved data)
       if (data.templateId) {
         // Fetch template inline to avoid circular dependency
@@ -347,10 +365,10 @@ export function InvitationDesignEditor({
         } catch (err) {
           console.error("Error fetching template:", err);
         }
-        setLoading(false);
-      } else {
-        setLoading(false);
       }
+
+      // Always set loading to false after all data is loaded
+      setLoading(false);
     } catch (error: unknown) {
       console.error("Error fetching design:", error);
       if (error instanceof Error && error.name === "AbortError") {
