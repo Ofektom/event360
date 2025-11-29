@@ -350,9 +350,37 @@ export function InvitationDesignEditor({
       }
 
       // Load text boxes - ensure they're properly restored
+      // Text boxes are only for Additional Text Fields (customFields), not template default fields
       if (savedData.textBoxes && Array.isArray(savedData.textBoxes)) {
         console.log("Loading text boxes:", savedData.textBoxes); // Debug log
         setTextBoxes(savedData.textBoxes);
+      } else if (
+        savedData.customFields &&
+        Array.isArray(savedData.customFields) &&
+        savedData.customFields.length > 0
+      ) {
+        // Convert customFields to text boxes if text boxes don't exist
+        const customFieldTextBoxes: TextBox[] = savedData.customFields.map(
+          (field: CustomTextField, index: number) => {
+            const savedDesignData = savedData as {
+              styles?: { fontSize?: { body?: number } };
+              colors?: { text?: string };
+            };
+            return {
+              id: `textbox_${field.id}`,
+              text: field.value || "",
+              position: { x: 50, y: 300 + index * 60 },
+              size: { width: 300, height: 40 },
+              fontSize: savedDesignData.styles?.fontSize?.body || 16,
+              color: savedDesignData.colors?.text || "#111827",
+              hasFill: false,
+              textAlign: "left" as const,
+              showBorder: false,
+              isBold: false,
+            };
+          }
+        );
+        setTextBoxes(customFieldTextBoxes);
       } else {
         setTextBoxes([]);
       }
@@ -379,57 +407,6 @@ export function InvitationDesignEditor({
           if (templateResponse.ok) {
             const templateData = await templateResponse.json();
             setTemplate(templateData);
-
-            // If no saved text boxes but we have a template, convert template fields to text boxes
-            if (
-              (!savedData.textBoxes ||
-                !Array.isArray(savedData.textBoxes) ||
-                savedData.textBoxes.length === 0) &&
-              templateData.config?.textFields
-            ) {
-              const templateTextBoxes: TextBox[] =
-                templateData.config.textFields.map(
-                  (field: { id: string; default: string }, index: number) => {
-                    const isHeading =
-                      field.id.includes("name") ||
-                      field.id.includes("bride") ||
-                      field.id.includes("groom") ||
-                      index === 0;
-                    const isSubheading =
-                      field.id.includes("date") ||
-                      field.id.includes("venue") ||
-                      field.id.includes("time") ||
-                      index === 1;
-
-                    const headingY = 80;
-                    const subheadingY = 150;
-                    const bodyY = 200 + index * 50;
-
-                    return {
-                      id: `textbox_${field.id}_${Date.now()}`,
-                      text: savedData.text?.[field.id] || field.default || "",
-                      position: {
-                        x: 50,
-                        y: isHeading
-                          ? headingY
-                          : isSubheading
-                          ? subheadingY
-                          : bodyY,
-                      },
-                      size: { width: 300, height: 40 },
-                      fontSize: isHeading ? 32 : isSubheading ? 24 : 16,
-                      color: isHeading
-                        ? templateData.config.colors?.primary || "#9333ea"
-                        : templateData.config.colors?.text || "#111827",
-                      hasFill: false,
-                      textAlign: "center" as const,
-                      showBorder: false,
-                      isBold: isHeading,
-                    };
-                  }
-                );
-              setTextBoxes(templateTextBoxes);
-            }
           }
         } catch (err) {
           console.error("Error fetching template:", err);
@@ -507,53 +484,6 @@ export function InvitationDesignEditor({
                     : field.default || "";
                 return acc;
               }, {} as Record<string, string>) || {};
-
-            // Convert template text fields to text boxes
-            if (config.textFields && config.textFields.length > 0) {
-              const defaultTextBoxes: TextBox[] = config.textFields.map(
-                (field, index) => {
-                  // Calculate position based on field type and index
-                  const isHeading =
-                    field.id.includes("name") ||
-                    field.id.includes("bride") ||
-                    field.id.includes("groom") ||
-                    index === 0;
-                  const isSubheading =
-                    field.id.includes("date") ||
-                    field.id.includes("venue") ||
-                    field.id.includes("time") ||
-                    index === 1;
-
-                  // Default positions for template text boxes
-                  const headingY = 80;
-                  const subheadingY = 150;
-                  const bodyY = 200 + index * 50;
-
-                  return {
-                    id: `textbox_${field.id}_${Date.now()}`,
-                    text: newTextData[field.id] || field.default || "",
-                    position: {
-                      x: 50,
-                      y: isHeading
-                        ? headingY
-                        : isSubheading
-                        ? subheadingY
-                        : bodyY,
-                    },
-                    size: { width: 300, height: 40 },
-                    fontSize: isHeading ? 32 : isSubheading ? 24 : 16,
-                    color: isHeading
-                      ? config.colors.primary || "#9333ea"
-                      : config.colors.text || "#111827",
-                    hasFill: false,
-                    textAlign: "center" as const,
-                    showBorder: false,
-                    isBold: isHeading,
-                  };
-                }
-              );
-              setTextBoxes(defaultTextBoxes);
-            }
 
             return {
               text: newTextData,
@@ -716,6 +646,24 @@ export function InvitationDesignEditor({
       },
     });
 
+    // Create a text box for this additional field
+    const newTextBox: TextBox = {
+      id: `textbox_${newField.id}`,
+      text: "",
+      position: {
+        x: 50,
+        y: 300 + customFields.length * 60,
+      },
+      size: { width: 300, height: 40 },
+      fontSize: designData.styles?.fontSize?.body || 16,
+      color: designData.colors?.text || "#111827",
+      hasFill: false,
+      textAlign: "left" as const,
+      showBorder: false,
+      isBold: false,
+    };
+    setTextBoxes([...textBoxes, newTextBox]);
+
     // Reset form
     setNewFieldLabel("");
     setNewFieldPlaceholder("");
@@ -730,6 +678,8 @@ export function InvitationDesignEditor({
       ...designData,
       text: newText,
     });
+    // Also remove the corresponding text box
+    setTextBoxes(textBoxes.filter((tb) => tb.id !== `textbox_${fieldId}`));
   };
 
   const handleCustomFieldChange = (fieldId: string, value: string) => {
@@ -1002,30 +952,36 @@ export function InvitationDesignEditor({
               </Card>
             )}
 
-            {customFields.map((field) => (
-              <div key={field.id} className="relative">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    {field.label}
-                  </label>
-                  <button
-                    onClick={() => removeCustomTextField(field.id)}
-                    className="text-red-500 hover:text-red-700 text-sm"
-                    type="button"
-                  >
-                    Remove
-                  </button>
+            {customFields.map((field) => {
+              // Find the corresponding text box for this custom field
+              const textBox = textBoxes.find(
+                (tb) => tb.id === `textbox_${field.id}`
+              );
+              return (
+                <div key={field.id} className="relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {field.label}
+                    </label>
+                    <button
+                      onClick={() => removeCustomTextField(field.id)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                      type="button"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Edit this field by selecting the text box on the canvas
+                  </p>
+                  {textBox && (
+                    <div className="text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                      Text: {textBox.text || "(empty)"}
+                    </div>
+                  )}
                 </div>
-                <Input
-                  type="text"
-                  value={field.value}
-                  onChange={(e) =>
-                    handleCustomFieldChange(field.id, e.target.value)
-                  }
-                  placeholder={field.placeholder}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -2133,6 +2089,18 @@ export function InvitationDesignEditor({
                           tb.id === textBox.id ? { ...tb, ...updates } : tb
                         );
                         setTextBoxes(updated);
+
+                        // If this text box corresponds to a custom field, update the custom field value
+                        const customFieldId = textBox.id.replace(
+                          "textbox_",
+                          ""
+                        );
+                        const customField = customFields.find(
+                          (f) => f.id === customFieldId
+                        );
+                        if (customField && updates.text !== undefined) {
+                          handleCustomFieldChange(customFieldId, updates.text);
+                        }
                       }}
                       onDelete={() => {
                         setTextBoxes(
