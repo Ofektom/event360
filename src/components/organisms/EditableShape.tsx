@@ -232,7 +232,7 @@ export function EditableShape({
         {/* Resize Handle */}
         {isSelected && (
           <div
-            className="resize-handle absolute bottom-0 right-0 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600 active:bg-purple-700"
+            className="resize-handle absolute bottom-0 right-0 bg-purple-500 border-2 border-white rounded-full z-20 hover:bg-purple-600 active:bg-purple-700"
             onMouseDown={(e) => {
               e.stopPropagation()
               e.preventDefault()
@@ -243,12 +243,26 @@ export function EditableShape({
               e.preventDefault()
               handleResizeTouchStart(e)
             }}
+            onMouseEnter={() => {
+              // Change cursor when hovering over resize handle
+              if (shapeRef.current) {
+                shapeRef.current.style.cursor = 'nwse-resize'
+              }
+            }}
+            onMouseLeave={() => {
+              // Restore cursor when leaving resize handle
+              if (shapeRef.current) {
+                shapeRef.current.style.cursor = isSelected ? 'move' : 'pointer'
+              }
+            }}
             style={{ 
               transform: 'translate(50%, 50%)',
               width: '20px',
               height: '20px',
               minWidth: '20px',
               minHeight: '20px',
+              cursor: 'nwse-resize',
+              pointerEvents: 'all',
             }}
             title="Drag to resize"
           />
