@@ -379,52 +379,55 @@ export function InvitationDesignEditor({
           if (templateResponse.ok) {
             const templateData = await templateResponse.json();
             setTemplate(templateData);
-            
+
             // If no saved text boxes but we have a template, convert template fields to text boxes
             if (
-              (!savedData.textBoxes || !Array.isArray(savedData.textBoxes) || savedData.textBoxes.length === 0) &&
+              (!savedData.textBoxes ||
+                !Array.isArray(savedData.textBoxes) ||
+                savedData.textBoxes.length === 0) &&
               templateData.config?.textFields
             ) {
-              const templateTextBoxes: TextBox[] = templateData.config.textFields.map(
-                (field: { id: string; default: string }, index: number) => {
-                  const isHeading =
-                    field.id.includes("name") ||
-                    field.id.includes("bride") ||
-                    field.id.includes("groom") ||
-                    index === 0;
-                  const isSubheading =
-                    field.id.includes("date") ||
-                    field.id.includes("venue") ||
-                    field.id.includes("time") ||
-                    index === 1;
+              const templateTextBoxes: TextBox[] =
+                templateData.config.textFields.map(
+                  (field: { id: string; default: string }, index: number) => {
+                    const isHeading =
+                      field.id.includes("name") ||
+                      field.id.includes("bride") ||
+                      field.id.includes("groom") ||
+                      index === 0;
+                    const isSubheading =
+                      field.id.includes("date") ||
+                      field.id.includes("venue") ||
+                      field.id.includes("time") ||
+                      index === 1;
 
-                  const headingY = 80;
-                  const subheadingY = 150;
-                  const bodyY = 200 + index * 50;
+                    const headingY = 80;
+                    const subheadingY = 150;
+                    const bodyY = 200 + index * 50;
 
-                  return {
-                    id: `textbox_${field.id}_${Date.now()}`,
-                    text: savedData.text?.[field.id] || field.default || "",
-                    position: {
-                      x: 50,
-                      y: isHeading
-                        ? headingY
-                        : isSubheading
-                        ? subheadingY
-                        : bodyY,
-                    },
-                    size: { width: 300, height: 40 },
-                    fontSize: isHeading ? 32 : isSubheading ? 24 : 16,
-                    color: isHeading
-                      ? (templateData.config.colors?.primary || "#9333ea")
-                      : templateData.config.colors?.text || "#111827",
-                    hasFill: false,
-                    textAlign: "center" as const,
-                    showBorder: false,
-                    isBold: isHeading,
-                  };
-                }
-              );
+                    return {
+                      id: `textbox_${field.id}_${Date.now()}`,
+                      text: savedData.text?.[field.id] || field.default || "",
+                      position: {
+                        x: 50,
+                        y: isHeading
+                          ? headingY
+                          : isSubheading
+                          ? subheadingY
+                          : bodyY,
+                      },
+                      size: { width: 300, height: 40 },
+                      fontSize: isHeading ? 32 : isSubheading ? 24 : 16,
+                      color: isHeading
+                        ? templateData.config.colors?.primary || "#9333ea"
+                        : templateData.config.colors?.text || "#111827",
+                      hasFill: false,
+                      textAlign: "center" as const,
+                      showBorder: false,
+                      isBold: isHeading,
+                    };
+                  }
+                );
               setTextBoxes(templateTextBoxes);
             }
           }
@@ -539,10 +542,9 @@ export function InvitationDesignEditor({
                     },
                     size: { width: 300, height: 40 },
                     fontSize: isHeading ? 32 : isSubheading ? 24 : 16,
-                    color:
-                      isHeading
-                        ? config.colors.primary || "#9333ea"
-                        : config.colors.text || "#111827",
+                    color: isHeading
+                      ? config.colors.primary || "#9333ea"
+                      : config.colors.text || "#111827",
                     hasFill: false,
                     textAlign: "center" as const,
                     showBorder: false,
@@ -1976,31 +1978,31 @@ export function InvitationDesignEditor({
 
                 // Create text box if text box mode is active (works for both blank and template designs)
                 if (textBoxMode && previewContainerRef.current) {
-                    const canvasRect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX - canvasRect.left;
-                    const y = e.clientY - canvasRect.top;
+                  const canvasRect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - canvasRect.left;
+                  const y = e.clientY - canvasRect.top;
 
-                    // Create new text box at click location
-                    const newTextBox: TextBox = {
-                      id: `textbox_${Date.now()}`,
-                      text: "",
-                      position: {
-                        x: Math.max(0, x - 10),
-                        y: Math.max(0, y - 10),
-                      },
-                      size: { width: 200, height: 40 },
-                      fontSize: designData.styles?.fontSize?.body || 16,
-                      color: designData.colors?.text || "#111827",
-                      hasFill: false,
-                      textAlign: "left",
-                      showBorder: false, // Border hidden by default
-                      isBold: false, // Not bold by default
-                    };
-                    setTextBoxes([...textBoxes, newTextBox]);
-                    setSelectedTextBoxId(newTextBox.id);
-                    // Exit text box mode after creating one text box
-                    setTextBoxMode(false);
-                  }
+                  // Create new text box at click location
+                  const newTextBox: TextBox = {
+                    id: `textbox_${Date.now()}`,
+                    text: "",
+                    position: {
+                      x: Math.max(0, x - 10),
+                      y: Math.max(0, y - 10),
+                    },
+                    size: { width: 200, height: 40 },
+                    fontSize: designData.styles?.fontSize?.body || 16,
+                    color: designData.colors?.text || "#111827",
+                    hasFill: false,
+                    textAlign: "left",
+                    showBorder: false, // Border hidden by default
+                    isBold: false, // Not bold by default
+                  };
+                  setTextBoxes([...textBoxes, newTextBox]);
+                  setSelectedTextBoxId(newTextBox.id);
+                  // Exit text box mode after creating one text box
+                  setTextBoxMode(false);
+                }
               }}
               onTouchStart={(e) => {
                 const target = e.target as HTMLElement;
@@ -2028,31 +2030,31 @@ export function InvitationDesignEditor({
                   previewContainerRef.current &&
                   e.touches.length > 0
                 ) {
-                    const touch = e.touches[0];
-                    const canvasRect = e.currentTarget.getBoundingClientRect();
-                    const x = touch.clientX - canvasRect.left;
-                    const y = touch.clientY - canvasRect.top;
+                  const touch = e.touches[0];
+                  const canvasRect = e.currentTarget.getBoundingClientRect();
+                  const x = touch.clientX - canvasRect.left;
+                  const y = touch.clientY - canvasRect.top;
 
-                    // Create new text box at touch location
-                    const newTextBox: TextBox = {
-                      id: `textbox_${Date.now()}`,
-                      text: "",
-                      position: {
-                        x: Math.max(0, x - 10),
-                        y: Math.max(0, y - 10),
-                      },
-                      size: { width: 200, height: 40 },
-                      fontSize: designData.styles?.fontSize?.body || 16,
-                      color: designData.colors?.text || "#111827",
-                      hasFill: false,
-                      textAlign: "left",
-                      showBorder: false,
-                      isBold: false,
-                    };
-                    setTextBoxes([...textBoxes, newTextBox]);
-                    setSelectedTextBoxId(newTextBox.id);
-                    setTextBoxMode(false);
-                  }
+                  // Create new text box at touch location
+                  const newTextBox: TextBox = {
+                    id: `textbox_${Date.now()}`,
+                    text: "",
+                    position: {
+                      x: Math.max(0, x - 10),
+                      y: Math.max(0, y - 10),
+                    },
+                    size: { width: 200, height: 40 },
+                    fontSize: designData.styles?.fontSize?.body || 16,
+                    color: designData.colors?.text || "#111827",
+                    hasFill: false,
+                    textAlign: "left",
+                    showBorder: false,
+                    isBold: false,
+                  };
+                  setTextBoxes([...textBoxes, newTextBox]);
+                  setSelectedTextBoxId(newTextBox.id);
+                  setTextBoxMode(false);
+                }
               }}
             >
               <InvitationPreview
