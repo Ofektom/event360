@@ -39,16 +39,8 @@ export function EditableShape({
     e.stopPropagation()
     const target = e.target as HTMLElement
     
-    // If clicking on resize handle, start resizing
-    if (target.closest('.resize-handle')) {
-      onSelect()
-      handleResizeMouseDown(e)
-      return
-    }
-    
-    // If clicking on delete button, just select (delete button handles its own click)
-    if (target.closest('button[title="Delete shape"]')) {
-      onSelect()
+    // If clicking on resize handle or delete button, let them handle their own events
+    if (target.closest('.resize-handle') || target.closest('button[title="Delete shape"]')) {
       return
     }
     
@@ -104,6 +96,7 @@ export function EditableShape({
   const handleResizeMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
     e.preventDefault()
+    onSelect() // Ensure shape is selected
     setIsResizing(true)
     setIsDragging(false) // Prevent dragging when resizing
     const rect = containerRef.current?.getBoundingClientRect()
@@ -206,19 +199,21 @@ export function EditableShape({
   return (
     <div
       ref={shapeRef}
-      className={`absolute cursor-move ${isSelected ? 'z-10' : 'z-0'}`}
+      className={`absolute ${isSelected ? 'z-10' : 'z-0'}`}
       style={{
         left: `${shape.position.x}px`,
         top: `${shape.position.y}px`,
         width: `${shape.size.width}px`,
         height: `${shape.size.height}px`,
+        cursor: isDragging || isResizing ? (isResizing ? 'nwse-resize' : 'move') : (isSelected ? 'move' : 'pointer'),
         touchAction: 'none', // Prevent default touch behaviors (scrolling, zooming)
+        pointerEvents: 'all',
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
       {/* Shape Content */}
-      <div className="shape-content w-full h-full relative" style={{ position: 'relative' }}>
+      <div className="shape-content w-full h-full relative" style={{ position: 'relative', pointerEvents: 'all' }}>
         <svg
           width="100%"
           height="100%"
@@ -238,8 +233,16 @@ export function EditableShape({
         {isSelected && (
           <div
             className="resize-handle absolute bottom-0 right-0 bg-purple-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:bg-purple-600 active:bg-purple-700"
-            onMouseDown={handleResizeMouseDown}
-            onTouchStart={handleResizeTouchStart}
+            onMouseDown={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              handleResizeMouseDown(e)
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              handleResizeTouchStart(e)
+            }}
             style={{ 
               transform: 'translate(50%, 50%)',
               width: '20px',
