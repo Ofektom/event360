@@ -101,7 +101,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         className={`flex-1 flex flex-col transition-all duration-300 ${
           shouldShowSidebar && sidebarOpen ? 'lg:ml-64' : ''
         }`}
-        style={{ marginTop: '5rem' }}
+        style={{ marginTop: isDesktop ? '5rem' : '7.5rem' }}
       >
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-w-0">
