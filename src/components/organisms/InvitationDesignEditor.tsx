@@ -147,11 +147,8 @@ export function InvitationDesignEditor({
   const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(
     null
   );
-  const [showAddField, setShowAddField] = useState(false);
   const [showGraphicsManager, setShowGraphicsManager] = useState(false);
   const [showShapesLibrary, setShowShapesLibrary] = useState(false);
-  const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldPlaceholder, setNewFieldPlaceholder] = useState("");
   const [orientation, setOrientation] = useState<"portrait" | "landscape">(
     "portrait"
   );
@@ -624,51 +621,7 @@ export function InvitationDesignEditor({
     });
   };
 
-  const addCustomTextField = () => {
-    if (!newFieldLabel.trim()) {
-      alert("Please enter a field label");
-      return;
-    }
-
-    const newField: CustomTextField = {
-      id: `custom_${Date.now()}`,
-      label: newFieldLabel,
-      value: "",
-      placeholder: newFieldPlaceholder || "Enter text...",
-    };
-
-    setCustomFields([...customFields, newField]);
-    setDesignData({
-      ...designData,
-      text: {
-        ...designData.text,
-        [newField.id]: "",
-      },
-    });
-
-    // Create a text box for this additional field
-    const newTextBox: TextBox = {
-      id: `textbox_${newField.id}`,
-      text: "",
-      position: {
-        x: 50,
-        y: 300 + customFields.length * 60,
-      },
-      size: { width: 300, height: 40 },
-      fontSize: designData.styles?.fontSize?.body || 16,
-      color: designData.colors?.text || "#111827",
-      hasFill: false,
-      textAlign: "left" as const,
-      showBorder: false,
-      isBold: false,
-    };
-    setTextBoxes([...textBoxes, newTextBox]);
-
-    // Reset form
-    setNewFieldLabel("");
-    setNewFieldPlaceholder("");
-    setShowAddField(false);
-  };
+  // Text boxes for Additional Text Fields are now created via Text Box Tool
 
   const removeCustomTextField = (fieldId: string) => {
     setCustomFields(customFields.filter((f) => f.id !== fieldId));
@@ -899,89 +852,84 @@ export function InvitationDesignEditor({
           </div>
         )}
 
-        {/* Custom Text Fields - Only for template-based designs */}
+        {/* Additional Text Fields - Only for template-based designs */}
         {template && (
           <div className="space-y-4 mb-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900">
                 Additional Text Fields
               </h3>
               <Button
-                variant="outline"
+                variant={textBoxMode ? "primary" : "outline"}
                 size="sm"
-                onClick={() => setShowAddField(!showAddField)}
+                onClick={() => {
+                  setTextBoxMode(!textBoxMode);
+                }}
               >
-                {showAddField ? "Cancel" : "+ Add Field"}
+                {textBoxMode ? "✓ Text Box Mode Active" : "📝 Text Box Tool"}
               </Button>
             </div>
-
-            {showAddField && (
-              <Card className="p-4 bg-gray-50 border-2 border-dashed border-gray-300">
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Field Label
-                    </label>
-                    <Input
-                      type="text"
-                      value={newFieldLabel}
-                      onChange={(e) => setNewFieldLabel(e.target.value)}
-                      placeholder="e.g., Special Instructions"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Placeholder Text (optional)
-                    </label>
-                    <Input
-                      type="text"
-                      value={newFieldPlaceholder}
-                      onChange={(e) => setNewFieldPlaceholder(e.target.value)}
-                      placeholder="Enter text..."
-                    />
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={addCustomTextField}
-                    className="w-full"
-                  >
-                    Add Field
-                  </Button>
-                </div>
-              </Card>
+            {textBoxMode && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                <p className="font-medium mb-1">Text Box Mode Active</p>
+                <p>
+                  Click anywhere on the canvas to create an additional text
+                  field at that location.
+                </p>
+              </div>
             )}
 
-            {customFields.map((field) => {
-              // Find the corresponding text box for this custom field
-              const textBox = textBoxes.find(
-                (tb) => tb.id === `textbox_${field.id}`
-              );
-              return (
-                <div key={field.id} className="relative">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      {field.label}
-                    </label>
-                    <button
-                      onClick={() => removeCustomTextField(field.id)}
-                      className="text-red-500 hover:text-red-700 text-sm"
-                      type="button"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Edit this field by selecting the text box on the canvas
-                  </p>
-                  {textBox && (
-                    <div className="text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                      Text: {textBox.text || "(empty)"}
-                    </div>
-                  )}
+            {customFields.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">
+                  Additional Text Fields:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {customFields.map((field) => {
+                    const textBox = textBoxes.find(
+                      (tb) => tb.id === `textbox_${field.id}`
+                    );
+                    return (
+                      <div
+                        key={field.id}
+                        className={`p-2 border rounded-lg cursor-pointer ${
+                          selectedTextBoxId === `textbox_${field.id}`
+                            ? "border-purple-500 bg-purple-50"
+                            : "border-gray-300 bg-white"
+                        }`}
+                        onClick={() => {
+                          if (textBox) {
+                            setSelectedTextBoxId(`textbox_${field.id}`);
+                            setSelectedShapeId(null);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium text-gray-700">
+                            {field.label}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeCustomTextField(field.id);
+                            }}
+                            className="text-red-500 hover:text-red-700 text-xs"
+                            type="button"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        {textBox && (
+                          <p className="text-xs text-gray-500 mt-1 truncate max-w-[200px]">
+                            {textBox.text || "(empty)"}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1938,9 +1886,11 @@ export function InvitationDesignEditor({
                   const x = e.clientX - canvasRect.left;
                   const y = e.clientY - canvasRect.top;
 
+                  const textBoxId = `textbox_${Date.now()}`;
+
                   // Create new text box at click location
                   const newTextBox: TextBox = {
-                    id: `textbox_${Date.now()}`,
+                    id: textBoxId,
                     text: "",
                     position: {
                       x: Math.max(0, x - 10),
@@ -1955,7 +1905,27 @@ export function InvitationDesignEditor({
                     isBold: false, // Not bold by default
                   };
                   setTextBoxes([...textBoxes, newTextBox]);
-                  setSelectedTextBoxId(newTextBox.id);
+                  setSelectedTextBoxId(textBoxId);
+
+                  // If this is a template design, also create a custom field for this text box
+                  if (template) {
+                    const customFieldId = textBoxId.replace("textbox_", "");
+                    const newField: CustomTextField = {
+                      id: customFieldId,
+                      label: `Additional Text ${customFields.length + 1}`,
+                      value: "",
+                      placeholder: "Enter text...",
+                    };
+                    setCustomFields([...customFields, newField]);
+                    setDesignData({
+                      ...designData,
+                      text: {
+                        ...designData.text,
+                        [customFieldId]: "",
+                      },
+                    });
+                  }
+
                   // Exit text box mode after creating one text box
                   setTextBoxMode(false);
                 }
@@ -1991,9 +1961,11 @@ export function InvitationDesignEditor({
                   const x = touch.clientX - canvasRect.left;
                   const y = touch.clientY - canvasRect.top;
 
+                  const textBoxId = `textbox_${Date.now()}`;
+
                   // Create new text box at touch location
                   const newTextBox: TextBox = {
-                    id: `textbox_${Date.now()}`,
+                    id: textBoxId,
                     text: "",
                     position: {
                       x: Math.max(0, x - 10),
@@ -2008,7 +1980,27 @@ export function InvitationDesignEditor({
                     isBold: false,
                   };
                   setTextBoxes([...textBoxes, newTextBox]);
-                  setSelectedTextBoxId(newTextBox.id);
+                  setSelectedTextBoxId(textBoxId);
+
+                  // If this is a template design, also create a custom field for this text box
+                  if (template) {
+                    const customFieldId = textBoxId.replace("textbox_", "");
+                    const newField: CustomTextField = {
+                      id: customFieldId,
+                      label: `Additional Text ${customFields.length + 1}`,
+                      value: "",
+                      placeholder: "Enter text...",
+                    };
+                    setCustomFields([...customFields, newField]);
+                    setDesignData({
+                      ...designData,
+                      text: {
+                        ...designData.text,
+                        [customFieldId]: "",
+                      },
+                    });
+                  }
+
                   setTextBoxMode(false);
                 }
               }}
