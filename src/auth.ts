@@ -50,8 +50,11 @@ providers.push(
         throw new Error("Email and password required")
       }
 
+      const email = credentials.email as string
+      const password = credentials.password as string
+
       const user = await prisma.user.findUnique({
-        where: { email: credentials.email },
+        where: { email },
       })
 
       if (!user || !user.password) {
@@ -59,7 +62,7 @@ providers.push(
       }
 
       const isValid = await bcrypt.compare(
-        credentials.password,
+        password,
         user.password
       )
 
