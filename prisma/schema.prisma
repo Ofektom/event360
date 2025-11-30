@@ -237,6 +237,9 @@ model Invitee {
   name        String
   email       String?
   phone       String?
+  whatsapp    String?     // WhatsApp number (can be same as phone or different)
+  messenger   String?     // Facebook Messenger username/ID
+  instagram   String?     // Instagram handle
   role        String?     // e.g., "bride", "groom", "guest", "vendor"
   group       String?     // e.g., "bride's family", "groom's family"
   
@@ -249,7 +252,7 @@ model Invitee {
   attendedCeremonies String[] // Array of ceremony IDs
   
   // Contact preferences
-  preferredChannel String? // "email", "whatsapp", "sms"
+  preferredChannel String? // "email", "whatsapp", "sms", "messenger", "in-app"
   
   // Registration tracking
   registeredAt DateTime?  // When they registered/linked account
@@ -266,6 +269,7 @@ model Invitee {
   @@index([userId])
   @@index([email])
   @@index([phone])
+  @@index([whatsapp])
   @@unique([eventId, email])  // One invitee per email per event
   @@unique([eventId, phone])  // One invitee per phone per event
 }

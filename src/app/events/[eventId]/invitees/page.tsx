@@ -17,6 +17,10 @@ interface Invitee {
   name: string
   email: string | null
   phone: string | null
+  whatsapp: string | null
+  messenger: string | null
+  instagram: string | null
+  userId: string | null
   role: string | null
   group: string | null
   rsvpStatus: RSVPStatus
@@ -120,6 +124,9 @@ export default function InviteesPage() {
           name: formData.name,
           email: formData.email || undefined,
           phone: formData.phone || undefined,
+          whatsapp: formData.whatsapp || undefined,
+          messenger: formData.messenger || undefined,
+          instagram: formData.instagram || undefined,
           role: formData.role || undefined,
           group: formData.group || undefined,
           preferredChannel: formData.preferredChannel || undefined,
@@ -136,6 +143,9 @@ export default function InviteesPage() {
         name: '',
         email: '',
         phone: '',
+        whatsapp: '',
+        messenger: '',
+        instagram: '',
         role: '',
         group: '',
         preferredChannel: 'email',
@@ -159,7 +169,7 @@ export default function InviteesPage() {
     setError(null)
 
     try {
-      // Parse CSV-like data (name,email,phone format)
+      // Parse CSV-like data (name,email,phone,whatsapp,messenger,instagram,role,group format)
       const lines = bulkData.trim().split('\n')
       const invitees = lines.map(line => {
         const parts = line.split(',').map(p => p.trim())
@@ -167,8 +177,11 @@ export default function InviteesPage() {
           name: parts[0] || '',
           email: parts[1] || undefined,
           phone: parts[2] || undefined,
-          role: parts[3] || undefined,
-          group: parts[4] || undefined,
+          whatsapp: parts[3] || undefined,
+          messenger: parts[4] || undefined,
+          instagram: parts[5] || undefined,
+          role: parts[6] || undefined,
+          group: parts[7] || undefined,
         }
       }).filter(inv => inv.name) // Filter out empty names
 
@@ -315,6 +328,11 @@ export default function InviteesPage() {
               <option value="DECLINED">Declined</option>
               <option value="MAYBE">Maybe</option>
             </select>
+            <Link href={`/events/${eventId}/send-invitations`}>
+              <Button variant="primary">
+                📨 Send Invitations
+              </Button>
+            </Link>
             <Button
               variant="outline"
               onClick={() => {
@@ -325,7 +343,7 @@ export default function InviteesPage() {
               {showBulkForm ? 'Cancel Bulk' : 'Bulk Import'}
             </Button>
             <Button
-              variant="primary"
+              variant="outline"
               onClick={() => {
                 setShowAddForm(!showAddForm)
                 setShowBulkForm(false)
@@ -375,6 +393,48 @@ export default function InviteesPage() {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+1234567890"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    WhatsApp Number
+                  </label>
+                  <Input
+                    type="tel"
+                    value={formData.whatsapp}
+                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                    placeholder="+1234567890"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Separate WhatsApp number (if different from phone)
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Facebook Messenger
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.messenger}
+                    onChange={(e) => setFormData({ ...formData, messenger: e.target.value })}
+                    placeholder="username or Facebook ID"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Messenger username or Facebook user ID
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Instagram Handle
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.instagram}
+                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                    placeholder="@username"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Instagram username (without @)
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -432,14 +492,16 @@ export default function InviteesPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Bulk Import Guests</h2>
             <p className="text-sm text-gray-600 mb-4">
               Enter guest information in CSV format (one per line):<br />
-              <code className="text-xs bg-gray-100 px-2 py-1 rounded">Name,Email,Phone,Role,Group</code>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                Name,Email,Phone,WhatsApp,Messenger,Instagram,Role,Group
+              </code>
             </p>
             <textarea
               value={bulkData}
               onChange={(e) => setBulkData(e.target.value)}
               rows={10}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
-              placeholder="John Doe,john@example.com,+1234567890,Groomsman,Family&#10;Jane Smith,jane@example.com,+0987654321,Bridesmaid,Friends"
+              placeholder="John Doe,john@example.com,+1234567890,+1234567890,username,@johndoe,Groomsman,Family&#10;Jane Smith,jane@example.com,+0987654321,+0987654321,janesmith,@janesmith,Bridesmaid,Friends"
             />
             <div className="flex gap-3 mt-4">
               <Button variant="primary" onClick={handleBulkImport} isLoading={saving} disabled={saving}>
@@ -495,10 +557,44 @@ export default function InviteesPage() {
                         <div className="font-medium text-gray-900">{invitee.name}</div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-sm text-gray-600">
-                          {invitee.email && <div>{invitee.email}</div>}
-                          {invitee.phone && <div>{invitee.phone}</div>}
-                          {!invitee.email && !invitee.phone && (
+                        <div className="text-sm text-gray-600 space-y-1">
+                          {invitee.email && (
+                            <div className="flex items-center gap-1">
+                              <span>📧</span>
+                              <span>{invitee.email}</span>
+                            </div>
+                          )}
+                          {invitee.phone && (
+                            <div className="flex items-center gap-1">
+                              <span>📞</span>
+                              <span>{invitee.phone}</span>
+                            </div>
+                          )}
+                          {invitee.whatsapp && (
+                            <div className="flex items-center gap-1">
+                              <span>💬</span>
+                              <span>{invitee.whatsapp}</span>
+                            </div>
+                          )}
+                          {invitee.messenger && (
+                            <div className="flex items-center gap-1">
+                              <span>💌</span>
+                              <span>{invitee.messenger}</span>
+                            </div>
+                          )}
+                          {invitee.instagram && (
+                            <div className="flex items-center gap-1">
+                              <span>📷</span>
+                              <span>@{invitee.instagram}</span>
+                            </div>
+                          )}
+                          {invitee.userId && (
+                            <div className="flex items-center gap-1">
+                              <span>📱</span>
+                              <span className="text-purple-600">In-App User</span>
+                            </div>
+                          )}
+                          {!invitee.email && !invitee.phone && !invitee.whatsapp && !invitee.messenger && !invitee.instagram && !invitee.userId && (
                             <span className="text-gray-400">No contact info</span>
                           )}
                         </div>

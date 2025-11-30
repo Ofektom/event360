@@ -5,6 +5,9 @@ export interface CreateInviteeDto {
   name: string
   email?: string
   phone?: string
+  whatsapp?: string
+  messenger?: string
+  instagram?: string
   role?: string
   group?: string
   preferredChannel?: string
@@ -18,6 +21,9 @@ export interface UpdateInviteeDto {
   name?: string
   email?: string
   phone?: string
+  whatsapp?: string
+  messenger?: string
+  instagram?: string
   role?: string
   group?: string
   rsvpStatus?: RSVPStatus

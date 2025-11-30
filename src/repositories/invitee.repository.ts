@@ -44,6 +44,9 @@ export class InviteeRepository {
         name: data.name,
         email: data.email,
         phone: data.phone,
+        whatsapp: data.whatsapp,
+        messenger: data.messenger,
+        instagram: data.instagram,
         role: data.role,
         group: data.group,
         preferredChannel: data.preferredChannel,
@@ -59,6 +62,9 @@ export class InviteeRepository {
         name: invitee.name,
         email: invitee.email,
         phone: invitee.phone,
+        whatsapp: invitee.whatsapp,
+        messenger: invitee.messenger,
+        instagram: invitee.instagram,
         role: invitee.role,
         group: invitee.group,
         preferredChannel: invitee.preferredChannel,
@@ -74,6 +80,9 @@ export class InviteeRepository {
     if (data.name !== undefined) updateData.name = data.name
     if (data.email !== undefined) updateData.email = data.email
     if (data.phone !== undefined) updateData.phone = data.phone
+    if (data.whatsapp !== undefined) updateData.whatsapp = data.whatsapp
+    if (data.messenger !== undefined) updateData.messenger = data.messenger
+    if (data.instagram !== undefined) updateData.instagram = data.instagram
     if (data.role !== undefined) updateData.role = data.role
     if (data.group !== undefined) updateData.group = data.group
     if (data.rsvpStatus !== undefined) {
