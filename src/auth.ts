@@ -72,7 +72,7 @@ providers.push(
         email: user.email,
         name: user.name,
         image: user.image,
-        role: user.role,
+        role: user.role as UserRole,
       }
     },
   })
