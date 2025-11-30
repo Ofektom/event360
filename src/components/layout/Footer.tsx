@@ -70,6 +70,9 @@ export function Footer({ variant = 'dashboard' }: FooterProps) {
             <Link href="/privacy" className="text-sm text-gray-600 hover:text-purple-600">
               Privacy
             </Link>
+            <Link href="/terms" className="text-sm text-gray-600 hover:text-purple-600">
+              Terms
+            </Link>
           </div>
         </div>
       </div>
