@@ -30,7 +30,7 @@ if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
       authorization: {
         params: {
-          scope: "public_profile,email,user_friends", // Added user_friends for friends access
+          scope: "public_profile,user_friends", // Removed 'email' as it's deprecated. Facebook provides email via public_profile
         },
       },
     })
