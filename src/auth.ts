@@ -57,13 +57,13 @@ providers.push(
         where: { email },
       })
 
-      if (!user || !user.password) {
+      if (!user || !user.passwordHash) {
         throw new Error("Invalid email or password")
       }
 
       const isValid = await bcrypt.compare(
         password,
-        user.password
+        user.passwordHash
       )
 
       if (!isValid) {
