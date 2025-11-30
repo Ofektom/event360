@@ -333,33 +333,13 @@ export const authConfig = {
       }
       return session
     },
-    async redirect({ url, baseUrl, token }) {
-      // Handle linking redirects (from account linking flow)
-      // Check if we have a redirectPath stored in token (from account linking)
-      if (token && (token as any).redirectPath) {
-        const redirectPath = (token as any).redirectPath
-        // Add success parameter for linking
-        const separator = redirectPath.includes('?') ? '&' : '?'
-        return `${baseUrl}${redirectPath}${separator}facebook_linked=true`
-      }
-      
-      // Handle send-invitations redirects
+    async redirect({ url, baseUrl }) {
+      // Handle send-invitations redirects (from account linking flow)
+      // The redirect path is passed in the URL itself from the linking flow
       if (url.includes('send-invitations')) {
         // Add success parameter for linking
         const separator = url.includes('?') ? '&' : '?'
         return url.startsWith("/") ? `${baseUrl}${url}${separator}facebook_linked=true` : `${url}${separator}facebook_linked=true`
-      }
-      
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
-    },
-    async redirect({ url, baseUrl }) {
-      // Handle linking redirects (from account linking flow)
-      if (url.includes('send-invitations') || url.includes('facebook_linked=true')) {
-        return url.startsWith("/") ? `${baseUrl}${url}` : url
       }
       
       // Allows relative callback URLs
