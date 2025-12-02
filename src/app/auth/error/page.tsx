@@ -13,7 +13,7 @@ export default async function AuthErrorPage({
   const errorMessages: Record<string, string> = {
     CredentialsSignin: 'Invalid email or password. Please try again.',
     OAuthAccountNotLinked: 'An account with this email already exists. The account has been automatically linked. Please try signing in again.',
-    Configuration: 'There is a problem with the server configuration. This usually means NEXTAUTH_SECRET or NEXTAUTH_URL is missing in Vercel environment variables. Please check your Vercel project settings.',
+    Configuration: 'There is a problem with the server configuration. This usually means AUTH_SECRET (or NEXTAUTH_SECRET) or AUTH_URL (or NEXTAUTH_URL) is missing, or the deployment needs to be redeployed after adding environment variables. Please check your Vercel project settings and redeploy.',
     AccessDenied: 'Access denied. Please contact support.',
     Verification: 'The verification token has expired or has already been used.',
     Default: 'An error occurred during authentication. Please try again.',
