@@ -334,19 +334,24 @@ export const authConfig = {
       return session
     },
     async redirect({ url, baseUrl }) {
+      // Use NEXTAUTH_URL from environment if available, otherwise use baseUrl
+      // This ensures production URLs are used even if baseUrl defaults to localhost
+      const productionUrl = process.env.NEXTAUTH_URL || baseUrl
+      const normalizedBaseUrl = productionUrl.replace(/\/$/, '')
+      
       // Handle send-invitations redirects (from account linking flow)
       // The redirect path is passed in the URL itself from the linking flow
       if (url.includes('send-invitations')) {
         // Add success parameter for linking
         const separator = url.includes('?') ? '&' : '?'
-        return url.startsWith("/") ? `${baseUrl}${url}${separator}facebook_linked=true` : `${url}${separator}facebook_linked=true`
+        return url.startsWith("/") ? `${normalizedBaseUrl}${url}${separator}facebook_linked=true` : `${url}${separator}facebook_linked=true`
       }
       
       // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
+      if (url.startsWith("/")) return `${normalizedBaseUrl}${url}`
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      else if (new URL(url).origin === normalizedBaseUrl) return url
+      return normalizedBaseUrl
     },
   },
 } satisfies NextAuthConfig
