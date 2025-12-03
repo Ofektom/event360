@@ -66,7 +66,7 @@ interface InvitationPreviewProps {
     orientation?: 'portrait' | 'landscape'
   }
   onPreviewGenerated?: (previewUrl: string) => void
-  previewRef?: React.RefObject<HTMLDivElement>
+  previewRef?: React.RefObject<HTMLDivElement | null>
 }
 
 export function InvitationPreview({
