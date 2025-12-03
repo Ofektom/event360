@@ -20,51 +20,121 @@ interface SendInvitesRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  
   try {
+    console.log(`[${requestId}] 📨 Send Invitations Request Started`)
+    
+    // Log request details
     const user = await requireAuth()
-    const body: SendInvitesRequest = await request.json()
+    console.log(`[${requestId}] ✅ User authenticated: ${user.id} (${user.email})`)
+    
+    let body: SendInvitesRequest
+    try {
+      body = await request.json()
+      console.log(`[${requestId}] 📦 Request body received:`, {
+        eventId: body.eventId,
+        designId: body.designId,
+        channel: body.channel,
+        contactsCount: body.contacts?.length || 0,
+        contacts: body.contacts?.map(c => ({ name: c.name, contactInfo: c.contactInfo }))
+      })
+    } catch (parseError: any) {
+      console.error(`[${requestId}] ❌ Failed to parse request body:`, parseError)
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body', details: parseError.message },
+        { status: 400 }
+      )
+    }
 
     const { eventId, designId, channel, contacts } = body
 
-    // Validate input
+    // Validate input with detailed logging
+    console.log(`[${requestId}] 🔍 Validating input...`)
+    console.log(`[${requestId}]   - eventId: ${eventId ? '✅' : '❌'} ${eventId || 'MISSING'}`)
+    console.log(`[${requestId}]   - designId: ${designId ? '✅' : '❌'} ${designId || 'MISSING'}`)
+    console.log(`[${requestId}]   - channel: ${channel ? '✅' : '❌'} ${channel || 'MISSING'}`)
+    console.log(`[${requestId}]   - contacts: ${contacts ? '✅' : '❌'} ${contacts?.length || 0} contact(s)`)
+    
     if (!eventId || !designId || !channel || !contacts || contacts.length === 0) {
+      const missingFields = []
+      if (!eventId) missingFields.push('eventId')
+      if (!designId) missingFields.push('designId')
+      if (!channel) missingFields.push('channel')
+      if (!contacts || contacts.length === 0) missingFields.push('contacts')
+      
+      console.error(`[${requestId}] ❌ Validation failed - Missing fields:`, missingFields)
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { 
+          error: 'Missing required fields',
+          missingFields,
+          received: { eventId, designId, channel, contactsCount: contacts?.length || 0 }
+        },
         { status: 400 }
       )
     }
 
     // Verify user owns the event
+    console.log(`[${requestId}] 🔍 Fetching event: ${eventId}`)
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       select: { ownerId: true, title: true, slug: true },
     })
 
-    if (!event || event.ownerId !== user.id) {
+    if (!event) {
+      console.error(`[${requestId}] ❌ Event not found: ${eventId}`)
+      return NextResponse.json(
+        { error: 'Event not found' },
+        { status: 404 }
+      )
+    }
+
+    if (event.ownerId !== user.id) {
+      console.error(`[${requestId}] ❌ Unauthorized - Event owner mismatch. Event owner: ${event.ownerId}, User: ${user.id}`)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
       )
     }
 
+    console.log(`[${requestId}] ✅ Event verified: ${event.title}`)
+
     // Verify design exists and belongs to event
+    console.log(`[${requestId}] 🔍 Fetching design: ${designId}`)
     const design = await prisma.invitationDesign.findUnique({
       where: { id: designId },
       select: { eventId: true, imageUrl: true, customImage: true },
     })
 
-    if (!design || design.eventId !== eventId) {
+    if (!design) {
+      console.error(`[${requestId}] ❌ Design not found: ${designId}`)
       return NextResponse.json(
         { error: 'Invitation design not found' },
         { status: 404 }
       )
     }
 
+    if (design.eventId !== eventId) {
+      console.error(`[${requestId}] ❌ Design event mismatch. Design event: ${design.eventId}, Request event: ${eventId}`)
+      return NextResponse.json(
+        { error: 'Invitation design does not belong to this event' },
+        { status: 400 }
+      )
+    }
+
     // Get invitation image URL
     const invitationImageUrl = design.imageUrl || design.customImage
+    console.log(`[${requestId}] 🖼️  Image URL: ${invitationImageUrl ? '✅' : '❌'} ${invitationImageUrl || 'MISSING'}`)
+    
     if (!invitationImageUrl) {
+      console.error(`[${requestId}] ❌ Design has no image. imageUrl: ${design.imageUrl}, customImage: ${design.customImage}`)
       return NextResponse.json(
-        { error: 'Invitation design has no image' },
+        { 
+          error: 'Invitation design has no image',
+          designId,
+          imageUrl: design.imageUrl,
+          customImage: design.customImage
+        },
         { status: 400 }
       )
     }
@@ -74,19 +144,32 @@ export async function POST(request: NextRequest) {
     const shareLink = event.slug
       ? `${baseUrl}/events/${event.slug}`
       : `${baseUrl}/events/${eventId}`
+    
+    console.log(`[${requestId}] 🔗 Share link: ${shareLink}`)
 
     const inviteChannel = channel as InviteChannel
+    console.log(`[${requestId}] 📤 Channel: ${inviteChannel}`)
+    
     let sent = 0
     let failed = 0
     const errors: string[] = []
 
     // Send invitations for each contact
-    for (const contact of contacts) {
+    console.log(`[${requestId}] 📋 Processing ${contacts.length} contact(s)...`)
+    
+    for (let i = 0; i < contacts.length; i++) {
+      const contact = contacts[i]
+      const contactId = `contact_${i + 1}_${Date.now()}`
+      
       try {
+        console.log(`[${requestId}] [${contactId}] Processing contact: ${contact.name} (${contact.contactInfo})`)
+        
         // Generate unique token for tracking
         const token = randomBytes(32).toString('hex')
+        console.log(`[${requestId}] [${contactId}] Generated token: ${token.substring(0, 8)}...`)
 
         // Find or create invitee
+        console.log(`[${requestId}] [${contactId}] Searching for existing invitee...`)
         let invitee = await prisma.invitee.findFirst({
           where: {
             eventId,
@@ -99,6 +182,12 @@ export async function POST(request: NextRequest) {
             ],
           },
         })
+
+        if (invitee) {
+          console.log(`[${requestId}] [${contactId}] ✅ Found existing invitee: ${invitee.id}`)
+        } else {
+          console.log(`[${requestId}] [${contactId}] ➕ Creating new invitee...`)
+        }
 
         // Create invitee if not found
         if (!invitee) {
@@ -127,12 +216,15 @@ export async function POST(request: NextRequest) {
               break
           }
 
+          console.log(`[${requestId}] [${contactId}] Creating invitee with data:`, inviteeData)
           invitee = await prisma.invitee.create({
             data: inviteeData,
           })
+          console.log(`[${requestId}] [${contactId}] ✅ Created invitee: ${invitee.id}`)
         } else {
           // Update invitee name if different
           if (invitee.name !== contact.name) {
+            console.log(`[${requestId}] [${contactId}] Updating invitee name...`)
             invitee = await prisma.invitee.update({
               where: { id: invitee.id },
               data: { name: contact.name },
@@ -161,6 +253,7 @@ export async function POST(request: NextRequest) {
           }
 
           if (Object.keys(updateData).length > 0) {
+            console.log(`[${requestId}] [${contactId}] Updating invitee with:`, updateData)
             invitee = await prisma.invitee.update({
               where: { id: invitee.id },
               data: updateData,
@@ -169,6 +262,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create invite record
+        console.log(`[${requestId}] [${contactId}] Creating invite record...`)
         const invite = await prisma.invite.create({
           data: {
             eventId,
@@ -180,12 +274,21 @@ export async function POST(request: NextRequest) {
             token,
           },
         })
+        console.log(`[${requestId}] [${contactId}] ✅ Created invite: ${invite.id}`)
 
         // Send invitation via appropriate service
+        console.log(`[${requestId}] [${contactId}] 📤 Sending invitation via ${inviteChannel}...`)
         let sendResult: { success: boolean; error?: string } = { success: false }
 
         switch (inviteChannel) {
           case 'WHATSAPP':
+            console.log(`[${requestId}] [${contactId}] Calling sendWhatsAppInvite with:`, {
+              to: contact.contactInfo,
+              inviteeName: contact.name,
+              eventTitle: event.title,
+              hasImage: !!invitationImageUrl,
+              shareLink
+            })
             sendResult = await sendWhatsAppInvite({
               to: contact.contactInfo,
               inviteeName: contact.name,
@@ -194,6 +297,7 @@ export async function POST(request: NextRequest) {
               shareLink,
               token,
             })
+            console.log(`[${requestId}] [${contactId}] WhatsApp send result:`, sendResult)
             break
           case 'FACEBOOK_MESSENGER':
             sendResult = await sendMessengerInvite({
@@ -252,10 +356,12 @@ export async function POST(request: NextRequest) {
             }
             break
           default:
+            console.error(`[${requestId}] [${contactId}] ❌ Unsupported channel: ${inviteChannel}`)
             sendResult = { success: false, error: 'Unsupported channel' }
         }
 
         if (sendResult.success) {
+          console.log(`[${requestId}] [${contactId}] ✅ Invitation sent successfully`)
           // Update invite status
           await prisma.invite.update({
             where: { id: invite.id },
@@ -266,6 +372,7 @@ export async function POST(request: NextRequest) {
           })
           sent++
         } else {
+          console.error(`[${requestId}] [${contactId}] ❌ Failed to send: ${sendResult.error}`)
           // Update invite with error
           await prisma.invite.update({
             where: { id: invite.id },
@@ -278,11 +385,14 @@ export async function POST(request: NextRequest) {
           errors.push(`${contact.name}: ${sendResult.error || 'Failed'}`)
         }
       } catch (error: any) {
-        console.error(`Error sending invite to ${contact.name}:`, error)
+        console.error(`[${requestId}] [${contactId}] ❌ Error processing contact:`, error)
+        console.error(`[${requestId}] [${contactId}] Error stack:`, error.stack)
         failed++
         errors.push(`${contact.name}: ${error.message || 'Unknown error'}`)
       }
     }
+
+    console.log(`[${requestId}] ✅ Request completed. Sent: ${sent}, Failed: ${failed}`)
 
     return NextResponse.json({
       sent,
@@ -291,14 +401,19 @@ export async function POST(request: NextRequest) {
       errors: errors.slice(0, 10), // Limit errors to first 10
     })
   } catch (error: any) {
-    console.error('Error sending invitations:', error)
+    console.error(`[${requestId}] ❌ Fatal error in send invitations:`, error)
+    console.error(`[${requestId}] Error stack:`, error.stack)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: error.message || 'Failed to send invitations' },
+      { 
+        error: error.message || 'Failed to send invitations',
+        requestId,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
