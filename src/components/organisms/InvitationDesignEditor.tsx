@@ -701,23 +701,52 @@ export function InvitationDesignEditor({
 
       // Generate new image from preview if we have a preview container
       // This ensures the image always matches the current design state
-      if (previewElementRef.current) {
+      // We need to capture the container that includes the template AND all overlays (shapes, text boxes)
+      if (previewContainerRef.current) {
         try {
-          console.log("📸 Generating invitation image from preview element...");
+          console.log("📸 Generating invitation image from preview container...");
           
           // Wait for DOM to be fully ready and any animations to complete
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
-          const previewElement = previewElementRef.current;
+          // The hidden preview element now includes everything (template, shapes, text boxes)
+          // because we updated the templates to render text boxes from designData
+          // This is the best element to capture as it has all content in one place
+          let previewElement: HTMLElement | null = null;
           
-          if (previewElement && previewElement.offsetWidth > 0 && previewElement.offsetHeight > 0) {
-            console.log("📸 Capturing preview element:", {
+          // Prefer the hidden preview element (now includes all content)
+          if (previewElementRef.current) {
+            previewElement = previewElementRef.current;
+            console.log("📸 Using hidden preview element (includes template, shapes, and text boxes):", {
               width: previewElement.offsetWidth,
               height: previewElement.offsetHeight,
               hasContent: previewElement.innerHTML.length > 100
             });
+          } else {
+            // Fallback: try to capture the visible preview container with overlays
+            const visiblePreview = previewContainerRef.current.querySelector(
+              'div.rounded-lg.border-2'
+            ) as HTMLElement;
             
+            if (visiblePreview) {
+              // Use the previewContainerRef which includes all overlays
+              previewElement = previewContainerRef.current;
+              console.log("📸 Using preview container with overlays:", {
+                containerWidth: previewElement.offsetWidth,
+                containerHeight: previewElement.offsetHeight,
+                hasShapes: shapes.length > 0,
+                hasTextBoxes: textBoxes.length > 0,
+              });
+            } else {
+              // Final fallback: use the container itself
+              previewElement = previewContainerRef.current;
+              console.log("📸 Using container as fallback");
+            }
+          }
+          
+          if (previewElement && previewElement.offsetWidth > 0 && previewElement.offsetHeight > 0) {
             // Generate image with high quality
+            // html2canvas will capture all absolutely positioned children (overlays)
             const dataUrl = await generatePreviewFromElement(previewElement, {
               width: orientation === 'landscape' ? 1200 : 800,
               height: orientation === 'landscape' ? 800 : 1200,
@@ -775,10 +804,10 @@ export function InvitationDesignEditor({
           });
           console.log("📸 Preserving existing image URL due to error:", imageUrl);
         }
-      } else {
-        console.warn("⚠️ No preview element ref available for image generation");
-        console.log("📸 Preserving existing image URL:", imageUrl);
-      }
+        } else {
+          console.warn("⚠️ No preview container ref available for image generation");
+          console.log("📸 Preserving existing image URL:", imageUrl);
+        }
 
       const url = designId
         ? `/api/invitations/designs/${designId}`
