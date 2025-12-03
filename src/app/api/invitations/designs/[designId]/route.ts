@@ -103,6 +103,7 @@ export async function PATCH(
         ...(body.name !== undefined && { name: body.name }),
         ...(body.isDefault !== undefined && { isDefault: body.isDefault }),
         ...(body.templateId !== undefined && { templateId: body.templateId }),
+        ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl }),
       },
       include: {
         template: {

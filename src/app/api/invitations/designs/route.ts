@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const { eventId, templateId, designData, name, customImage } = body
+    const { eventId, templateId, designData, name, customImage, imageUrl } = body
 
     if (!eventId) {
       return NextResponse.json(
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
         name: name || 'My Invitation Design',
         designData: designData || {},
         customImage: customImage || null,
+        imageUrl: imageUrl || null,
         isDefault: existingDesigns === 0,
         isActive: true,
       },

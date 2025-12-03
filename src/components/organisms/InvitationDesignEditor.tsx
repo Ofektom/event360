@@ -10,6 +10,7 @@ import { InvitationPreview } from "./InvitationPreview";
 import { ShapesLibrary } from "./ShapesLibrary";
 import { EditableShape } from "./EditableShape";
 import { EditableTextBox } from "./EditableTextBox";
+import { generatePreviewFromElement } from "@/lib/template-renderer";
 
 interface InvitationDesignEditorProps {
   eventId: string;
@@ -104,6 +105,7 @@ export function InvitationDesignEditor({
     id: string;
     templateId?: string | null;
     customImage?: string | null;
+    imageUrl?: string | null;
     name?: string | null;
     designData?: unknown;
   } | null>(null);
@@ -693,6 +695,109 @@ export function InvitationDesignEditor({
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Preserve existing image URL if editing (will be updated only if new image generation succeeds)
+      let imageUrl: string | null = existingDesign?.imageUrl || existingDesign?.customImage || null;
+
+      // Generate new image from preview if we have a preview container
+      // This ensures the image always matches the current design state
+      if (previewContainerRef.current) {
+        try {
+          console.log("📸 Generating invitation image...");
+          
+          // Wait a bit for any animations/transitions to complete and ensure DOM is ready
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Find the preview container - it should contain the rendered invitation
+          // Look for the main preview div that contains the TemplateRenderer
+          let previewElement: HTMLElement | null = null;
+          
+          // Try multiple selectors to find the preview
+          const selectors = [
+            'div[style*="aspectRatio"]', // The preview container with aspect ratio
+            'div[class*="rounded-lg"]', // The rounded preview container
+            'div[style*="minHeight"]', // Container with minHeight
+          ];
+
+          for (const selector of selectors) {
+            const element = previewContainerRef.current.querySelector(selector);
+            if (element) {
+              previewElement = element as HTMLElement;
+              break;
+            }
+          }
+
+          // Fallback to the container itself
+          if (!previewElement) {
+            previewElement = previewContainerRef.current;
+          }
+
+          if (previewElement) {
+            console.log("📸 Capturing preview element...");
+            
+            // Generate image with high quality
+            const dataUrl = await generatePreviewFromElement(previewElement, {
+              width: orientation === 'landscape' ? 1200 : 800,
+              height: orientation === 'landscape' ? 800 : 1200,
+              scale: 2, // High quality (2x for retina)
+            });
+
+            if (dataUrl && dataUrl.length > 100) {
+              console.log("📸 Image generated successfully, size:", dataUrl.length, "bytes");
+              
+              // Convert data URL to blob
+              const response = await fetch(dataUrl);
+              const blob = await response.blob();
+              
+              console.log("📸 Blob created, size:", blob.size, "bytes");
+              
+              // Create a file from the blob
+              const file = new File([blob], `invitation-${Date.now()}.png`, {
+                type: 'image/png',
+              });
+
+              // Upload the image
+              const formData = new FormData();
+              formData.append('file', file);
+              formData.append('eventId', eventId);
+              formData.append('type', 'invitation');
+
+              console.log("📤 Uploading image to server...");
+              const uploadResponse = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+              });
+
+              if (uploadResponse.ok) {
+                const uploadData = await uploadResponse.json();
+                imageUrl = uploadData.url; // Update with new image URL
+                console.log("✅ Image uploaded successfully:", imageUrl);
+              } else {
+                const errorData = await uploadResponse.json().catch(() => ({}));
+                console.warn("⚠️ Failed to upload image:", errorData.error || uploadResponse.statusText);
+                // Keep existing imageUrl - don't overwrite with null
+                console.log("📸 Preserving existing image URL:", imageUrl);
+              }
+            } else {
+              console.warn("⚠️ Generated image data URL is too small or invalid");
+              // Keep existing imageUrl
+              console.log("📸 Preserving existing image URL:", imageUrl);
+            }
+          } else {
+            console.warn("⚠️ Could not find preview element to capture");
+            // Keep existing imageUrl
+            console.log("📸 Preserving existing image URL:", imageUrl);
+          }
+        } catch (imageError) {
+          console.error("❌ Error generating/uploading image:", imageError);
+          // Keep existing imageUrl - don't lose it if generation fails
+          console.log("📸 Preserving existing image URL due to error:", imageUrl);
+        }
+      } else {
+        console.warn("⚠️ No preview container ref available for image generation");
+        // Keep existing imageUrl
+        console.log("📸 Preserving existing image URL:", imageUrl);
+      }
+
       const url = designId
         ? `/api/invitations/designs/${designId}`
         : `/api/invitations/designs`;
@@ -717,17 +822,22 @@ export function InvitationDesignEditor({
           eventId,
           templateId: existingDesign?.templateId || templateId || null,
           designData: saveData,
+          ...(imageUrl && { imageUrl }), // Include image URL if generated
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save design");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save design");
       }
+
+      const savedDesign = await response.json();
+      console.log("✅ Design saved:", savedDesign);
 
       onSave();
     } catch (error) {
       console.error("Error saving design:", error);
-      alert("Failed to save design. Please try again.");
+      alert(`Failed to save design: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
     } finally {
       setSaving(false);
     }
