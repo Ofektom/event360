@@ -45,6 +45,21 @@ interface ElegantWeddingTemplateProps {
       position: { x: number; y: number }
       size: { width: number; height: number }
     }>
+    textBoxes?: Array<{
+      id: string
+      text: string
+      position: { x: number; y: number }
+      size: { width: number; height: number }
+      fontSize: number
+      color: string
+      backgroundColor?: string
+      hasFill: boolean
+      fontFamily?: string
+      fontWeight?: string | number
+      textAlign?: 'left' | 'center' | 'right'
+      showBorder?: boolean
+      isBold?: boolean
+    }>
   }
 }
 
