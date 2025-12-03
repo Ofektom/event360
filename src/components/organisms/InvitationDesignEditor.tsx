@@ -156,6 +156,7 @@ export function InvitationDesignEditor({
   );
   const [textBoxMode, setTextBoxMode] = useState(false); // PowerPoint-style text box mode
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const previewElementRef = useRef<HTMLDivElement>(null); // Ref to the hidden preview element for image generation
 
   // Local state for font size inputs to allow proper editing
   const [fontSizeInputs, setFontSizeInputs] = useState({
@@ -700,39 +701,21 @@ export function InvitationDesignEditor({
 
       // Generate new image from preview if we have a preview container
       // This ensures the image always matches the current design state
-      if (previewContainerRef.current) {
+      if (previewElementRef.current) {
         try {
-          console.log("📸 Generating invitation image...");
+          console.log("📸 Generating invitation image from preview element...");
           
-          // Wait a bit for any animations/transitions to complete and ensure DOM is ready
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Wait for DOM to be fully ready and any animations to complete
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
-          // Find the preview container - it should contain the rendered invitation
-          // Look for the main preview div that contains the TemplateRenderer
-          let previewElement: HTMLElement | null = null;
+          const previewElement = previewElementRef.current;
           
-          // Try multiple selectors to find the preview
-          const selectors = [
-            'div[style*="aspectRatio"]', // The preview container with aspect ratio
-            'div[class*="rounded-lg"]', // The rounded preview container
-            'div[style*="minHeight"]', // Container with minHeight
-          ];
-
-          for (const selector of selectors) {
-            const element = previewContainerRef.current.querySelector(selector);
-            if (element) {
-              previewElement = element as HTMLElement;
-              break;
-            }
-          }
-
-          // Fallback to the container itself
-          if (!previewElement) {
-            previewElement = previewContainerRef.current;
-          }
-
-          if (previewElement) {
-            console.log("📸 Capturing preview element...");
+          if (previewElement && previewElement.offsetWidth > 0 && previewElement.offsetHeight > 0) {
+            console.log("📸 Capturing preview element:", {
+              width: previewElement.offsetWidth,
+              height: previewElement.offsetHeight,
+              hasContent: previewElement.innerHTML.length > 100
+            });
             
             // Generate image with high quality
             const dataUrl = await generatePreviewFromElement(previewElement, {
@@ -774,27 +757,26 @@ export function InvitationDesignEditor({
               } else {
                 const errorData = await uploadResponse.json().catch(() => ({}));
                 console.warn("⚠️ Failed to upload image:", errorData.error || uploadResponse.statusText);
-                // Keep existing imageUrl - don't overwrite with null
                 console.log("📸 Preserving existing image URL:", imageUrl);
               }
             } else {
               console.warn("⚠️ Generated image data URL is too small or invalid");
-              // Keep existing imageUrl
               console.log("📸 Preserving existing image URL:", imageUrl);
             }
           } else {
-            console.warn("⚠️ Could not find preview element to capture");
-            // Keep existing imageUrl
+            console.warn("⚠️ Preview element not ready or has no dimensions");
             console.log("📸 Preserving existing image URL:", imageUrl);
           }
         } catch (imageError) {
           console.error("❌ Error generating/uploading image:", imageError);
-          // Keep existing imageUrl - don't lose it if generation fails
+          console.error("❌ Error details:", {
+            name: imageError instanceof Error ? imageError.name : 'Unknown',
+            message: imageError instanceof Error ? imageError.message : String(imageError),
+          });
           console.log("📸 Preserving existing image URL due to error:", imageUrl);
         }
       } else {
-        console.warn("⚠️ No preview container ref available for image generation");
-        // Keep existing imageUrl
+        console.warn("⚠️ No preview element ref available for image generation");
         console.log("📸 Preserving existing image URL:", imageUrl);
       }
 
@@ -822,7 +804,7 @@ export function InvitationDesignEditor({
           eventId,
           templateId: existingDesign?.templateId || templateId || null,
           designData: saveData,
-          ...(imageUrl && { imageUrl }), // Include image URL if generated
+          imageUrl: imageUrl, // Always include imageUrl (even if null, to update the database)
         }),
       });
 
@@ -2131,6 +2113,7 @@ export function InvitationDesignEditor({
                       : designData.textBoxes || undefined,
                   orientation: !template ? orientation : undefined,
                 }}
+                previewRef={previewElementRef}
               />
               {/* Shapes Overlay */}
               {shapes.length > 0 && (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { TemplateRenderer } from '@/components/templates/invitations/TemplateRenderer'
 import { generatePreviewFromElement } from '@/lib/template-renderer'
 
@@ -66,6 +66,7 @@ interface InvitationPreviewProps {
     orientation?: 'portrait' | 'landscape'
   }
   onPreviewGenerated?: (previewUrl: string) => void
+  previewRef?: React.RefObject<HTMLDivElement>
 }
 
 export function InvitationPreview({
@@ -73,8 +74,10 @@ export function InvitationPreview({
   config,
   designData,
   onPreviewGenerated,
+  previewRef: externalPreviewRef,
 }: InvitationPreviewProps) {
-  const previewRef = useRef<HTMLDivElement>(null)
+  const internalPreviewRef = useRef<HTMLDivElement>(null)
+  const previewRef = externalPreviewRef || internalPreviewRef
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const isGeneratingRef = useRef(false)

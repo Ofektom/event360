@@ -96,15 +96,17 @@ export async function PATCH(
       )
     }
 
+    const updateData: any = {}
+    if (body.designData) updateData.designData = body.designData
+    if (body.name !== undefined) updateData.name = body.name
+    if (body.isDefault !== undefined) updateData.isDefault = body.isDefault
+    if (body.templateId !== undefined) updateData.templateId = body.templateId
+    // Always update imageUrl if provided (even if null, to clear it)
+    if (body.imageUrl !== undefined) updateData.imageUrl = body.imageUrl
+
     const updatedDesign = await prisma.invitationDesign.update({
       where: { id: designId },
-      data: {
-        ...(body.designData && { designData: body.designData }),
-        ...(body.name !== undefined && { name: body.name }),
-        ...(body.isDefault !== undefined && { isDefault: body.isDefault }),
-        ...(body.templateId !== undefined && { templateId: body.templateId }),
-        ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl }),
-      },
+      data: updateData,
       include: {
         template: {
           select: {
