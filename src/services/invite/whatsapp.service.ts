@@ -222,8 +222,19 @@ export async function sendWhatsAppInvite(
     })
 
     // Make API request to SendZen
-    // SendZen API endpoint format: https://api.sendzen.io/v1/{phone_number_id}/messages
-    const apiEndpoint = `${apiUrl}/v1/${phoneNumberId}/messages`
+    // Try different endpoint formats - SendZen might use different structure
+    // Format 1: /v1/{phone_number_id}/messages (WhatsApp Business API standard)
+    // Format 2: /v1/messages (with phone_number_id in body)
+    
+    // First, try with phone_number_id in the URL (standard WhatsApp Business API format)
+    let apiEndpoint = `${apiUrl}/v1/${phoneNumberId}/messages`
+    
+    // Alternative: try with phone_number_id in request body if URL format fails
+    const requestBodyWithPhoneId = {
+      ...requestBody,
+      phone_number_id: phoneNumberId, // Add phone_number_id to body as fallback
+    }
+    
     console.log(`[${requestId}] 🌐 Making API request to: ${apiEndpoint}`)
     console.log(`[${requestId}] 📤 Request details:`, {
       method: 'POST',
@@ -237,7 +248,7 @@ export async function sendWhatsAppInvite(
     })
 
     const startTime = Date.now()
-    const response = await fetch(apiEndpoint, {
+    let response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -245,7 +256,78 @@ export async function sendWhatsAppInvite(
       },
       body: JSON.stringify(requestBody),
     })
-    const duration = Date.now() - startTime
+    let duration = Date.now() - startTime
+    
+    // If we get "message_id is required" error, try alternative endpoint format
+    if (!response.ok) {
+      const responseText = await response.text()
+      let errorData: any = {}
+      try {
+        errorData = JSON.parse(responseText)
+      } catch (e) {
+        // Not JSON, use text as error message
+        errorData = { message: responseText }
+      }
+      
+      const errorMessage = errorData?.error?.message || errorData?.message || responseText || ''
+      console.log(`[${requestId}] ⚠️ First attempt failed with error:`, errorMessage)
+      
+      if (errorMessage.includes('message_id') || (response.status === 400 && errorMessage)) {
+        console.log(`[${requestId}] ⚠️ "message_id" error detected. Trying alternative endpoint formats...`)
+        
+        // Try alternative 1: /v1/messages with phone_number_id in body
+        apiEndpoint = `${apiUrl}/v1/messages`
+        console.log(`[${requestId}] 🌐 Trying alternative endpoint 1: ${apiEndpoint}`)
+        console.log(`[${requestId}] 📤 Alternative request body:`, JSON.stringify(requestBodyWithPhoneId, null, 2))
+        
+        const retryStartTime = Date.now()
+        response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBodyWithPhoneId),
+        })
+        duration = Date.now() - retryStartTime
+        
+        // If still failing, try even simpler format
+        if (!response.ok) {
+          const retryResponseText = await response.text()
+          let retryErrorData: any = {}
+          try {
+            retryErrorData = JSON.parse(retryResponseText)
+          } catch (e) {
+            retryErrorData = { message: retryResponseText }
+          }
+          
+          const retryErrorMessage = retryErrorData?.error?.message || retryErrorData?.message || retryResponseText || ''
+          console.log(`[${requestId}] ⚠️ Alternative format 1 also failed:`, retryErrorMessage)
+          
+          // Try alternative 2: Simplified format (some services use this)
+          // Note: This might not work, but worth trying
+          const simplifiedBody = {
+            to: formattedTo,
+            message: imageUrl 
+              ? { type: 'image', image: { url: imageUrl, caption: messageText.substring(0, 1024) } }
+              : { type: 'text', text: messageText },
+            phone_number_id: phoneNumberId,
+          }
+          
+          console.log(`[${requestId}] 🌐 Trying alternative endpoint 2 with simplified format...`)
+          const retry2StartTime = Date.now()
+          response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(simplifiedBody),
+          })
+          duration = Date.now() - retry2StartTime
+        }
+      }
+    }
 
     console.log(`[${requestId}] 📥 Response received (${duration}ms):`, {
       status: response.status,
@@ -300,6 +382,14 @@ export async function sendWhatsAppInvite(
           return {
             success: false,
             error: 'Message cannot be delivered. The recipient may not have opted in to receive messages, or you need to use a message template for first-time contacts. Please ensure the recipient has messaged your WhatsApp Business number first, or set up message templates in WhatsApp Business Manager.',
+          }
+        }
+        
+        // Handle "message_id is required" error specifically
+        if (errorMessage.includes('message_id')) {
+          return {
+            success: false,
+            error: `SendZen API Error: ${errorMessage}. This may indicate that SendZen requires a different API format or that you need to use message templates. Please check SendZen documentation or contact SendZen support. Full error: ${JSON.stringify(responseData)}`,
           }
         }
         
