@@ -8,6 +8,12 @@
  * 
  * Documentation: https://www.sendzen.io/docs
  * Sign up: https://www.sendzen.io/
+ * 
+ * IMPORTANT: WhatsApp Business API Limitations
+ * - For first-time messages, you must use an approved message template
+ * - Regular messages only work if the user messaged you within the last 24 hours
+ * - To send to new contacts, create and approve a message template in WhatsApp Business Manager
+ * - Template messages must be approved by WhatsApp before use
  */
 
 interface SendWhatsAppInviteParams {
@@ -156,57 +162,52 @@ export async function sendWhatsAppInvite(
     const messageText = `🎉 You're invited to ${eventTitle}!\n\nHi ${inviteeName}, you're invited to ${eventTitle}!\n\nClick the link to:\n• View your invitation\n• See event photos\n• Stream the event live\n\n${shareLink}`
     console.log(`[${requestId}] 📝 Message text length: ${messageText.length} characters`)
 
-    // Prepare request body based on SendZen API format
-    // SendZen uses WhatsApp Business API format
+    // Convert relative URLs to absolute URLs for WhatsApp
+    let imageUrl: string | null = null
+    if (invitationImageUrl) {
+      imageUrl = invitationImageUrl
+      if (imageUrl.startsWith('/')) {
+        // Relative URL - convert to absolute
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                       process.env.NEXTAUTH_URL || 
+                       'https://event360-three.vercel.app'
+        imageUrl = `${baseUrl}${imageUrl}`
+        console.log(`[${requestId}] 🔗 Converted relative URL to absolute: ${imageUrl}`)
+      } else if (imageUrl.startsWith('data:')) {
+        // Data URL - WhatsApp doesn't support data URLs directly
+        // We'll skip the image and send text only
+        console.warn(`[${requestId}] ⚠️ Data URL detected. WhatsApp requires absolute URLs. Skipping image.`)
+        imageUrl = null
+      } else {
+        // Already absolute URL
+        console.log(`[${requestId}] ✅ Using absolute URL: ${imageUrl.substring(0, 100)}...`)
+      }
+    }
+
+    // Prepare request body based on SendZen/WhatsApp Business API format
+    // Note: For first-time messages, WhatsApp requires template messages
+    // For now, we'll try sending a regular message (works if user messaged you within 24h)
+    // If that fails, you'll need to set up message templates in WhatsApp Business Manager
     const requestBody: any = {
       messaging_product: 'whatsapp',
       to: formattedTo,
       recipient_type: 'individual',
     }
 
-    // If we have an image, send as media message with caption
-    if (invitationImageUrl) {
+    // If we have a valid image URL, send as media message with caption
+    if (imageUrl) {
       console.log(`[${requestId}] 🖼️  Preparing image message...`)
-      
-      // Convert relative URLs to absolute URLs for WhatsApp
-      let imageUrl = invitationImageUrl
-      if (imageUrl.startsWith('/')) {
-        // Relative URL - convert to absolute
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                       process.env.NEXTAUTH_URL || 
-                       'http://localhost:3000'
-        imageUrl = `${baseUrl}${imageUrl}`
-        console.log(`[${requestId}] 🔗 Converted relative URL to absolute: ${imageUrl}`)
-      } else if (imageUrl.startsWith('data:')) {
-        // Data URL - WhatsApp doesn't support data URLs directly
-        // We need to upload the image first or use a different approach
-        console.warn(`[${requestId}] ⚠️ Data URL detected. WhatsApp requires absolute URLs.`)
-        console.warn(`[${requestId}] ⚠️ Consider uploading image to a storage service (S3, Cloudinary, etc.)`)
-        // For now, we'll send as text message with link
-        requestBody.type = 'text'
-        requestBody.text = {
-          preview_url: true,
-          body: `${messageText}\n\n[Image preview not available - please visit the link]`,
-        }
-      } else {
-        // Already absolute URL
-        console.log(`[${requestId}] ✅ Using absolute URL: ${imageUrl.substring(0, 100)}...`)
-      }
-      
-      // Only set image if we have a valid absolute URL
-      if (!imageUrl.startsWith('data:')) {
-        requestBody.type = 'image'
-        requestBody.image = {
-          link: imageUrl,
-          caption: messageText,
-        }
+      requestBody.type = 'image'
+      requestBody.image = {
+        link: imageUrl,
+        caption: messageText.substring(0, 1024), // WhatsApp caption limit is 1024 characters
       }
     } else {
       console.log(`[${requestId}] 📝 Preparing text message...`)
-      // Send as text message
+      // Send as text message with link preview
       requestBody.type = 'text'
       requestBody.text = {
-        preview_url: false, // Set to true if you want link previews
+        preview_url: true, // Enable link preview
         body: messageText,
       }
     }
@@ -221,7 +222,8 @@ export async function sendWhatsAppInvite(
     })
 
     // Make API request to SendZen
-    const apiEndpoint = `${apiUrl}/v1/messages`
+    // SendZen API endpoint format: https://api.sendzen.io/v1/{phone_number_id}/messages
+    const apiEndpoint = `${apiUrl}/v1/${phoneNumberId}/messages`
     console.log(`[${requestId}] 🌐 Making API request to: ${apiEndpoint}`)
     console.log(`[${requestId}] 📤 Request details:`, {
       method: 'POST',
@@ -230,6 +232,7 @@ export async function sendWhatsAppInvite(
         'Authorization': `Bearer ${apiKey.substring(0, 10)}...`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(requestBody, null, 2),
       bodySize: JSON.stringify(requestBody).length
     })
 
@@ -290,6 +293,28 @@ export async function sendWhatsAppInvite(
                            responseData?.message || 
                            responseData?.error ||
                            'Invalid request. Please check phone number format.'
+        
+        // Check for specific WhatsApp Business API errors
+        const errorCode = responseData?.error?.code || responseData?.error?.subcode
+        if (errorCode === 131047 || errorMessage.includes('cannot be delivered')) {
+          return {
+            success: false,
+            error: 'Message cannot be delivered. The recipient may not have opted in to receive messages, or you need to use a message template for first-time contacts. Please ensure the recipient has messaged your WhatsApp Business number first, or set up message templates in WhatsApp Business Manager.',
+          }
+        }
+        
+        return {
+          success: false,
+          error: errorMessage,
+        }
+      }
+
+      // Handle 403 - Forbidden (common for WhatsApp Business API)
+      if (response.status === 403) {
+        const errorMessage = responseData?.error?.message || 
+                           responseData?.message || 
+                           'Access forbidden. Check API permissions and phone number configuration.'
+        console.error(`[${requestId}] ❌ Forbidden:`, errorMessage)
         return {
           success: false,
           error: errorMessage,
@@ -302,6 +327,7 @@ export async function sendWhatsAppInvite(
                          `Failed to send WhatsApp message: ${response.statusText}`
       
       console.error(`[${requestId}] ❌ API Error (${response.status}):`, errorMessage)
+      console.error(`[${requestId}] Full error response:`, JSON.stringify(responseData, null, 2))
       return {
         success: false,
         error: errorMessage,
