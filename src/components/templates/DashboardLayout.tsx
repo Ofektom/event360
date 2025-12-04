@@ -8,9 +8,10 @@ import { usePathname } from 'next/navigation'
 
 interface DashboardLayoutProps {
   children: ReactNode
+  eventId?: string | null // Optional eventId for event-specific sidebar links
 }
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, eventId: propEventId }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 1024
@@ -93,6 +94,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           isOpen={sidebarOpen} 
           onClose={handleTabClick}
           menuType={activeMenuType}
+          eventId={propEventId || pathname?.match(/\/events\/([^/]+)/)?.[1] || null}
         />
       )}
 

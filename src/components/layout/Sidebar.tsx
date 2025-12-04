@@ -9,6 +9,7 @@ interface SidebarProps {
   isOpen: boolean
   onClose: () => void
   menuType?: 'events' | 'invitations' | 'order-of-events' | 'gallery' | 'reels'
+  eventId?: string | null // Optional eventId for event-specific links
 }
 
 interface MenuItem {
@@ -145,14 +146,41 @@ const menuConfigs: Record<string, MenuItem[]> = {
   ],
 }
 
-export function Sidebar({ isOpen, onClose, menuType = 'events' }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, menuType = 'events', eventId }: SidebarProps) {
   const pathname = usePathname()
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
   }
 
-  const menuItems = menuConfigs[menuType] || menuConfigs.events
+  // Extract eventId from pathname if not provided (for /events/[eventId]/... routes)
+  const extractedEventId = eventId || (pathname?.match(/\/events\/([^/]+)/)?.[1] || null)
+
+  // Get base menu items
+  let menuItems = menuConfigs[menuType] || menuConfigs.events
+
+  // For invitations menu, "Design Invitation" and "Share Invitation" always go to event selection pages
+  // They will then redirect to the appropriate event-specific page after event selection
+  if (menuType === 'invitations') {
+    menuItems = menuItems.map((item) => {
+      // "Design Invitation" goes to event selection page, which then shows templates for selected event
+      if (item.label === 'Design Invitation') {
+        return {
+          ...item,
+          href: '/invitations/design',
+        }
+      }
+      // "Share Invitation" goes to event selection page, which then redirects to send-invitations for selected event
+      if (item.label === 'Share Invitation') {
+        return {
+          ...item,
+          href: '/invitations/share',
+        }
+      }
+      // Keep other items as-is
+      return item
+    })
+  }
 
   // Get the title based on menu type
   const getTitle = () => {

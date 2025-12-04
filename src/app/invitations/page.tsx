@@ -90,9 +90,12 @@ export default function InvitationsPage() {
     ? eventGroups.filter((group) => group.event.id === selectedEvent)
     : eventGroups
 
+  // Get the first eventId for sidebar links (use selected event if available, otherwise first event)
+  const firstEventId = selectedEvent || (eventGroups.length > 0 ? eventGroups[0].event.id : null)
+
   if (status === 'loading' || loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout eventId={firstEventId}>
         <div className="flex items-center justify-center min-h-[400px]">
           <LoadingSpinner />
         </div>
@@ -105,7 +108,7 @@ export default function InvitationsPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout eventId={firstEventId}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
