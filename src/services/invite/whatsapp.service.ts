@@ -102,12 +102,17 @@ export async function sendWhatsAppInvite(
     // Check if SendZen is configured
     const apiKey = process.env.SENDZEN_API_KEY
     const apiUrl = process.env.SENDZEN_API_URL || 'https://api.sendzen.io'
-    const phoneNumberId = process.env.SENDZEN_PHONE_NUMBER_ID
+    // SendZen 'from' field can be either:
+    // 1. The actual phone number in E.164 format (e.g., +1234567890) - preferred
+    // 2. A phone number ID (if SendZen supports it)
+    const fromPhoneNumber = process.env.SENDZEN_PHONE_NUMBER || process.env.SENDZEN_PHONE_NUMBER_ID
+    const phoneNumberId = process.env.SENDZEN_PHONE_NUMBER_ID // Keep for backward compatibility
 
     console.log(`[${requestId}] 🔧 Configuration check:`)
     console.log(`[${requestId}]   - API Key: ${apiKey ? `✅ Present (${apiKey.substring(0, 10)}...)` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - API URL: ${apiUrl}`)
-    console.log(`[${requestId}]   - Phone Number ID: ${phoneNumberId ? `✅ ${phoneNumberId}` : '❌ MISSING'}`)
+    console.log(`[${requestId}]   - From Phone Number: ${fromPhoneNumber ? `✅ ${fromPhoneNumber}` : '❌ MISSING'}`)
+    console.log(`[${requestId}]   - Phone Number ID (legacy): ${phoneNumberId ? `✅ ${phoneNumberId}` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - NODE_ENV: ${process.env.NODE_ENV}`)
 
     // Development mode fallback
@@ -136,11 +141,24 @@ export async function sendWhatsAppInvite(
       }
     }
 
-    if (!phoneNumberId) {
-      console.error(`[${requestId}] ❌ Phone Number ID not configured`)
+    if (!fromPhoneNumber) {
+      console.error(`[${requestId}] ❌ Phone Number not configured`)
       return {
         success: false,
-        error: 'WhatsApp phone number not configured. Please set SENDZEN_PHONE_NUMBER_ID in environment variables.',
+        error: 'WhatsApp phone number not configured. Please set SENDZEN_PHONE_NUMBER (E.164 format, e.g., +1234567890) or SENDZEN_PHONE_NUMBER_ID in environment variables.',
+      }
+    }
+
+    // Ensure the 'from' phone number is in E.164 format
+    let formattedFrom: string
+    try {
+      formattedFrom = formatPhoneNumber(fromPhoneNumber)
+      console.log(`[${requestId}] ✅ Formatted 'from' number: "${fromPhoneNumber}" → "${formattedFrom}"`)
+    } catch (formatError: any) {
+      console.error(`[${requestId}] ❌ 'From' phone number formatting error:`, formatError.message)
+      return {
+        success: false,
+        error: `Invalid 'from' phone number format: ${formatError.message}. Please ensure SENDZEN_PHONE_NUMBER is in E.164 format (e.g., +1234567890).`,
       }
     }
 
@@ -187,9 +205,10 @@ export async function sendWhatsAppInvite(
     // Prepare request body based on SendZen API format
     // SendZen API format: https://www.sendzen.io/docs
     // Endpoint: POST /v1/messages
-    // Format: { "from": "phone_number_id", "to": "recipient", "type": "text|image", "text": {...} | "image": {...} }
+    // Format: { "from": "phone_number", "to": "recipient", "type": "text|image", "text": {...} | "image": {...} }
+    // Note: 'from' should be the actual phone number in E.164 format (e.g., +1234567890)
     const requestBody: any = {
-      from: phoneNumberId, // SendZen uses "from" field for phone number ID
+      from: formattedFrom, // SendZen 'from' field should be the phone number in E.164 format
       to: formattedTo,
     }
 
@@ -302,6 +321,14 @@ export async function sendWhatsAppInvite(
           return {
             success: false,
             error: 'Message cannot be delivered. The recipient may not have opted in to receive messages, or you need to use a message template for first-time contacts. Please ensure the recipient has messaged your WhatsApp Business number first, or set up message templates in WhatsApp Business Manager.',
+          }
+        }
+        
+        // Handle "Invalid 'From' Phone Number" error specifically
+        if (errorMessage.includes('Invalid') && errorMessage.includes('From') && errorMessage.includes('Phone')) {
+          return {
+            success: false,
+            error: `Invalid 'From' Phone Number: ${errorMessage}. Please ensure SENDZEN_PHONE_NUMBER is set to your actual WhatsApp Business phone number in E.164 format (e.g., +1234567890). The number must be registered and verified in your SendZen account. Full error: ${JSON.stringify(responseData)}`,
           }
         }
         
