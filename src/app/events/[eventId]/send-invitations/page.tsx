@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
@@ -43,6 +43,7 @@ const CHANNELS = [
 export default function SendInvitationsPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session, status } = useSession()
   const eventId = params.eventId as string
 
@@ -114,12 +115,18 @@ export default function SendInvitationsPage() {
       setEvent(eventData)
       setDesigns(designsData)
 
-      // Set default design if available
-      const defaultDesign = designsData.find((d: InvitationDesign) => d.isDefault)
-      if (defaultDesign) {
-        setSelectedDesign(defaultDesign.id)
-      } else if (designsData.length > 0) {
-        setSelectedDesign(designsData[0].id)
+      // Check for designId in URL query params first
+      const designIdFromUrl = searchParams.get('designId')
+      if (designIdFromUrl && designsData.find((d: InvitationDesign) => d.id === designIdFromUrl)) {
+        setSelectedDesign(designIdFromUrl)
+      } else {
+        // Set default design if available
+        const defaultDesign = designsData.find((d: InvitationDesign) => d.isDefault)
+        if (defaultDesign) {
+          setSelectedDesign(defaultDesign.id)
+        } else if (designsData.length > 0) {
+          setSelectedDesign(designsData[0].id)
+        }
       }
 
       // Check if user has Facebook account linked
@@ -483,7 +490,15 @@ export default function SendInvitationsPage() {
                     <img
                       src={design.imageUrl || design.customImage || ''}
                       alt={design.name || 'Invitation'}
-                      className="w-full h-32 object-cover rounded mb-2"
+                      className="w-full h-32 object-contain rounded mb-2 bg-white"
+                      onError={(e) => {
+                        console.error('Failed to load design image:', design.imageUrl || design.customImage)
+                        e.currentTarget.style.display = 'none'
+                        const parent = e.currentTarget.parentElement
+                        if (parent) {
+                          parent.innerHTML = '<div class="w-full h-32 bg-gray-100 rounded mb-2 flex items-center justify-center"><span class="text-gray-400">No Preview</span></div>'
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-full h-32 bg-gray-100 rounded mb-2 flex items-center justify-center">

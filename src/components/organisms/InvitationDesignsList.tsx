@@ -60,6 +60,15 @@ export function InvitationDesignsList({
       }
       const data = await response.json()
       setDesigns(data)
+      
+      // Log image URLs for debugging
+      data.forEach((design: InvitationDesign) => {
+        if (design.imageUrl || design.customImage) {
+          console.log(`🖼️ Design "${design.name}" has image:`, design.imageUrl || design.customImage)
+        } else {
+          console.warn(`⚠️ Design "${design.name}" has NO image`)
+        }
+      })
     } catch (error) {
       console.error('Error fetching designs:', error)
     } finally {
@@ -97,6 +106,31 @@ export function InvitationDesignsList({
     } finally {
       setDeletingId(null)
     }
+  }
+
+  const handleShareDesign = (design: InvitationDesign) => {
+    // Get the event ID from the current URL or pass it as a prop
+    const eventId = window.location.pathname.split('/')[2]
+    const shareUrl = `${window.location.origin}/events/${eventId}/send-invitations?designId=${design.id}`
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      alert('Share link copied to clipboard!')
+    }).catch(() => {
+      // Fallback: show share dialog
+      if (navigator.share) {
+        navigator.share({
+          title: design.name || 'Invitation Design',
+          text: `Check out this invitation design: ${design.name || 'Untitled Design'}`,
+          url: shareUrl,
+        }).catch(() => {
+          // User cancelled or error
+        })
+      } else {
+        // Fallback: show URL in prompt
+        prompt('Share this design:', shareUrl)
+      }
+    })
   }
 
   if (loading) {
@@ -142,37 +176,73 @@ export function InvitationDesignsList({
         {designs.map((design) => (
           <Card
             key={design.id}
-            className="p-4 hover:shadow-lg transition-shadow cursor-pointer relative group"
-            onClick={() => onEditDesign(design.id)}
+            className="p-4 hover:shadow-lg transition-shadow relative group"
           >
-            {/* Delete button - appears on hover */}
-            <button
-              onClick={(e) => handleDelete(design.id, e)}
-              disabled={deletingId === design.id}
-              className="absolute top-2 right-2 z-10 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
-              title="Delete design"
-            >
-              {deletingId === design.id ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
+            {/* Action buttons - appear on hover */}
+            <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Edit button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEditDesign(design.id)
+                }}
+                className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors"
+                title="Edit design"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
-              )}
-            </button>
+              </button>
+              
+              {/* Share button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleShareDesign(design)
+                }}
+                className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                title="Share design"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </button>
+              
+              {/* Delete button */}
+              <button
+                onClick={(e) => handleDelete(design.id, e)}
+                disabled={deletingId === design.id}
+                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 disabled:opacity-50 transition-colors"
+                title="Delete design"
+              >
+                {deletingId === design.id ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </button>
+            </div>
 
-            <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center">
+            {/* Preview Image - Show full image with proper sizing */}
+            <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
               {design.imageUrl || design.customImage ? (
                 <img
                   src={design.imageUrl || design.customImage || ''}
                   alt={design.name || 'Invitation'}
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-contain rounded-lg"
+                  onError={(e) => {
+                    console.error('Failed to load design image:', design.imageUrl || design.customImage)
+                    // Fallback to placeholder
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
               ) : design.template?.preview ? (
                 <img
                   src={design.template.preview}
                   alt={design.template.name}
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-contain rounded-lg"
                 />
               ) : (
                 <div className="text-center text-gray-400">

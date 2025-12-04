@@ -209,8 +209,8 @@ export function InvitationPreview({
           position: 'absolute',
           left: '-9999px',
           top: 0,
-          width: '400px',
-          height: '500px',
+          width: designData.orientation === 'landscape' ? '1200px' : '800px',
+          height: designData.orientation === 'landscape' ? '800px' : '1200px',
           opacity: 1, // Keep visible for html2canvas
           pointerEvents: 'none',
           zIndex: -1,
