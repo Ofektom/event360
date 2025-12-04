@@ -107,12 +107,19 @@ export async function sendWhatsAppInvite(
     // 2. A phone number ID (if SendZen supports it)
     const fromPhoneNumber = process.env.SENDZEN_PHONE_NUMBER || process.env.SENDZEN_PHONE_NUMBER_ID
     const phoneNumberId = process.env.SENDZEN_PHONE_NUMBER_ID // Keep for backward compatibility
+    // Template configuration
+    const templateName = process.env.SENDZEN_TEMPLATE_NAME || 'event_invitation'
+    const templateLanguage = process.env.SENDZEN_TEMPLATE_LANGUAGE || 'en_US'
+    const useTemplate = process.env.SENDZEN_USE_TEMPLATE !== 'false' // Default to true
 
     console.log(`[${requestId}] 🔧 Configuration check:`)
     console.log(`[${requestId}]   - API Key: ${apiKey ? `✅ Present (${apiKey.substring(0, 10)}...)` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - API URL: ${apiUrl}`)
     console.log(`[${requestId}]   - From Phone Number: ${fromPhoneNumber ? `✅ ${fromPhoneNumber}` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - Phone Number ID (legacy): ${phoneNumberId ? `✅ ${phoneNumberId}` : '❌ MISSING'}`)
+    console.log(`[${requestId}]   - Template Name: ${templateName}`)
+    console.log(`[${requestId}]   - Template Language: ${templateLanguage}`)
+    console.log(`[${requestId}]   - Use Template: ${useTemplate ? '✅ Yes' : '❌ No'}`)
     console.log(`[${requestId}]   - NODE_ENV: ${process.env.NODE_ENV}`)
 
     // Development mode fallback
@@ -205,28 +212,87 @@ export async function sendWhatsAppInvite(
     // Prepare request body based on SendZen API format
     // SendZen API format: https://www.sendzen.io/docs
     // Endpoint: POST /v1/messages
-    // Format: { "from": "phone_number", "to": "recipient", "type": "text|image", "text": {...} | "image": {...} }
-    // Note: 'from' should be the actual phone number in E.164 format (e.g., +1234567890)
-    const requestBody: any = {
+    // We'll try template message first (for new contacts), then fall back to regular message
+    let requestBody: any = {
       from: formattedFrom, // SendZen 'from' field should be the phone number in E.164 format
       to: formattedTo,
     }
 
-    // If we have a valid image URL, send as media message with caption
-    if (imageUrl) {
-      console.log(`[${requestId}] 🖼️  Preparing image message...`)
-      requestBody.type = 'image'
-      requestBody.image = {
-        link: imageUrl,
-        caption: messageText.substring(0, 1024), // WhatsApp caption limit is 1024 characters
+    // Try template message first if enabled
+    if (useTemplate && templateName) {
+      console.log(`[${requestId}] 📋 Preparing template message: ${templateName}`)
+      
+      requestBody.type = 'template'
+      requestBody.template = {
+        name: templateName,
+        language: {
+          code: templateLanguage,
+        },
+        components: [],
       }
+
+      // Add header component if we have an image
+      if (imageUrl) {
+        console.log(`[${requestId}] 🖼️  Adding image header to template...`)
+        requestBody.template.components.push({
+          type: 'header',
+          parameters: [
+            {
+              type: 'image',
+              image: {
+                link: imageUrl,
+              },
+            },
+          ],
+        })
+      }
+
+      // Add body component with variables
+      // Template variables: {{1}} = eventTitle, {{2}} = inviteeName, {{3}} = shareLink
+      requestBody.template.components.push({
+        type: 'body',
+        parameters: [
+          {
+            type: 'text',
+            text: eventTitle,
+          },
+          {
+            type: 'text',
+            text: inviteeName,
+          },
+          {
+            type: 'text',
+            text: shareLink,
+          },
+        ],
+      })
+
+      console.log(`[${requestId}] 📋 Template message prepared with variables:`, {
+        '{{1}}': eventTitle,
+        '{{2}}': inviteeName,
+        '{{3}}': shareLink,
+        hasImageHeader: !!imageUrl,
+      })
     } else {
-      console.log(`[${requestId}] 📝 Preparing text message...`)
-      // Send as text message with link preview
-      requestBody.type = 'text'
-      requestBody.text = {
-        preview_url: true, // Enable link preview
-        body: messageText,
+      // Fall back to regular message (works if user messaged you within 24 hours)
+      console.log(`[${requestId}] 📝 Preparing regular message (template disabled or not configured)...`)
+      
+      // If we have a valid image URL, send as media message with caption
+      if (imageUrl) {
+        console.log(`[${requestId}] 🖼️  Preparing image message...`)
+        requestBody.type = 'image'
+        requestBody.image = {
+          link: imageUrl,
+          caption: messageText.substring(0, 1024), // WhatsApp caption limit is 1024 characters
+        }
+      } else {
+        console.log(`[${requestId}] 📝 Preparing text message...`)
+        // Send as text message with link preview
+        requestBody.type = 'text'
+        requestBody.text = {
+          preview_url: true, // Enable link preview
+          body: messageText,
+        }
       }
     }
 
@@ -235,8 +301,11 @@ export async function sendWhatsAppInvite(
       to: requestBody.to,
       hasImage: !!requestBody.image,
       hasText: !!requestBody.text,
-      imageLink: requestBody.image?.link?.substring(0, 100),
-      textLength: requestBody.text?.body?.length
+      hasTemplate: !!requestBody.template,
+      templateName: requestBody.template?.name,
+      imageLink: requestBody.image?.link?.substring(0, 100) || requestBody.template?.components?.[0]?.parameters?.[0]?.image?.link?.substring(0, 100),
+      textLength: requestBody.text?.body?.length,
+      templateVariables: requestBody.template?.components?.find((c: any) => c.type === 'body')?.parameters?.map((p: any) => p.text?.substring(0, 30)),
     })
 
     // Make API request to SendZen
@@ -317,10 +386,58 @@ export async function sendWhatsAppInvite(
         
         // Check for specific WhatsApp Business API errors
         const errorCode = responseData?.error?.code || responseData?.error?.subcode
+        
+        // If template message fails, try regular message as fallback
+        if (useTemplate && requestBody.type === 'template' && (errorCode === 131047 || errorMessage.includes('cannot be delivered') || errorMessage.includes('template') || errorMessage.includes('not found') || errorMessage.includes('not approved'))) {
+          console.log(`[${requestId}] ⚠️ Template message failed, trying regular message as fallback...`)
+          console.log(`[${requestId}] ⚠️ Error: ${errorMessage}`)
+          
+          // Retry with regular message
+          const fallbackBody: any = {
+            from: formattedFrom,
+            to: formattedTo,
+          }
+
+          if (imageUrl) {
+            fallbackBody.type = 'image'
+            fallbackBody.image = {
+              link: imageUrl,
+              caption: messageText.substring(0, 1024),
+            }
+          } else {
+            fallbackBody.type = 'text'
+            fallbackBody.text = {
+              preview_url: true,
+              body: messageText,
+            }
+          }
+
+          console.log(`[${requestId}] 🔄 Retrying with regular message...`)
+          const retryResponse = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(fallbackBody),
+          })
+
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json()
+            console.log(`[${requestId}] ✅ Fallback regular message sent successfully`)
+            return { success: true }
+          } else {
+            const retryErrorData = await retryResponse.json().catch(() => ({}))
+            const retryErrorMessage = retryErrorData?.error?.message || retryErrorData?.message || 'Failed to send message'
+            console.error(`[${requestId}] ❌ Fallback regular message also failed:`, retryErrorMessage)
+            // Continue to return the original error
+          }
+        }
+        
         if (errorCode === 131047 || errorMessage.includes('cannot be delivered')) {
           return {
             success: false,
-            error: 'Message cannot be delivered. The recipient may not have opted in to receive messages, or you need to use a message template for first-time contacts. Please ensure the recipient has messaged your WhatsApp Business number first, or set up message templates in WhatsApp Business Manager.',
+            error: 'Message cannot be delivered at this time. This is a WhatsApp Business API limitation. Solutions: (1) Have the recipient message your WhatsApp Business number first (then you can reply within 24 hours), or (2) Ensure your message template is approved and configured correctly. See WHATSAPP_MESSAGING_LIMITATIONS.md for detailed instructions.',
           }
         }
         
