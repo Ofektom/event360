@@ -41,6 +41,16 @@ export function InvitationDesignsList({
     fetchDesigns()
   }, [eventId])
 
+  // Refresh designs when window regains focus (user returns from editor)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🔄 Refreshing designs list...')
+      fetchDesigns()
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [eventId])
+
   const fetchDesigns = async () => {
     try {
       setLoading(true)

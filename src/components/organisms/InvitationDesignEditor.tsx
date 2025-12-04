@@ -704,9 +704,14 @@ export function InvitationDesignEditor({
       // We need to capture the container that includes the template AND all overlays (shapes, text boxes)
       if (previewContainerRef.current) {
         try {
-          console.log("📸 Generating invitation image from preview container...");
+          console.log("📸 [IMAGE GEN] Starting image generation...");
+          console.log("📸 [IMAGE GEN] Preview container ref:", !!previewContainerRef.current);
+          console.log("📸 [IMAGE GEN] Preview element ref:", !!previewElementRef.current);
+          console.log("📸 [IMAGE GEN] Design has shapes:", shapes.length);
+          console.log("📸 [IMAGE GEN] Design has text boxes:", textBoxes.length);
           
           // Wait for DOM to be fully ready and any animations to complete
+          console.log("📸 [IMAGE GEN] Waiting for DOM to be ready...");
           await new Promise(resolve => setTimeout(resolve, 2000));
 
           // The hidden preview element now includes everything (template, shapes, text boxes)
@@ -717,10 +722,11 @@ export function InvitationDesignEditor({
           // Prefer the hidden preview element (now includes all content)
           if (previewElementRef.current) {
             previewElement = previewElementRef.current;
-            console.log("📸 Using hidden preview element (includes template, shapes, and text boxes):", {
+            console.log("📸 [IMAGE GEN] Using hidden preview element (includes template, shapes, and text boxes):", {
               width: previewElement.offsetWidth,
               height: previewElement.offsetHeight,
-              hasContent: previewElement.innerHTML.length > 100
+              hasContent: previewElement.innerHTML.length > 100,
+              innerHTMLLength: previewElement.innerHTML.length
             });
           } else {
             // Fallback: try to capture the visible preview container with overlays
@@ -754,13 +760,13 @@ export function InvitationDesignEditor({
             });
 
             if (dataUrl && dataUrl.length > 100) {
-              console.log("📸 Image generated successfully, size:", dataUrl.length, "bytes");
+              console.log("📸 [IMAGE GEN] Image generated successfully, size:", dataUrl.length, "bytes");
               
               // Convert data URL to blob
               const response = await fetch(dataUrl);
               const blob = await response.blob();
               
-              console.log("📸 Blob created, size:", blob.size, "bytes");
+              console.log("📸 [IMAGE GEN] Blob created, size:", blob.size, "bytes");
               
               // Create a file from the blob
               const file = new File([blob], `invitation-${Date.now()}.png`, {
@@ -773,7 +779,7 @@ export function InvitationDesignEditor({
               formData.append('eventId', eventId);
               formData.append('type', 'invitation');
 
-              console.log("📤 Uploading image to server...");
+              console.log("📤 [IMAGE GEN] Uploading image to server...");
               const uploadResponse = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData,
@@ -782,32 +788,33 @@ export function InvitationDesignEditor({
               if (uploadResponse.ok) {
                 const uploadData = await uploadResponse.json();
                 imageUrl = uploadData.url; // Update with new image URL
-                console.log("✅ Image uploaded successfully:", imageUrl);
+                console.log("✅ [IMAGE GEN] Image uploaded successfully:", imageUrl);
               } else {
                 const errorData = await uploadResponse.json().catch(() => ({}));
-                console.warn("⚠️ Failed to upload image:", errorData.error || uploadResponse.statusText);
-                console.log("📸 Preserving existing image URL:", imageUrl);
+                console.warn("⚠️ [IMAGE GEN] Failed to upload image:", errorData.error || uploadResponse.statusText);
+                console.log("📸 [IMAGE GEN] Preserving existing image URL:", imageUrl);
               }
             } else {
-              console.warn("⚠️ Generated image data URL is too small or invalid");
-              console.log("📸 Preserving existing image URL:", imageUrl);
+              console.warn("⚠️ [IMAGE GEN] Generated image data URL is too small or invalid");
+              console.log("📸 [IMAGE GEN] Preserving existing image URL:", imageUrl);
             }
           } else {
-            console.warn("⚠️ Preview element not ready or has no dimensions");
-            console.log("📸 Preserving existing image URL:", imageUrl);
+            console.warn("⚠️ [IMAGE GEN] Preview element not ready or has no dimensions");
+            console.log("📸 [IMAGE GEN] Preserving existing image URL:", imageUrl);
           }
         } catch (imageError) {
-          console.error("❌ Error generating/uploading image:", imageError);
-          console.error("❌ Error details:", {
+          console.error("❌ [IMAGE GEN] Error generating/uploading image:", imageError);
+          console.error("❌ [IMAGE GEN] Error details:", {
             name: imageError instanceof Error ? imageError.name : 'Unknown',
             message: imageError instanceof Error ? imageError.message : String(imageError),
+            stack: imageError instanceof Error ? imageError.stack : undefined
           });
-          console.log("📸 Preserving existing image URL due to error:", imageUrl);
+          console.log("📸 [IMAGE GEN] Preserving existing image URL due to error:", imageUrl);
         }
-        } else {
-          console.warn("⚠️ No preview container ref available for image generation");
-          console.log("📸 Preserving existing image URL:", imageUrl);
-        }
+      } else {
+        console.warn("⚠️ [IMAGE GEN] No preview container ref available for image generation");
+        console.log("📸 [IMAGE GEN] Preserving existing image URL:", imageUrl);
+      }
 
       const url = designId
         ? `/api/invitations/designs/${designId}`
@@ -843,7 +850,17 @@ export function InvitationDesignEditor({
       }
 
       const savedDesign = await response.json();
-      console.log("✅ Design saved:", savedDesign);
+      console.log("✅ Design saved:", {
+        id: savedDesign.id,
+        imageUrl: savedDesign.imageUrl,
+        customImage: savedDesign.customImage,
+        hasImage: !!(savedDesign.imageUrl || savedDesign.customImage)
+      });
+
+      // Verify image was saved
+      if (!savedDesign.imageUrl && !savedDesign.customImage && imageUrl) {
+        console.warn("⚠️ Image URL was generated but not saved to design:", imageUrl);
+      }
 
       onSave();
     } catch (error) {

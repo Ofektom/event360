@@ -169,9 +169,14 @@ export default function InvitationsPage() {
             templateId={selectedTemplate === 'blank' ? undefined : (selectedTemplate || undefined)}
             designId={selectedDesign || undefined}
             onSave={() => {
-              setViewMode('list')
-              setSelectedTemplate(null)
-              setSelectedDesign(null)
+              // Small delay to ensure save completes, then refresh
+              setTimeout(() => {
+                setViewMode('list')
+                setSelectedTemplate(null)
+                setSelectedDesign(null)
+                // Force a page refresh to show updated images
+                window.location.reload()
+              }, 1000)
             }}
             onCancel={() => {
               if (selectedDesign) {
@@ -200,6 +205,7 @@ export default function InvitationsPage() {
 
         {viewMode === 'list' && (
           <InvitationDesignsList
+            key={viewMode} // Force re-render when switching to list view
             eventId={eventId}
             onEditDesign={(designId) => {
               setSelectedDesign(designId)
