@@ -66,19 +66,60 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Upload to storage service (S3, Cloudinary, etc.)
-    // For now, we'll return a placeholder URL
-    // In production, you would:
-    // 1. Upload the file to your storage service
-    // 2. Get the public URL
-    // 3. Generate thumbnail for videos
-    // 4. Return the URLs
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    
+    // Generate unique filename
+    const timestamp = Date.now()
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const filename = `${timestamp}-${sanitizedName}`
+    
+    let fileUrl: string
 
-    // Placeholder implementation
-    const fileUrl = `/uploads/${eventId}/${Date.now()}-${file.name}`
+    // For Vercel, we can't write to filesystem, so we'll use base64 data URLs
+    // In production, you should use Vercel Blob Storage, S3, or Cloudinary
+    const isVercel = process.env.VERCEL === '1'
+    
+    if (isVercel) {
+      // On Vercel: Convert to base64 data URL
+      const base64 = buffer.toString('base64')
+      fileUrl = `data:${file.type};base64,${base64}`
+      console.log(`✅ [VERCEL] Using base64 data URL (size: ${base64.length} chars)`)
+    } else {
+      // Local dev: Try to save to filesystem
+      try {
+        const fs = await import('fs/promises')
+        const path = await import('path')
+        
+        // Create uploads directory if it doesn't exist
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', eventId)
+        try {
+          await fs.mkdir(uploadsDir, { recursive: true })
+        } catch (error) {
+          // Directory might already exist, that's fine
+        }
+
+        const filePath = path.join(uploadsDir, filename)
+        await fs.writeFile(filePath, buffer)
+
+        // Generate public URL - files in public folder are served directly
+        fileUrl = `/uploads/${eventId}/${filename}`
+        
+        console.log(`✅ [LOCAL] File saved to filesystem: ${filePath}`)
+        console.log(`✅ [LOCAL] Public URL: ${fileUrl}`)
+      } catch (fsError: any) {
+        // Fallback to base64 if filesystem write fails
+        console.warn('⚠️ Filesystem write failed, using base64:', fsError.message)
+        const base64 = buffer.toString('base64')
+        fileUrl = `data:${file.type};base64,${base64}`
+        console.log(`✅ Using base64 data URL (size: ${base64.length} chars)`)
+      }
+    }
+
     const thumbnailUrl = file.type.startsWith('image/') 
       ? fileUrl 
-      : `/thumbnails/${eventId}/${Date.now()}-${file.name}.jpg`
+      : `/thumbnails/${eventId}/${filename}.jpg`
 
     return NextResponse.json({
       url: fileUrl,

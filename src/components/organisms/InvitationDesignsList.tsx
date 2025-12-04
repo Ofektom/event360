@@ -226,16 +226,33 @@ export function InvitationDesignsList({
             </div>
 
             {/* Preview Image - Show full image with proper sizing */}
-            <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+            <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden bg-white">
               {design.imageUrl || design.customImage ? (
                 <img
                   src={design.imageUrl || design.customImage || ''}
                   alt={design.name || 'Invitation'}
                   className="w-full h-full object-contain rounded-lg"
+                  loading="lazy"
                   onError={(e) => {
-                    console.error('Failed to load design image:', design.imageUrl || design.customImage)
-                    // Fallback to placeholder
-                    e.currentTarget.style.display = 'none'
+                    console.error('❌ Failed to load design image:', {
+                      imageUrl: design.imageUrl,
+                      customImage: design.customImage,
+                      designId: design.id,
+                      designName: design.name
+                    })
+                    // Show placeholder instead
+                    const parent = e.currentTarget.parentElement
+                    if (parent) {
+                      parent.innerHTML = `
+                        <div class="text-center text-gray-400 w-full h-full flex flex-col items-center justify-center">
+                          <div class="text-4xl mb-2">🎨</div>
+                          <p class="text-sm">Preview unavailable</p>
+                        </div>
+                      `
+                    }
+                  }}
+                  onLoad={() => {
+                    console.log('✅ Image loaded successfully:', design.imageUrl || design.customImage)
                   }}
                 />
               ) : design.template?.preview ? (

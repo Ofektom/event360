@@ -491,13 +491,21 @@ export default function SendInvitationsPage() {
                       src={design.imageUrl || design.customImage || ''}
                       alt={design.name || 'Invitation'}
                       className="w-full h-32 object-contain rounded mb-2 bg-white"
+                      loading="lazy"
                       onError={(e) => {
-                        console.error('Failed to load design image:', design.imageUrl || design.customImage)
+                        console.error('❌ Failed to load design image in send page:', {
+                          imageUrl: design.imageUrl,
+                          customImage: design.customImage,
+                          designId: design.id
+                        })
                         e.currentTarget.style.display = 'none'
                         const parent = e.currentTarget.parentElement
                         if (parent) {
                           parent.innerHTML = '<div class="w-full h-32 bg-gray-100 rounded mb-2 flex items-center justify-center"><span class="text-gray-400">No Preview</span></div>'
                         }
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Image loaded in send page:', design.imageUrl || design.customImage)
                       }}
                     />
                   ) : (

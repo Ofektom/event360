@@ -170,18 +170,31 @@ export async function POST(request: NextRequest) {
 
         // Find or create invitee
         console.log(`[${requestId}] [${contactId}] Searching for existing invitee...`)
-        let invitee = await prisma.invitee.findFirst({
+        
+        // Build OR conditions for finding invitee (filter out undefined values)
+        const orConditions: any[] = []
+        if (inviteChannel === 'EMAIL' && contact.contactInfo) {
+          orConditions.push({ email: contact.contactInfo })
+        }
+        if (['WHATSAPP', 'SMS'].includes(inviteChannel) && contact.contactInfo) {
+          orConditions.push({ phone: contact.contactInfo })
+        }
+        if (inviteChannel === 'WHATSAPP' && contact.contactInfo) {
+          orConditions.push({ whatsapp: contact.contactInfo })
+        }
+        if (inviteChannel === 'FACEBOOK_MESSENGER' && contact.contactInfo) {
+          orConditions.push({ messenger: contact.contactInfo })
+        }
+        if (inviteChannel === 'INSTAGRAM_DM' && contact.contactInfo) {
+          orConditions.push({ instagram: contact.contactInfo.replace('@', '') })
+        }
+        
+        let invitee = orConditions.length > 0 ? await prisma.invitee.findFirst({
           where: {
             eventId,
-            OR: [
-              { email: inviteChannel === 'EMAIL' ? contact.contactInfo : undefined },
-              { phone: ['WHATSAPP', 'SMS'].includes(inviteChannel) ? contact.contactInfo : undefined },
-              { whatsapp: inviteChannel === 'WHATSAPP' ? contact.contactInfo : undefined },
-              { messenger: inviteChannel === 'FACEBOOK_MESSENGER' ? contact.contactInfo : undefined },
-              { instagram: inviteChannel === 'INSTAGRAM_DM' ? contact.contactInfo : undefined },
-            ],
+            OR: orConditions,
           },
-        })
+        }) : null
 
         if (invitee) {
           console.log(`[${requestId}] [${contactId}] ✅ Found existing invitee: ${invitee.id}`)
@@ -282,22 +295,42 @@ export async function POST(request: NextRequest) {
 
         switch (inviteChannel) {
           case 'WHATSAPP':
+            // For WhatsApp, prefer invitee's whatsapp field, then phone, then contactInfo
+            const whatsappNumber = invitee.whatsapp || invitee.phone || contact.contactInfo
             console.log(`[${requestId}] [${contactId}] Calling sendWhatsAppInvite with:`, {
-              to: contact.contactInfo,
+              to: whatsappNumber,
               inviteeName: contact.name,
               eventTitle: event.title,
               hasImage: !!invitationImageUrl,
+              imageUrl: invitationImageUrl?.substring(0, 100),
               shareLink
             })
-            sendResult = await sendWhatsAppInvite({
-              to: contact.contactInfo,
-              inviteeName: contact.name,
-              eventTitle: event.title,
-              invitationImageUrl,
-              shareLink,
-              token,
-            })
-            console.log(`[${requestId}] [${contactId}] WhatsApp send result:`, sendResult)
+            
+            if (!whatsappNumber) {
+              console.error(`[${requestId}] [${contactId}] ❌ No WhatsApp number found for contact`)
+              sendResult = { 
+                success: false, 
+                error: 'No WhatsApp number found. Please ensure the contact has a phone number or WhatsApp ID.' 
+              }
+            } else {
+              try {
+                sendResult = await sendWhatsAppInvite({
+                  to: whatsappNumber,
+                  inviteeName: contact.name,
+                  eventTitle: event.title,
+                  invitationImageUrl,
+                  shareLink,
+                  token,
+                })
+                console.log(`[${requestId}] [${contactId}] WhatsApp send result:`, sendResult)
+              } catch (whatsappError: any) {
+                console.error(`[${requestId}] [${contactId}] ❌ WhatsApp send error:`, whatsappError)
+                sendResult = {
+                  success: false,
+                  error: whatsappError.message || 'Failed to send WhatsApp invitation'
+                }
+              }
+            }
             break
           case 'FACEBOOK_MESSENGER':
             sendResult = await sendMessengerInvite({
