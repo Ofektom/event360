@@ -6,6 +6,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { PostDetail } from '@/components/organisms/PostDetail'
 
+// This page uses getCurrentUser() which accesses headers, so it must be dynamic
+export const dynamic = 'force-dynamic'
+
 export default async function PostDetailPage({
   params,
 }: {

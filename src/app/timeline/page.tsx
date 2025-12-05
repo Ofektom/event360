@@ -6,6 +6,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TimelineFeed } from '@/components/organisms/TimelineFeed'
 
+// This page uses getCurrentUser() which accesses headers, so it must be dynamic
+export const dynamic = 'force-dynamic'
+
 export default async function TimelinePage() {
   const user = await getCurrentUser()
 

@@ -9,6 +9,9 @@ import { Card } from '@/components/atoms/Card'
 import { prisma } from '@/lib/prisma'
 import { getUserInvitedEvents } from '@/lib/invitee-linking'
 
+// This page uses getCurrentUser() which accesses headers, so it must be dynamic
+export const dynamic = 'force-dynamic'
+
 export default async function ProfilePage() {
   const sessionUser = await getCurrentUser()
 
