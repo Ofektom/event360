@@ -23,21 +23,45 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
   }
 
   // Determine active tab based on pathname
+  // Check for specific sections first (invitations, order-of-events, etc.) before checking events
+  // This ensures that invitation pages show the invitation tab even if they're under /events/[eventId]/invitations
   const getActiveTab = () => {
-    if (pathname?.startsWith('/timeline') || pathname?.startsWith('/dashboard/events') || pathname?.startsWith('/events/')) {
-      return 'events'
-    }
-    if (pathname?.startsWith('/invitations')) {
+    // Check for invitation routes first (including nested under /events/)
+    if (
+      pathname?.startsWith('/invitations') || 
+      pathname?.includes('/invitations') || 
+      pathname?.includes('/send-invitations')
+    ) {
       return 'invitations'
     }
-    if (pathname?.startsWith('/order-of-events')) {
+    // Check for order-of-events/ceremonies routes
+    if (
+      pathname?.startsWith('/order-of-events') || 
+      pathname?.includes('/ceremonies')
+    ) {
       return 'order-of-events'
     }
-    if (pathname?.startsWith('/gallery')) {
+    // Check for gallery routes
+    if (
+      pathname?.startsWith('/gallery') || 
+      pathname?.includes('/gallery')
+    ) {
       return 'gallery'
     }
-    if (pathname?.startsWith('/reels')) {
+    // Check for reels routes
+    if (
+      pathname?.startsWith('/reels') || 
+      pathname?.includes('/reels')
+    ) {
       return 'reels'
+    }
+    // Finally check for events routes (but not if they're invitation/ceremony/gallery/reels routes)
+    if (
+      pathname?.startsWith('/timeline') || 
+      pathname?.startsWith('/dashboard/events') || 
+      pathname?.startsWith('/events/')
+    ) {
+      return 'events'
     }
     return 'events' // Default
   }
