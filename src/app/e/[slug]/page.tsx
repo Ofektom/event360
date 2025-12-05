@@ -15,6 +15,9 @@ import { ThemeConfig, defaultTheme } from '@/types/theme.types'
 
 const eventService = new EventService()
 
+// This page uses getCurrentUser() which accesses headers, so it must be dynamic
+export const dynamic = 'force-dynamic'
+
 interface PublicEventPageProps {
   params: Promise<{ slug: string }>
 }

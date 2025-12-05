@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 
+// This page uses getCurrentUser() which accesses headers, so it must be dynamic
+export const dynamic = 'force-dynamic'
+
 export default async function Home() {
   const user = await getCurrentUser();
 
