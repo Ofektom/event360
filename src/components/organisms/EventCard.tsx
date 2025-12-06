@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { Card } from '@/components/atoms/Card'
+import { Button } from '@/components/atoms/Button'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -46,13 +48,28 @@ interface EventCardProps {
 
 export function EventCard({ event }: EventCardProps) {
   const eventUrl = event.event.slug ? `/e/${event.event.slug}` : `/events/${event.event.id}`
+  const liveStreamUrl = `/events/${event.event.id}/live`
   const displayMedia = event.media.slice(0, 6) // Show up to 6 media items in preview
   const remainingMediaCount = event.media.length - displayMedia.length
+  const [copied, setCopied] = useState(false)
+  const isLive = event.event.hasLiveStream && event.event.liveStreamUrl
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const fullUrl = `${window.location.origin}${liveStreamUrl}`
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch((err) => {
+      console.error('Failed to copy:', err)
+    })
+  }
 
   return (
-    <Link href={eventUrl}>
-      <Card className="p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-        {/* Event Header */}
+    <Card className="p-4 shadow-sm hover:shadow-md transition-shadow">
+      {/* Event Header */}
+      <Link href={eventUrl} className="block">
         <div className="flex items-start gap-3 mb-4">
           {/* Event Avatar/Icon */}
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -377,18 +394,72 @@ export function EventCard({ event }: EventCardProps) {
             )}
           </div>
         )}
+      </Link>
 
-        {/* View Event Link */}
-        <div className="pt-3 border-t border-gray-200">
-          <div className="flex items-center justify-center text-purple-600 hover:text-purple-700 font-medium text-sm">
-            View Event Details
-            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+      {/* Live Stream Section - Outside the main link */}
+      {isLive && (
+        <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-red-600 text-white px-3 py-1.5 rounded-full">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                <span className="text-sm font-semibold">LIVE</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Streaming now</p>
+                <p className="text-xs text-gray-600">Watch the live stream</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleCopyLink}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                {copied ? (
+                  <>
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy Link
+                  </>
+                )}
+              </Button>
+              <Link href={liveStreamUrl}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-xs"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Watch Live
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </Card>
-    </Link>
+      )}
+
+      {/* View Event Link */}
+      <div className="pt-3 border-t border-gray-200 mt-4">
+        <Link href={eventUrl} className="flex items-center justify-center text-purple-600 hover:text-purple-700 font-medium text-sm">
+          View Event Details
+          <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+      </div>
+    </Card>
   )
 }
 
