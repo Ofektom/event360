@@ -133,26 +133,29 @@ export function EventCard({ event }: EventCardProps) {
           </div>
         </div>
 
-        {/* Media Grid - Show all media in a grid */}
+        {/* Media Grid - Facebook-style layout with minimal gaps */}
         {event.media.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 rounded-lg overflow-hidden bg-gray-100" style={{ border: '1px solid #e5e7eb' }}>
             {displayMedia.length === 1 ? (
               // Single media item - show large
-              <div className="rounded-lg overflow-hidden bg-gray-100">
+              <div className="w-full">
                 {displayMedia[0].type === 'IMAGE' ? (
-                  <div className="relative w-full aspect-video">
+                  <div className="relative w-full" style={{ maxHeight: '500px' }}>
                     <Image
                       src={displayMedia[0].thumbnailUrl || displayMedia[0].url}
                       alt={displayMedia[0].caption || 'Event photo'}
-                      fill
-                      className="object-cover"
+                      width={800}
+                      height={600}
+                      className="w-full h-auto object-contain"
+                      style={{ maxHeight: '500px' }}
                     />
                   </div>
                 ) : (
                   <video
                     src={displayMedia[0].url}
                     controls
-                    className="w-full h-auto max-h-[400px]"
+                    className="w-full h-auto"
+                    style={{ maxHeight: '500px' }}
                     poster={displayMedia[0].thumbnailUrl || undefined}
                   >
                     Your browser does not support the video tag.
@@ -160,19 +163,17 @@ export function EventCard({ event }: EventCardProps) {
                 )}
               </div>
             ) : displayMedia.length === 2 ? (
-              // Two media items - side by side
-              <div className="grid grid-cols-2 gap-2">
+              // Two media items - side by side, no gap
+              <div className="grid grid-cols-2" style={{ gap: '1px' }}>
                 {displayMedia.map((item) => (
-                  <div key={item.id} className="rounded-lg overflow-hidden bg-gray-100 aspect-square">
+                  <div key={item.id} className="relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
                     {item.type === 'IMAGE' ? (
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={item.thumbnailUrl || item.url}
-                          alt={item.caption || 'Event photo'}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
+                      <Image
+                        src={item.thumbnailUrl || item.url}
+                        alt={item.caption || 'Event photo'}
+                        fill
+                        className="object-cover"
+                      />
                     ) : (
                       <video
                         src={item.url}
@@ -187,18 +188,16 @@ export function EventCard({ event }: EventCardProps) {
                 ))}
               </div>
             ) : displayMedia.length === 3 ? (
-              // Three media items - one large, two small
-              <div className="grid grid-cols-2 gap-2">
-                <div className="row-span-2 rounded-lg overflow-hidden bg-gray-100">
+              // Three media items - one large on left, two stacked on right (Facebook style)
+              <div className="grid grid-cols-2" style={{ gap: '1px' }}>
+                <div className="row-span-2 relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
                   {displayMedia[0].type === 'IMAGE' ? (
-                    <div className="relative w-full h-full aspect-square">
-                      <Image
-                        src={displayMedia[0].thumbnailUrl || displayMedia[0].url}
-                        alt={displayMedia[0].caption || 'Event photo'}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
+                    <Image
+                      src={displayMedia[0].thumbnailUrl || displayMedia[0].url}
+                      alt={displayMedia[0].caption || 'Event photo'}
+                      fill
+                      className="object-cover"
+                    />
                   ) : (
                     <video
                       src={displayMedia[0].url}
@@ -211,16 +210,83 @@ export function EventCard({ event }: EventCardProps) {
                   )}
                 </div>
                 {displayMedia.slice(1).map((item) => (
-                  <div key={item.id} className="rounded-lg overflow-hidden bg-gray-100 aspect-square">
+                  <div key={item.id} className="relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
                     {item.type === 'IMAGE' ? (
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={item.thumbnailUrl || item.url}
-                          alt={item.caption || 'Event photo'}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
+                      <Image
+                        src={item.thumbnailUrl || item.url}
+                        alt={item.caption || 'Event photo'}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={item.url}
+                        controls
+                        className="w-full h-full object-cover"
+                        poster={item.thumbnailUrl || undefined}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : displayMedia.length === 4 ? (
+              // Four media items - 2x2 grid
+              <div className="grid grid-cols-2" style={{ gap: '1px' }}>
+                {displayMedia.map((item) => (
+                  <div key={item.id} className="relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
+                    {item.type === 'IMAGE' ? (
+                      <Image
+                        src={item.thumbnailUrl || item.url}
+                        alt={item.caption || 'Event photo'}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={item.url}
+                        controls
+                        className="w-full h-full object-cover"
+                        poster={item.thumbnailUrl || undefined}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : displayMedia.length === 5 ? (
+              // Five media items - one large on left, 4 in 2x2 grid on right
+              <div className="grid grid-cols-3" style={{ gap: '1px' }}>
+                <div className="row-span-2 col-span-2 relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
+                  {displayMedia[0].type === 'IMAGE' ? (
+                    <Image
+                      src={displayMedia[0].thumbnailUrl || displayMedia[0].url}
+                      alt={displayMedia[0].caption || 'Event photo'}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={displayMedia[0].url}
+                      controls
+                      className="w-full h-full object-cover"
+                      poster={displayMedia[0].thumbnailUrl || undefined}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  )}
+                </div>
+                {displayMedia.slice(1, 5).map((item) => (
+                  <div key={item.id} className="relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
+                    {item.type === 'IMAGE' ? (
+                      <Image
+                        src={item.thumbnailUrl || item.url}
+                        alt={item.caption || 'Event photo'}
+                        fill
+                        className="object-cover"
+                      />
                     ) : (
                       <video
                         src={item.url}
@@ -235,31 +301,36 @@ export function EventCard({ event }: EventCardProps) {
                 ))}
               </div>
             ) : (
-              // Four or more media items - grid layout
-              <div className="grid grid-cols-3 gap-2">
-                {displayMedia.slice(0, 5).map((item, index) => (
-                  <div 
-                    key={item.id} 
-                    className={`rounded-lg overflow-hidden bg-gray-100 aspect-square relative ${
-                      index === 4 && remainingMediaCount > 0 ? 'bg-gray-800' : ''
-                    }`}
-                  >
-                    {index === 4 && remainingMediaCount > 0 ? (
-                      // Show "more" overlay
-                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
-                        <span className="text-white font-bold text-lg">
-                          +{remainingMediaCount + (event.media.length - 5)}
-                        </span>
-                      </div>
-                    ) : item.type === 'IMAGE' ? (
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={item.thumbnailUrl || item.url}
-                          alt={item.caption || 'Event photo'}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
+              // Six or more media items - Facebook style: one large on left, 5 in grid on right
+              <div className="grid grid-cols-3" style={{ gap: '1px' }}>
+                <div className="row-span-2 col-span-2 relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
+                  {displayMedia[0].type === 'IMAGE' ? (
+                    <Image
+                      src={displayMedia[0].thumbnailUrl || displayMedia[0].url}
+                      alt={displayMedia[0].caption || 'Event photo'}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={displayMedia[0].url}
+                      controls
+                      className="w-full h-full object-cover"
+                      poster={displayMedia[0].thumbnailUrl || undefined}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  )}
+                </div>
+                {displayMedia.slice(1, 4).map((item) => (
+                  <div key={item.id} className="relative" style={{ aspectRatio: '1', backgroundColor: '#f3f4f6' }}>
+                    {item.type === 'IMAGE' ? (
+                      <Image
+                        src={item.thumbnailUrl || item.url}
+                        alt={item.caption || 'Event photo'}
+                        fill
+                        className="object-cover"
+                      />
                     ) : (
                       <video
                         src={item.url}
@@ -272,6 +343,36 @@ export function EventCard({ event }: EventCardProps) {
                     )}
                   </div>
                 ))}
+                {displayMedia.length > 4 && (
+                  <div className="relative" style={{ aspectRatio: '1', backgroundColor: '#000' }}>
+                    {displayMedia[4].type === 'IMAGE' ? (
+                      <>
+                        <Image
+                          src={displayMedia[4].thumbnailUrl || displayMedia[4].url}
+                          alt={displayMedia[4].caption || 'Event photo'}
+                          fill
+                          className="object-cover opacity-60"
+                        />
+                        {remainingMediaCount > 0 && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
+                            <span className="text-white font-bold text-xl">
+                              +{remainingMediaCount}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <video
+                        src={displayMedia[4].url}
+                        controls
+                        className="w-full h-full object-cover"
+                        poster={displayMedia[4].thumbnailUrl || undefined}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
