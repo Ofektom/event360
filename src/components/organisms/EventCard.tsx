@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import Link from 'next/link'
@@ -64,6 +64,11 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
   const [showCommentModal, setShowCommentModal] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [eventComments, setEventComments] = useState<any[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyContent, setReplyContent] = useState('')
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set())
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const isLive = event.event.hasLiveStream && event.event.liveStreamUrl
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -112,25 +117,241 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
     setShowCommentModal(true)
   }
 
-  const toggleComments = async (e: React.MouseEvent) => {
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+
+    if (seconds < 60) return 'just now'
+    if (minutes < 60) return `${minutes}m`
+    if (hours < 24) return `${hours}h`
+    if (days < 7) return `${days}d`
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  // Load comments on mount if there are any
+  useEffect(() => {
+    if (comments > 0) {
+      fetchComments()
+    }
+  }, [comments])
+
+  const fetchComments = async () => {
+    try {
+      const response = await fetch(`/api/events/${event.event.id}/interactions?type=COMMENT`)
+      if (response.ok) {
+        const data = await response.json()
+        // Filter to only top-level comments
+        const topLevelComments = data.filter((c: any) => !c.parentId)
+        setEventComments(topLevelComments)
+        setShowComments(true)
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error)
+    }
+  }
+
+  const toggleComments = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    if (!showComments) {
-      // Fetch comments when expanding
-      try {
-        const response = await fetch(`/api/events/${event.event.id}/interactions?type=COMMENT`)
-        if (response.ok) {
-          const data = await response.json()
-          // Filter to only top-level comments
-          const topLevelComments = data.filter((c: any) => !c.parentId)
-          setEventComments(topLevelComments)
-        }
-      } catch (error) {
-        console.error('Error fetching comments:', error)
-      }
+    if (!showComments && eventComments.length === 0) {
+      fetchComments()
+    } else {
+      setShowComments(!showComments)
     }
-    setShowComments(!showComments)
+  }
+
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId)
+      } else {
+        newSet.add(commentId)
+      }
+      return newSet
+    })
+  }
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newComment.trim() || isSubmittingComment) return
+
+    try {
+      setIsSubmittingComment(true)
+      const response = await fetch(`/api/events/${event.event.id}/interactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'COMMENT',
+          content: newComment.trim(),
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to post comment')
+
+      const newCommentData = await response.json()
+      setEventComments(prev => [newCommentData, ...prev])
+      setNewComment('')
+      setComments(prev => prev + 1)
+      
+      // Refresh comment count
+      const likeResponse = await fetch(`/api/events/${event.event.id}/like`)
+      if (likeResponse.ok) {
+        const likeData = await likeResponse.json()
+        setComments(likeData.commentCount)
+      }
+    } catch (error) {
+      console.error('Error posting comment:', error)
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  const handleSubmitReply = async (parentId: string) => {
+    if (!replyContent.trim() || isSubmittingComment) return
+
+    try {
+      setIsSubmittingComment(true)
+      const response = await fetch(`/api/events/${event.event.id}/interactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'COMMENT',
+          content: replyContent.trim(),
+          parentId,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to post reply')
+
+      const newReply = await response.json()
+      setEventComments(prev => prev.map(c => {
+        if (c.id === parentId) {
+          return { ...c, replies: [...(c.replies || []), newReply] }
+        }
+        return c
+      }))
+      setReplyContent('')
+      setReplyingTo(null)
+      setComments(prev => prev + 1)
+    } catch (error) {
+      console.error('Error posting reply:', error)
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  const renderComment = (comment: any, isReply = false, depth = 0) => {
+    const authorName = comment.user?.name || comment.guestName || 'Anonymous'
+    const authorImage = comment.user?.image
+    const hasReplies = comment.replies && comment.replies.length > 0
+    const isExpanded = expandedReplies.has(comment.id)
+    const marginLeft = isReply ? Math.min(depth * 16, 48) : 0
+
+    return (
+      <div key={comment.id} style={{ marginLeft: `${marginLeft}px` }} className={isReply ? 'mt-2' : 'mb-3'}>
+        <div className="flex gap-2">
+          {/* Avatar */}
+          <div className="flex-shrink-0">
+            {authorImage ? (
+              <Image
+                src={authorImage}
+                alt={authorName}
+                width={32}
+                height={32}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <span className="text-white text-xs font-semibold">
+                  {authorName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Comment Content */}
+          <div className="flex-1 min-w-0">
+            <div className="bg-gray-100 rounded-2xl px-3 py-2 inline-block max-w-full">
+              <span className="font-semibold text-sm text-gray-900">{authorName}</span>
+              {' '}
+              <span className="text-sm text-gray-800 whitespace-pre-wrap break-words">{comment.content}</span>
+            </div>
+
+            {/* Like and Reply buttons */}
+            <div className="flex items-center gap-4 mt-1 ml-1">
+              <button className="text-xs text-gray-600 hover:underline font-medium">
+                Like
+              </button>
+              <button
+                onClick={() => {
+                  if (replyingTo === comment.id) {
+                    setReplyingTo(null)
+                    setReplyContent('')
+                  } else {
+                    setReplyingTo(comment.id)
+                    setReplyContent('')
+                  }
+                }}
+                className="text-xs text-gray-600 hover:underline font-medium"
+              >
+                Reply
+              </button>
+              <span className="text-xs text-gray-500">{formatTimeAgo(comment.createdAt)}</span>
+            </div>
+
+            {/* Reply Input */}
+            {replyingTo === comment.id && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Write a reply..."
+                  className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSubmitReply(comment.id)
+                    }
+                  }}
+                  autoFocus
+                />
+                <button
+                  onClick={() => handleSubmitReply(comment.id)}
+                  disabled={!replyContent.trim() || isSubmittingComment}
+                  className="px-4 py-1.5 text-sm bg-purple-600 text-white rounded-full hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Post
+                </button>
+              </div>
+            )}
+
+            {/* View Replies Button */}
+            {hasReplies && !isReply && (
+              <button
+                onClick={() => toggleReplies(comment.id)}
+                className="text-xs text-gray-600 hover:underline font-medium mt-1 ml-1"
+              >
+                {isExpanded ? 'Hide' : 'View'} {comment.replies!.length} {comment.replies!.length === 1 ? 'reply' : 'replies'}
+              </button>
+            )}
+
+            {/* Nested Replies */}
+            {hasReplies && isExpanded && (
+              <div className="mt-2">
+                {comment.replies!.map((reply: any) => renderComment(reply, true, depth + 1))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -616,50 +837,64 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
         )}
       </div>
 
-      {/* Comments Section - Show below action buttons */}
-      {comments > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-200">
+      {/* Comments Section - Facebook style, show below action buttons */}
+      <div className="mt-2 pt-2 border-t border-gray-200">
+        {/* View Comments Link - Facebook style */}
+        {comments > 0 && !showComments && (
           <button
             onClick={toggleComments}
-            className="text-sm text-gray-600 hover:text-purple-600 font-medium mb-3"
+            className="text-sm text-gray-600 hover:underline mb-2"
           >
-            {showComments ? 'Hide' : 'View'} {comments} {comments === 1 ? 'comment' : 'comments'}
+            View {comments > 1 ? 'more ' : ''}{comments} {comments === 1 ? 'comment' : 'comments'}
           </button>
-          
-          {showComments && eventComments.length > 0 && (
-            <div className="space-y-3 mt-3">
-              {eventComments.slice(0, 3).map((comment: any) => {
-                const authorName = comment.user?.name || comment.guestName || 'Anonymous'
-                return (
-                  <div key={comment.id} className="flex gap-2">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                      <span className="text-white text-xs font-semibold">
-                        {authorName.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-gray-50 rounded-lg p-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-xs text-gray-900">{authorName}</span>
-                        </div>
-                        <p className="text-sm text-gray-700 line-clamp-2">{comment.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-              {comments > 3 && (
-                <button
-                  onClick={handleComment}
-                  className="text-sm text-gray-600 hover:text-purple-600 font-medium"
-                >
-                  View all {comments} comments
-                </button>
-              )}
+        )}
+
+        {/* Comments List - Facebook Style */}
+        {showComments && eventComments.length > 0 && (
+          <div className="space-y-1 mb-2">
+            {/* Show first 2-3 comments, then "View more comments" */}
+            {eventComments.slice(0, 2).map((comment: any) => renderComment(comment))}
+            
+            {eventComments.length > 2 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setShowCommentModal(true)
+                }}
+                className="text-sm text-gray-600 hover:underline font-medium mt-2"
+              >
+                View more comments
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Comment Input - Always visible when comments are shown */}
+        {showComments && (
+          <form onSubmit={handleSubmitComment} className="flex gap-2 items-start mt-2">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <span className="text-white text-xs font-semibold">Y</span>
             </div>
-          )}
-        </div>
-      )}
+            <div className="flex-1">
+              <input
+                type="text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Write a comment..."
+                className="w-full px-3 py-2 text-sm bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-purple-500 focus:bg-white focus:outline-none"
+                disabled={isSubmittingComment}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmitComment(e as any)
+                  }
+                }}
+              />
+            </div>
+          </form>
+        )}
+      </div>
 
       {/* Comment Modal */}
       {showCommentModal && (
@@ -693,5 +928,6 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
     </Card>
   )
 }
+
 
 

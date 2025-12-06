@@ -5,11 +5,11 @@ import { Prisma } from '@prisma/client'
 export class InteractionRepository {
   async findAllByEventId(eventId: string, filters?: GetInteractionsFilters) {
     const where: any = {
-      eventId,
-      ...(filters?.ceremonyId && { ceremonyId: filters.ceremonyId }),
-      ...(filters?.mediaAssetId && { mediaAssetId: filters.mediaAssetId }),
-      ...(filters?.type && { type: filters.type }),
-      ...(filters?.isApproved !== undefined && { isApproved: filters.isApproved }),
+        eventId,
+        ...(filters?.ceremonyId && { ceremonyId: filters.ceremonyId }),
+        ...(filters?.mediaAssetId && { mediaAssetId: filters.mediaAssetId }),
+        ...(filters?.type && { type: filters.type }),
+        ...(filters?.isApproved !== undefined && { isApproved: filters.isApproved }),
     }
     
     // For comments, only fetch top-level comments (no parentId) by default
