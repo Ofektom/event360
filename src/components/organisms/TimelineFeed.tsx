@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import Link from 'next/link'
+import { EventCard } from './EventCard'
 import { TimelinePost } from './TimelinePost'
 
 interface TimelinePost {
@@ -47,7 +48,44 @@ interface TimelinePost {
   }
 }
 
+interface TimelineEvent {
+  id: string
+  type: 'event'
+  author: {
+    id: string | null
+    name: string
+    avatar: string | null
+  }
+  content: string | null
+  event: {
+    id: string
+    title: string
+    slug: string | null
+    type: string
+    hasProgramme?: boolean
+    hasLiveStream?: boolean
+    liveStreamUrl?: string | null
+    isOwner?: boolean
+  }
+  timestamp: string
+  eventDetails: {
+    startDate: string | null
+    endDate: string | null
+    location: string | null
+    mediaCount: number
+    inviteeCount: number
+  }
+  media: Array<{
+    id: string
+    url: string
+    thumbnailUrl: string | null
+    type: string
+    caption: string | null
+  }>
+}
+
 export function TimelineFeed() {
+  const [events, setEvents] = useState<TimelineEvent[]>([])
   const [posts, setPosts] = useState<TimelinePost[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,6 +104,7 @@ export function TimelineFeed() {
           throw new Error(errorMsg + details)
         }
         
+        setEvents(data.events || [])
         setPosts(data.posts || [])
         setError(null)
       } catch (err: any) {
@@ -103,15 +142,15 @@ export function TimelineFeed() {
     )
   }
 
-  if (posts.length === 0) {
+  if (events.length === 0 && posts.length === 0) {
     return (
       <Card className="p-12 text-center">
         <div className="text-6xl mb-4">📭</div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          No posts yet
+          No events yet
         </h2>
         <p className="text-gray-600 mb-6">
-          Your timeline will show posts from events you create or are invited to.
+          Your timeline will show events you create or are invited to.
         </p>
         <Link href="/events/new">
           <Button variant="primary">Create Your First Event</Button>
@@ -127,6 +166,12 @@ export function TimelineFeed() {
 
   return (
     <div className="space-y-4">
+      {/* Show events first - each event in one card with all media */}
+      {events.map((event) => (
+        <EventCard key={event.id} event={event} />
+      ))}
+      
+      {/* Show interaction posts (comments, guestbook entries) */}
       {posts.map((post) => (
         <TimelinePost key={post.id} post={post} onRefresh={handleRefresh} />
       ))}

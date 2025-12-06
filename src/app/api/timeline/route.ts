@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     const eventsToQuery = [...new Set([...ownedEventIds, ...eventIds])]
 
     if (eventsToQuery.length === 0) {
-      return NextResponse.json({ posts: [] })
+      return NextResponse.json({ events: [], posts: [] })
     }
 
     // Get full event details with ceremonies (programme)
@@ -345,52 +345,72 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Transform to timeline posts format
+    // Group media by event ID
+    const mediaByEvent = new Map<string, any[]>()
+    mediaPosts.forEach((media: any) => {
+      const eventId = media.event?.id
+      if (eventId) {
+        if (!mediaByEvent.has(eventId)) {
+          mediaByEvent.set(eventId, [])
+        }
+        mediaByEvent.get(eventId)!.push({
+          id: media.id,
+          url: media.url,
+          thumbnailUrl: media.thumbnailUrl,
+          type: media.type,
+          caption: media.caption,
+          uploadedBy: media.uploadedBy,
+          createdAt: media.createdAt,
+        })
+      }
+    })
+
+    // Transform to timeline events format - one card per event with all media
+    const events = (eventPosts || []).map((event: any) => {
+      const eventId = event.id
+      const eventTitle = event.title || 'Untitled Event'
+      const eventType = event.type || 'CELEBRATION'
+      const eventSlug = event.slug || null
+      const eventDetails = eventDetailsMap.get(eventId) || {
+        hasProgramme: false,
+        hasLiveStream: false,
+        liveStreamUrl: null,
+        isOwner: ownedEventIds.includes(eventId),
+      }
+      
+      // Get all media for this event
+      const eventMedia = mediaByEvent.get(eventId) || []
+      
+      return {
+        id: eventId,
+        type: 'event' as const,
+        author: {
+          id: event.owner?.id || null,
+          name: event.owner?.name || 'Event Creator',
+          avatar: event.owner?.image || null,
+        },
+        content: event.description || null,
+        event: {
+          id: eventId,
+          title: eventTitle,
+          slug: eventSlug,
+          type: eventType,
+          ...eventDetails,
+        },
+        timestamp: event.createdAt?.toISOString() || new Date().toISOString(),
+        eventDetails: {
+          startDate: event.startDate?.toISOString() || null,
+          endDate: event.endDate?.toISOString() || null,
+          location: event.location || null,
+          mediaCount: event._count?.mediaAssets || 0,
+          inviteeCount: event._count?.invitees || 0,
+        },
+        media: eventMedia, // All media for this event
+      }
+    })
+
+    // Transform to timeline posts format (keep interactions as separate posts)
     const posts = [
-      // Event creation posts
-      ...(eventPosts || []).map((event: any) => {
-        // Ensure all required fields exist
-        const eventId = event.id
-        const eventTitle = event.title || 'Untitled Event'
-        const eventType = event.type || 'CELEBRATION'
-        const eventSlug = event.slug || null
-        const eventDetails = eventDetailsMap.get(eventId) || {
-          hasProgramme: false,
-          hasLiveStream: false,
-          liveStreamUrl: null,
-          isOwner: ownedEventIds.includes(eventId),
-        }
-        
-        return {
-          id: `event-${eventId}`,
-          type: 'event' as const,
-          author: {
-            id: event.owner?.id || null,
-            name: event.owner?.name || 'Event Creator',
-            avatar: event.owner?.image || null,
-          },
-          content: event.description || `Created a new ${eventType.toLowerCase()} event: ${eventTitle}`,
-          event: {
-            id: eventId,
-            title: eventTitle,
-            slug: eventSlug,
-            type: eventType,
-            ...eventDetails,
-          },
-          ceremony: null,
-          media: null,
-          timestamp: event.createdAt?.toISOString() || new Date().toISOString(),
-          likes: 0,
-          comments: event._count?.interactions || 0,
-          eventDetails: {
-            startDate: event.startDate?.toISOString() || null,
-            endDate: event.endDate?.toISOString() || null,
-            location: event.location || null,
-            mediaCount: event._count?.mediaAssets || 0,
-            inviteeCount: event._count?.invitees || 0,
-          },
-        }
-      }),
       // Interaction posts
       ...(interactions || []).map((interaction: any) => {
         const eventId = interaction.event?.id
@@ -441,56 +461,28 @@ export async function GET(request: NextRequest) {
           comments: 0, // Comments are separate interactions - can be counted later if needed
         }
       }),
-      ...(mediaPosts || []).map((media: any) => {
-        const eventId = media.event?.id
-        const eventDetails = eventId ? (eventDetailsMap.get(eventId) || {
-          hasProgramme: false,
-          hasLiveStream: false,
-          liveStreamUrl: null,
-          isOwner: ownedEventIds.includes(eventId),
-        }) : {
-          hasProgramme: false,
-          hasLiveStream: false,
-          liveStreamUrl: null,
-          isOwner: false,
-        }
-        
-        return {
-          id: media.id,
-          type: 'media' as const,
-          author: {
-            id: media.uploadedBy?.id || null,
-            name: media.uploadedBy?.name || 'Anonymous',
-            avatar: media.uploadedBy?.image || null,
-          },
-          content: media.caption || null,
-          event: {
-            id: eventId || 'unknown',
-            title: media.event?.title || 'Unknown Event',
-            slug: media.event?.slug || null,
-            type: media.event?.type || 'CELEBRATION',
-            ...eventDetails,
-          },
-          ceremony: media.ceremony
-            ? {
-                id: media.ceremony.id,
-                name: media.ceremony.name,
-              }
-            : null,
-          media: {
-            id: media.id,
-            url: media.url,
-            thumbnailUrl: media.thumbnailUrl,
-            type: media.type,
-          },
-          timestamp: media.createdAt?.toISOString() || new Date().toISOString(),
-          likes: media.likeCount || 0,
-          comments: media._count?.interactions || 0,
-        }
-      }),
-    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    ]
 
-    return NextResponse.json({ posts })
+    // Sort events by most recent activity (use latest media timestamp or event creation)
+    const sortedEvents = events.sort((a, b) => {
+      const aLatestMedia = a.media.length > 0 
+        ? Math.max(...a.media.map((m: any) => new Date(m.createdAt).getTime()))
+        : 0
+      const bLatestMedia = b.media.length > 0
+        ? Math.max(...b.media.map((m: any) => new Date(m.createdAt).getTime()))
+        : 0
+      const aTime = Math.max(new Date(a.timestamp).getTime(), aLatestMedia)
+      const bTime = Math.max(new Date(b.timestamp).getTime(), bLatestMedia)
+      return bTime - aTime
+    })
+
+    // Sort interactions by timestamp
+    const sortedPosts = posts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+    return NextResponse.json({ 
+      events: sortedEvents,
+      posts: sortedPosts 
+    })
   } catch (error: any) {
     console.error('Error fetching timeline:', error)
     // Return more detailed error in development
