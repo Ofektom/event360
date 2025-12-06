@@ -366,17 +366,17 @@ export async function GET(request: NextRequest) {
     })
 
     // Get like and comment counts for all events
-    const eventIds = (eventPosts || []).map((e: any) => e.id)
+    const eventPostIds = (eventPosts || []).map((e: any) => e.id)
     const likeCounts = new Map<string, number>()
     const commentCounts = new Map<string, number>()
     const userLikes = new Map<string, boolean>()
 
-    if (eventIds.length > 0) {
+    if (eventPostIds.length > 0) {
       // Get like counts
       const likes = await prisma.interaction.groupBy({
         by: ['eventId'],
         where: {
-          eventId: { in: eventIds },
+          eventId: { in: eventPostIds },
           type: 'REACTION',
           reaction: 'LIKE',
           isApproved: true,
@@ -390,10 +390,10 @@ export async function GET(request: NextRequest) {
       })
 
       // Get comment counts
-      const comments = await prisma.interaction.groupBy({
-        by: ['eventId'],
-        where: {
-          eventId: { in: eventIds },
+        const comments = await prisma.interaction.groupBy({
+          by: ['eventId'],
+          where: {
+            eventId: { in: eventPostIds },
           type: 'COMMENT',
           isApproved: true,
         },
@@ -406,9 +406,9 @@ export async function GET(request: NextRequest) {
       })
 
       // Get user's likes
-      const userLikesList = await prisma.interaction.findMany({
-        where: {
-          eventId: { in: eventIds },
+        const userLikesList = await prisma.interaction.findMany({
+          where: {
+            eventId: { in: eventPostIds },
           userId: user.id,
           type: 'REACTION',
           reaction: 'LIKE',
