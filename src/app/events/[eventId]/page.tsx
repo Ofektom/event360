@@ -40,6 +40,8 @@ interface Ceremony {
   date: string
   location: string | null
   venue: string | null
+  streamUrl: string | null
+  isStreaming: boolean
 }
 
 export default function EventDetailPage() {
@@ -210,6 +212,19 @@ export default function EventDetailPage() {
               </Card>
             </Link>
 
+            {/* Live Streaming */}
+            <Link href={`/events/${eventId}/streaming`}>
+              <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">📹</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Live Streaming</h3>
+                    <p className="text-xs text-gray-600">Set up live streams</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
             {/* View Public Page */}
             {event.slug && (
               <Link href={`/e/${event.slug}`} target="_blank">
@@ -226,6 +241,31 @@ export default function EventDetailPage() {
           )}
         </div>
         </Card>
+
+        {/* Live Stream Banner */}
+        {event.ceremonies.some(c => c.isStreaming && c.streamUrl) && (
+          <Card className="p-6 bg-gradient-to-r from-red-50 to-pink-50 border-red-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full">
+                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                  <span className="font-semibold">LIVE NOW</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">
+                    {event.ceremonies.find(c => c.isStreaming)?.name} is streaming live
+                  </h3>
+                  <p className="text-sm text-gray-600">Watch the live stream now</p>
+                </div>
+              </div>
+              <Link href={`/events/${eventId}/live`}>
+                <Button variant="primary" className="bg-red-600 hover:bg-red-700">
+                  Watch Live
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
