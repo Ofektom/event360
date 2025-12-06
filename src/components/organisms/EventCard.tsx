@@ -5,6 +5,7 @@ import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import Link from 'next/link'
 import Image from 'next/image'
+import { CommentModal } from './CommentModal'
 
 interface MediaItem {
   id: string
@@ -43,15 +44,24 @@ interface EventCardProps {
       inviteeCount: number
     }
     media: MediaItem[]
+    likes?: number
+    comments?: number
+    hasLiked?: boolean
   }
+  onRefresh?: () => void
 }
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, onRefresh }: EventCardProps) {
   const eventUrl = event.event.slug ? `/e/${event.event.slug}` : `/events/${event.event.id}`
   const liveStreamUrl = `/events/${event.event.id}/live`
   const displayMedia = event.media.slice(0, 6) // Show up to 6 media items in preview
   const remainingMediaCount = event.media.length - displayMedia.length
   const [copied, setCopied] = useState(false)
+  const [likes, setLikes] = useState(event.likes || 0)
+  const [hasLiked, setHasLiked] = useState(event.hasLiked || false)
+  const [comments, setComments] = useState(event.comments || 0)
+  const [isLiking, setIsLiking] = useState(false)
+  const [showCommentModal, setShowCommentModal] = useState(false)
   const isLive = event.event.hasLiveStream && event.event.liveStreamUrl
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -64,6 +74,41 @@ export function EventCard({ event }: EventCardProps) {
     }).catch((err) => {
       console.error('Failed to copy:', err)
     })
+  }
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (isLiking) return
+    
+    try {
+      setIsLiking(true)
+      const response = await fetch(`/api/events/${event.event.id}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle like')
+      }
+
+      const data = await response.json()
+      setHasLiked(data.hasLiked)
+      setLikes(data.likeCount)
+      setComments(data.commentCount)
+      onRefresh?.()
+    } catch (error) {
+      console.error('Error toggling like:', error)
+    } finally {
+      setIsLiking(false)
+    }
+  }
+
+  const handleComment = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setShowCommentModal(true)
   }
 
   return (
@@ -451,11 +496,19 @@ export function EventCard({ event }: EventCardProps) {
       )}
 
       {/* Post Actions (Like, Comment, View Post, Watch Live) - Like Facebook */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-        <button className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+      <div className={`flex items-center justify-between pt-3 border-t border-gray-200 ${isLive ? 'grid grid-cols-4 gap-1' : ''}`}>
+        <button
+          onClick={handleLike}
+          disabled={isLiking}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-colors ${
+            hasLiked
+              ? 'text-purple-600 hover:bg-purple-50'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
           <svg
-            className="w-5 h-5"
-            fill="none"
+            className={`w-5 h-5 ${hasLiked ? 'fill-current' : ''}`}
+            fill={hasLiked ? 'currentColor' : 'none'}
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
@@ -467,9 +520,12 @@ export function EventCard({ event }: EventCardProps) {
             />
           </svg>
           <span className="text-sm font-medium">Like</span>
+          {likes > 0 && (
+            <span className="text-xs text-gray-500">({likes})</span>
+          )}
         </button>
-        <Link
-          href={eventUrl}
+        <button
+          onClick={handleComment}
           className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
         >
           <svg
@@ -486,7 +542,10 @@ export function EventCard({ event }: EventCardProps) {
             />
           </svg>
           <span className="text-sm font-medium">Comment</span>
-        </Link>
+          {comments > 0 && (
+            <span className="text-xs text-gray-500">({comments})</span>
+          )}
+        </button>
         <Link
           href={eventUrl}
           className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
@@ -534,6 +593,19 @@ export function EventCard({ event }: EventCardProps) {
           </Link>
         )}
       </div>
+
+      {/* Comment Modal */}
+      {showCommentModal && (
+        <CommentModal
+          eventId={event.event.id}
+          eventTitle={event.event.title}
+          onClose={() => setShowCommentModal(false)}
+          onSuccess={() => {
+            setComments(prev => prev + 1)
+            onRefresh?.()
+          }}
+        />
+      )}
     </Card>
   )
 }

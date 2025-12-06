@@ -365,6 +365,63 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Get like and comment counts for all events
+    const eventIds = (eventPosts || []).map((e: any) => e.id)
+    const likeCounts = new Map<string, number>()
+    const commentCounts = new Map<string, number>()
+    const userLikes = new Map<string, boolean>()
+
+    if (eventIds.length > 0) {
+      // Get like counts
+      const likes = await prisma.interaction.groupBy({
+        by: ['eventId'],
+        where: {
+          eventId: { in: eventIds },
+          type: 'REACTION',
+          reaction: 'LIKE',
+          isApproved: true,
+        },
+        _count: {
+          id: true,
+        },
+      })
+      likes.forEach((like: any) => {
+        likeCounts.set(like.eventId, like._count.id)
+      })
+
+      // Get comment counts
+      const comments = await prisma.interaction.groupBy({
+        by: ['eventId'],
+        where: {
+          eventId: { in: eventIds },
+          type: 'COMMENT',
+          isApproved: true,
+        },
+        _count: {
+          id: true,
+        },
+      })
+      comments.forEach((comment: any) => {
+        commentCounts.set(comment.eventId, comment._count.id)
+      })
+
+      // Get user's likes
+      const userLikesList = await prisma.interaction.findMany({
+        where: {
+          eventId: { in: eventIds },
+          userId: user.id,
+          type: 'REACTION',
+          reaction: 'LIKE',
+        },
+        select: {
+          eventId: true,
+        },
+      })
+      userLikesList.forEach((like: any) => {
+        userLikes.set(like.eventId, true)
+      })
+    }
+
     // Transform to timeline events format - one card per event with all media
     const events = (eventPosts || []).map((event: any) => {
       const eventId = event.id
@@ -406,6 +463,9 @@ export async function GET(request: NextRequest) {
           inviteeCount: event._count?.invitees || 0,
         },
         media: eventMedia, // All media for this event
+        likes: likeCounts.get(eventId) || 0,
+        comments: commentCounts.get(eventId) || 0,
+        hasLiked: userLikes.get(eventId) || false,
       }
     })
 

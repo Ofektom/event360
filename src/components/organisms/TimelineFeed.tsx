@@ -164,11 +164,16 @@ export function TimelineFeed() {
     window.location.reload()
   }
 
+  const handleRefresh = () => {
+    // Refresh timeline
+    window.location.reload()
+  }
+
   return (
     <div className="space-y-4">
       {/* Show events first - each event in one card with all media */}
       {events.map((event) => (
-        <EventCard key={event.id} event={event} />
+        <EventCard key={event.id} event={event} onRefresh={handleRefresh} />
       ))}
       
       {/* Show interaction posts (comments, guestbook entries) */}
