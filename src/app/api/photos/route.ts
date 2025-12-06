@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Categorize photos by event
-    const byEvent: Record<string, any[]> = {}
+    const byEvent: Record<string, { event: any; photos: any[] }> = {}
     // Categorize photos by date (group by month/year)
     const byDate: Record<string, any[]> = {}
 

@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Categorize videos by event
-    const byEvent: Record<string, any[]> = {}
+    const byEvent: Record<string, { event: any; reels: any[] }> = {}
     // Categorize videos by date (group by month/year)
     const byDate: Record<string, any[]> = {}
 
