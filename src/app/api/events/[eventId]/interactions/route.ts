@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { InteractionService } from '@/services/interaction.service'
 import { CreateInteractionDto, GetInteractionsFilters } from '@/types/interaction.types'
 import { InteractionType } from '@/types/enums'
+import { requireAuth } from '@/lib/auth'
 
 const interactionService = new InteractionService()
 
@@ -43,10 +44,21 @@ export async function POST(
   try {
     const { eventId } = await params
     const body = await request.json()
+    
+    // Try to get authenticated user, but allow guest interactions if not authenticated
+    let userId: string | undefined
+    try {
+      const user = await requireAuth()
+      userId = user.id
+    } catch (authError) {
+      // User is not authenticated - allow guest interactions
+      // userId will remain undefined
+    }
+    
     const interactionData: CreateInteractionDto = {
       ceremonyId: body.ceremonyId,
       mediaAssetId: body.mediaAssetId,
-      userId: body.userId,
+      userId: userId || body.userId, // Use authenticated user ID if available, otherwise use body
       type: body.type as InteractionType,
       content: body.content,
       reaction: body.reaction,
@@ -63,6 +75,13 @@ export async function POST(
       return NextResponse.json(
         { error: error.message },
         { status: 400 }
+      )
+    }
+    
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
 

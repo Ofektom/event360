@@ -43,8 +43,11 @@ export function CommentModal({ eventId, eventTitle, onClose, onSuccess }: Commen
       }
 
       setComment('')
-      onSuccess?.()
       onClose()
+      // Call onSuccess after closing to refresh the timeline
+      if (onSuccess) {
+        onSuccess()
+      }
     } catch (err: any) {
       console.error('Error posting comment:', err)
       setError(err.message || 'Failed to post comment')

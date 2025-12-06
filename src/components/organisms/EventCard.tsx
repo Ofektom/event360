@@ -97,7 +97,6 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
       setHasLiked(data.hasLiked)
       setLikes(data.likeCount)
       setComments(data.commentCount)
-      onRefresh?.()
     } catch (error) {
       console.error('Error toggling like:', error)
     } finally {
@@ -600,9 +599,17 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
           eventId={event.event.id}
           eventTitle={event.event.title}
           onClose={() => setShowCommentModal(false)}
-          onSuccess={() => {
-            setComments(prev => prev + 1)
-            onRefresh?.()
+          onSuccess={async () => {
+            // Refresh comment count after successful comment
+            try {
+              const response = await fetch(`/api/events/${event.event.id}/like`)
+              if (response.ok) {
+                const data = await response.json()
+                setComments(data.commentCount)
+              }
+            } catch (error) {
+              console.error('Error refreshing comment count:', error)
+            }
           }}
         />
       )}
