@@ -164,11 +164,6 @@ export function TimelineFeed() {
     window.location.reload()
   }
 
-  const handleRefresh = () => {
-    // Refresh timeline
-    window.location.reload()
-  }
-
   return (
     <div className="space-y-4">
       {/* Show events first - each event in one card with all media */}
