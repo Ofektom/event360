@@ -4,14 +4,21 @@ import { Prisma } from '@prisma/client'
 
 export class InteractionRepository {
   async findAllByEventId(eventId: string, filters?: GetInteractionsFilters) {
+    const where: any = {
+      eventId,
+      ...(filters?.ceremonyId && { ceremonyId: filters.ceremonyId }),
+      ...(filters?.mediaAssetId && { mediaAssetId: filters.mediaAssetId }),
+      ...(filters?.type && { type: filters.type }),
+      ...(filters?.isApproved !== undefined && { isApproved: filters.isApproved }),
+    }
+    
+    // For comments, only fetch top-level comments (no parentId) by default
+    if (filters?.type === 'COMMENT') {
+      where.parentId = null
+    }
+    
     return prisma.interaction.findMany({
-      where: {
-        eventId,
-        ...(filters?.ceremonyId && { ceremonyId: filters.ceremonyId }),
-        ...(filters?.mediaAssetId && { mediaAssetId: filters.mediaAssetId }),
-        ...(filters?.type && { type: filters.type }),
-        ...(filters?.isApproved !== undefined && { isApproved: filters.isApproved }),
-      },
+      where,
       include: {
         user: {
           select: {
@@ -26,6 +33,30 @@ export class InteractionRepository {
             url: true,
             thumbnailUrl: true,
           },
+        },
+        replies: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            replies: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
         },
       },
       orderBy: [
@@ -54,6 +85,7 @@ export class InteractionRepository {
         ceremonyId: data.ceremonyId,
         mediaAssetId: data.mediaAssetId,
         userId: data.userId,
+        parentId: data.parentId,
         type: data.type,
         content: data.content,
         reaction: data.reaction,
@@ -68,6 +100,17 @@ export class InteractionRepository {
             id: true,
             name: true,
             image: true,
+          },
+        },
+        parent: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
           },
         },
       },

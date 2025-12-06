@@ -5,6 +5,7 @@ export interface CreateInteractionDto {
   ceremonyId?: string
   mediaAssetId?: string
   userId?: string
+  parentId?: string  // For replies to comments
   type: InteractionType
   content?: string
   reaction?: ReactionType

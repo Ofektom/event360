@@ -404,6 +404,7 @@ model Interaction {
   ceremonyId  String?
   mediaAssetId String?
   userId      String?
+  parentId    String?         // For replies to comments
   
   // Interaction details
   type        InteractionType
@@ -426,12 +427,15 @@ model Interaction {
   ceremony    Ceremony?       @relation(fields: [ceremonyId], references: [id], onDelete: Cascade)
   mediaAsset  MediaAsset?     @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
   user        User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  parent      Interaction?    @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Interaction[]   @relation("CommentReplies")
 
   @@index([eventId])
   @@index([ceremonyId])
   @@index([mediaAssetId])
   @@index([type])
   @@index([isApproved])
+  @@index([parentId])
 }
 
 enum InteractionType {

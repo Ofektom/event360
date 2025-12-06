@@ -62,6 +62,8 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
   const [comments, setComments] = useState(event.comments || 0)
   const [isLiking, setIsLiking] = useState(false)
   const [showCommentModal, setShowCommentModal] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [eventComments, setEventComments] = useState<any[]>([])
   const isLive = event.event.hasLiveStream && event.event.liveStreamUrl
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -108,6 +110,27 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
     e.preventDefault()
     e.stopPropagation()
     setShowCommentModal(true)
+  }
+
+  const toggleComments = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!showComments) {
+      // Fetch comments when expanding
+      try {
+        const response = await fetch(`/api/events/${event.event.id}/interactions?type=COMMENT`)
+        if (response.ok) {
+          const data = await response.json()
+          // Filter to only top-level comments
+          const topLevelComments = data.filter((c: any) => !c.parentId)
+          setEventComments(topLevelComments)
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error)
+      }
+    }
+    setShowComments(!showComments)
   }
 
   return (
@@ -593,6 +616,51 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
         )}
       </div>
 
+      {/* Comments Section - Show below action buttons */}
+      {comments > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <button
+            onClick={toggleComments}
+            className="text-sm text-gray-600 hover:text-purple-600 font-medium mb-3"
+          >
+            {showComments ? 'Hide' : 'View'} {comments} {comments === 1 ? 'comment' : 'comments'}
+          </button>
+          
+          {showComments && eventComments.length > 0 && (
+            <div className="space-y-3 mt-3">
+              {eventComments.slice(0, 3).map((comment: any) => {
+                const authorName = comment.user?.name || comment.guestName || 'Anonymous'
+                return (
+                  <div key={comment.id} className="flex gap-2">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <span className="text-white text-xs font-semibold">
+                        {authorName.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-gray-50 rounded-lg p-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-xs text-gray-900">{authorName}</span>
+                        </div>
+                        <p className="text-sm text-gray-700 line-clamp-2">{comment.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              {comments > 3 && (
+                <button
+                  onClick={handleComment}
+                  className="text-sm text-gray-600 hover:text-purple-600 font-medium"
+                >
+                  View all {comments} comments
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Comment Modal */}
       {showCommentModal && (
         <CommentModal
@@ -600,12 +668,21 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
           eventTitle={event.event.title}
           onClose={() => setShowCommentModal(false)}
           onSuccess={async () => {
-            // Refresh comment count after successful comment
+            // Refresh comment count and comments list after successful comment
             try {
               const response = await fetch(`/api/events/${event.event.id}/like`)
               if (response.ok) {
                 const data = await response.json()
                 setComments(data.commentCount)
+              }
+              // Refresh comments list if it's currently shown
+              if (showComments) {
+                const commentsResponse = await fetch(`/api/events/${event.event.id}/interactions?type=COMMENT`)
+                if (commentsResponse.ok) {
+                  const commentsData = await commentsResponse.json()
+                  const topLevelComments = commentsData.filter((c: any) => !c.parentId)
+                  setEventComments(topLevelComments)
+                }
               }
             } catch (error) {
               console.error('Error refreshing comment count:', error)

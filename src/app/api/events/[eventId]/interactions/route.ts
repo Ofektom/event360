@@ -24,6 +24,8 @@ export async function GET(
     if (mediaAssetId) filters.mediaAssetId = mediaAssetId
     if (type) filters.type = type as InteractionType
     if (isApproved !== null) filters.isApproved = isApproved === 'true'
+    // For comments, only fetch top-level comments (no parentId) by default
+    // Replies will be included via the include in the repository
 
     const interactions = await interactionService.getInteractionsByEventId(eventId, filters)
     return NextResponse.json(interactions)
@@ -59,6 +61,7 @@ export async function POST(
       ceremonyId: body.ceremonyId,
       mediaAssetId: body.mediaAssetId,
       userId: userId || body.userId, // Use authenticated user ID if available, otherwise use body
+      parentId: body.parentId, // For replies
       type: body.type as InteractionType,
       content: body.content,
       reaction: body.reaction,
