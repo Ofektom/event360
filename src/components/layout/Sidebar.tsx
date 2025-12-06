@@ -112,7 +112,7 @@ const menuConfigs: Record<string, MenuItem[]> = {
       icon: '📁',
     },
     {
-      label: 'Gallery Settings',
+      label: 'Photos Settings',
       href: '/gallery/settings',
       icon: '⚙️',
     },
@@ -192,7 +192,7 @@ export function Sidebar({ isOpen, onClose, menuType = 'events', eventId }: Sideb
       case 'order-of-events':
         return 'Programme Management'
       case 'gallery':
-        return 'Gallery Management'
+        return 'Photos Management'
       case 'reels':
         return 'Reels Management'
       default:
