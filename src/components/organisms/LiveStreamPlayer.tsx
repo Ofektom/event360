@@ -126,55 +126,33 @@ export function LiveStreamPlayer({
   if (isHLS) {
     useEffect(() => {
       if (typeof window !== 'undefined' && videoRef.current) {
+        let hlsInstance: any = null
+
         // Check for native HLS support first (Safari, iOS)
         if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
           videoRef.current.src = streamUrl
-          return
+          return () => {
+            if (videoRef.current) {
+              videoRef.current.src = ''
+            }
+          }
         }
 
-        // Try to use hls.js for better HLS support (optional dependency)
-        // This will gracefully fail if hls.js is not installed
-        try {
-          // Dynamic import - will only work if hls.js is installed
-          import('hls.js')
-            .then((HlsModule) => {
-              const Hls = HlsModule.default || HlsModule
-              if (Hls && Hls.isSupported && videoRef.current) {
-                const hls = new Hls({
-                  enableWorker: true,
-                  lowLatencyMode: true,
-                })
-                hls.loadSource(streamUrl)
-                hls.attachMedia(videoRef.current)
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                  if (autoPlay) {
-                    videoRef.current?.play()
-                  }
-                })
-                hls.on(Hls.Events.ERROR, (event, data) => {
-                  console.error('HLS error:', data)
-                  if (data.fatal) {
-                    setError('Stream error. The stream may be offline.')
-                  }
-                })
-                return () => {
-                  hls.destroy()
-                }
-              } else if (videoRef.current) {
-                // Fallback to native video
-                videoRef.current.src = streamUrl
-              }
-            })
-            .catch(() => {
-              // hls.js not available, use native video
-              if (videoRef.current) {
-                videoRef.current.src = streamUrl
-              }
-            })
-        } catch {
-          // Fallback to native video
+        // For non-Safari browsers, try to use native video tag with HLS
+        // Most modern browsers can handle HLS via native video tag
+        // If hls.js is needed later, it can be added as an optional dependency
+        if (videoRef.current) {
+          videoRef.current.src = streamUrl
+        }
+
+        // Cleanup function
+        return () => {
+          if (hlsInstance) {
+            hlsInstance.destroy()
+            hlsInstance = null
+          }
           if (videoRef.current) {
-            videoRef.current.src = streamUrl
+            videoRef.current.src = ''
           }
         }
       }

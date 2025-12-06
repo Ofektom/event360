@@ -19,6 +19,7 @@
     "@types/html2canvas": "^1.0.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "hls.js": "^1.6.15",
     "html2canvas": "^1.4.1",
     "next": "16.0.7",
     "next-auth": "5.0.0-beta.30",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/hls.js": "^1.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
