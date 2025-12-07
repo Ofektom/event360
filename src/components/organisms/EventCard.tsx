@@ -150,8 +150,26 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
       const response = await fetch(`/api/events/${event.event.id}/interactions?type=COMMENT`)
       if (response.ok) {
         const data = await response.json()
-        // Filter to only top-level comments
-        const topLevelComments = data.filter((c: any) => !c.parentId)
+        // Filter to only top-level comments (no parentId) - replies should be nested, not separate
+        // Double-check: filter out any items that have a parentId (these are replies)
+        const allCommentIds = new Set(data.map((c: any) => c.id))
+        const topLevelComments = data
+          .filter((c: any) => {
+            // Only include if it has no parentId (top-level comment)
+            // AND it's not a reply to another comment in this list
+            return !c.parentId || !allCommentIds.has(c.parentId)
+          })
+          .filter((c: any) => !c.parentId) // Final filter to ensure only top-level
+          .map((comment: any) => {
+            // Ensure replies are properly nested and filtered
+            if (comment.replies && Array.isArray(comment.replies)) {
+              return {
+                ...comment,
+                replies: comment.replies.filter((r: any) => r.parentId === comment.id)
+              }
+            }
+            return comment
+          })
         setEventComments(topLevelComments)
         setShowComments(true)
       }
@@ -860,10 +878,14 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
         {/* Comments List - Facebook Style */}
         {showComments && eventComments.length > 0 && (
           <div className="space-y-1 mb-2">
-            {/* Show first 2-3 comments, then "View more comments" */}
-            {eventComments.slice(0, 2).map((comment: any) => renderComment(comment))}
+            {/* Show first 2 comments, then "View more comments" */}
+            {/* Only render top-level comments - replies will be nested via renderComment */}
+            {eventComments
+              .filter((c: any) => !c.parentId) // Extra safety: ensure only top-level
+              .slice(0, 2)
+              .map((comment: any) => renderComment(comment))}
             
-            {eventComments.length > 2 && (
+            {eventComments.filter((c: any) => !c.parentId).length > 2 && (
               <button
                 onClick={(e) => {
                   e.preventDefault()

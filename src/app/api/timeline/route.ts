@@ -470,9 +470,16 @@ export async function GET(request: NextRequest) {
     })
 
     // Transform to timeline posts format (keep interactions as separate posts)
+    // EXCLUDE comments - they should only appear nested in event cards, not as separate posts
     const posts = [
-      // Interaction posts
-      ...(interactions || []).map((interaction: any) => {
+      // Interaction posts (exclude comments and reactions - only show guestbook entries, blessings, wishes)
+      ...(interactions || [])
+        .filter((interaction: any) => {
+          // Only include interactions that are NOT comments or reactions
+          // Comments should only appear nested in event cards
+          return interaction.type !== 'COMMENT' && interaction.type !== 'REACTION'
+        })
+        .map((interaction: any) => {
         const eventId = interaction.event?.id
         const eventDetails = eventId ? (eventDetailsMap.get(eventId) || {
           hasProgramme: false,
