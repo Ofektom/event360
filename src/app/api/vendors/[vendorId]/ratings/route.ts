@@ -66,7 +66,7 @@ export async function POST(
     if (existingRating) {
       // Update existing rating
       const updatedRating = await prisma.$transaction(async (tx) => {
-        const rating = await tx.vendorRating.update({
+        const ratingRecord = await tx.vendorRating.update({
           where: { id: existingRating.id },
           data: {
             rating,
@@ -90,7 +90,7 @@ export async function POST(
           },
         })
 
-        return rating
+        return ratingRecord
       })
 
       return NextResponse.json(updatedRating)
@@ -98,7 +98,7 @@ export async function POST(
 
     // Create new rating
     const newRating = await prisma.$transaction(async (tx) => {
-      const rating = await tx.vendorRating.create({
+      const ratingRecord = await tx.vendorRating.create({
         data: {
           vendorId,
           eventId: eventId || null,
@@ -124,7 +124,7 @@ export async function POST(
         },
       })
 
-      return rating
+      return ratingRecord
     })
 
     return NextResponse.json(newRating, { status: 201 })
