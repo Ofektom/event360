@@ -52,17 +52,10 @@ export async function POST(request: NextRequest) {
       where: { email },
     })
 
-    if (existingVendor) {
-      return NextResponse.json(
-        { error: 'Vendor with this email already exists' },
-        { status: 400 }
-      )
-    }
-
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Create user and vendor in a transaction
+    // Create user account and link to existing vendor OR create new vendor
     const result = await prisma.$transaction(async (tx) => {
       // Create user with VENDOR role
       const user = await tx.user.create({
@@ -75,32 +68,60 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Create vendor profile linked to user
-      const vendor = await tx.vendor.create({
-        data: {
-          ownerName,
-          businessName,
-          category,
-          email,
-          phone,
-          whatsapp: whatsapp || phone,
-          address,
-          city,
-          state,
-          country: country || 'Nigeria',
+      let vendor
+
+      if (existingVendor) {
+        // Link existing vendor to user account
+        // Preserve existing vendor data, only update if new data is provided
+        const updateData: any = {
           userId: user.id,
-          isActive: true,
-          // Vendor is not verified by default - can be verified by admin later
-          isVerified: false,
-        },
-      })
+          isVerified: true, // Auto-verify when vendor signs up and links account
+        }
+
+        // Only update fields if new values are provided
+        if (ownerName) updateData.ownerName = ownerName
+        if (businessName) updateData.businessName = businessName
+        if (phone) updateData.phone = phone
+        if (whatsapp) updateData.whatsapp = whatsapp
+        if (address) updateData.address = address
+        if (city) updateData.city = city
+        if (state) updateData.state = state
+        if (country) updateData.country = country
+
+        vendor = await tx.vendor.update({
+          where: { id: existingVendor.id },
+          data: updateData,
+        })
+      } else {
+        // Create new vendor profile (for vendors signing up directly without being added to event first)
+        vendor = await tx.vendor.create({
+          data: {
+            ownerName,
+            businessName,
+            category,
+            email,
+            phone,
+            whatsapp: whatsapp || phone,
+            address,
+            city,
+            state,
+            country: country || 'Nigeria',
+            userId: user.id,
+            isActive: true,
+            // Vendor is auto-verified when they sign up directly
+            isVerified: true,
+          },
+        })
+      }
 
       return { user, vendor }
     })
 
     return NextResponse.json(
       {
-        message: 'Vendor account created successfully',
+        message: existingVendor 
+          ? 'Account created and linked to existing vendor profile successfully'
+          : 'Vendor account created successfully',
         user: {
           id: result.user.id,
           name: result.user.name,
@@ -112,6 +133,7 @@ export async function POST(request: NextRequest) {
           businessName: result.vendor.businessName,
           category: result.vendor.category,
         },
+        linkedToExisting: !!existingVendor,
       },
       { status: 201 }
     )

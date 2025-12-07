@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendVendorInvitation } from '@/services/vendor/vendor-invitation.service'
 
 // GET /api/events/[eventId]/vendors - Get vendors for an event
 export async function GET(
@@ -171,6 +172,19 @@ export async function POST(
       )
     }
 
+    // Get event details for invitation
+    const eventDetails = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        title: true,
+        owner: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    })
+
     // Add vendor to event
     const eventVendor = await prisma.eventVendor.create({
       data: {
@@ -198,10 +212,27 @@ export async function POST(
             isVerified: true,
             averageRating: true,
             totalRatings: true,
+            userId: true, // Check if vendor has account
           },
         },
       },
     })
+
+    // Send WhatsApp invitation if vendor doesn't have an account yet
+    // Only send if this is a newly created vendor (not already in system)
+    if (!eventVendor.vendor.userId && !body.vendorId) {
+      try {
+        await sendVendorInvitation({
+          vendorId,
+          eventId,
+          eventTitle: eventDetails?.title || 'Event',
+          eventOwnerName: eventDetails?.owner?.name || user.name || undefined,
+        })
+      } catch (inviteError) {
+        // Log error but don't fail the request
+        console.error('Error sending vendor invitation:', inviteError)
+      }
+    }
 
     return NextResponse.json(eventVendor, { status: 201 })
   } catch (error: any) {

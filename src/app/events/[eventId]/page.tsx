@@ -53,6 +53,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -79,6 +80,8 @@ export default function EventDetailPage() {
       // Check if current user is the owner
       if (session?.user?.id && data.ownerId === session.user.id) {
         setIsOwner(true)
+      } else {
+        setIsOwner(false)
       }
     } catch (error) {
       console.error('Error fetching event:', error)
@@ -347,6 +350,11 @@ export default function EventDetailPage() {
               ))}
             </div>
           )}
+        </Card>
+
+        {/* Vendors Section */}
+        <Card className="p-8">
+          <EventVendorsList eventId={eventId} isOwner={isOwner} />
         </Card>
 
         {/* Quick Actions */}
