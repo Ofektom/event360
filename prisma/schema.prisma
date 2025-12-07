@@ -33,12 +33,14 @@ model User {
   familyMembers FamilyMember[]
   interactions  Interaction[]
   mediaAssets   MediaAsset[]
+  vendor        Vendor?        // One-to-one: User can be a vendor
 
   @@index([email])
 }
 
 enum UserRole {
   USER
+  VENDOR
   ADMIN
 }
 
@@ -144,6 +146,8 @@ model Event {
   invites     Invite[]
   interactions Interaction[]
   invitationDesigns InvitationDesign[]
+  eventVendors EventVendor[]
+  vendorRatings VendorRating[]
 
   @@index([slug])
   @@index([ownerId])
@@ -558,4 +562,138 @@ model InvitationDesign {
 
   @@index([eventId])
   @@index([templateId])
+}
+
+// Vendor - Service providers for events
+model Vendor {
+  id              String   @id @default(cuid())
+  ownerName       String?  // Owner/person name (e.g., "John Doe")
+  businessName    String?  // Business/brand name (e.g., "Elegant Events Co.")
+  category        VendorCategory
+  description     String?
+  
+  // Contact Information
+  email           String
+  phone           String   // WhatsApp number
+  whatsapp        String?  // Explicit WhatsApp field
+  website         String?
+  socialMedia     Json?    // { instagram, facebook, twitter }
+  
+  // Location (for proximity search)
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  latitude        Float?   // For geolocation
+  longitude       Float?   // For geolocation
+  
+  // Profile
+  logo            String?  // Profile image
+  coverImage      String?
+  portfolio       Json?    // Array of image URLs
+  
+  // Status
+  isVerified      Boolean  @default(false)
+  verifiedAt      DateTime?  // When vendor was verified
+  verifiedBy      String?    // Admin who verified (optional)
+  isActive        Boolean  @default(true)
+  invitationSent  Boolean  @default(false)
+  invitationToken String?  @unique // For invitation link
+  userId          String?  @unique // Linked user account (after signup)
+  
+  // Ratings & SEO
+  averageRating   Float    @default(0)
+  totalRatings    Int      @default(0)
+  seoScore        Float    @default(0) // Calculated from ratings, reviews, activity
+  
+  // Reminder preferences
+  reminderPreferences Json?  // { whatsapp: true, email: true, daysBefore: [7, 1] }
+  
+  // Availability
+  availability    Json?    // Calendar/availability data
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventVendors    EventVendor[]
+  ratings         VendorRating[]
+  
+  @@index([category])
+  @@index([city, state])
+  @@index([averageRating])
+  @@index([seoScore])
+  @@index([email])
+  @@index([phone])
+  @@index([invitationToken])
+  @@index([isVerified])
+  @@index([isActive])
+}
+
+enum VendorCategory {
+  MAKEUP_ARTIST
+  RENTALS
+  BRIDALS
+  FASHION_DESIGNER
+  HAIR_STYLIST
+  BARBER
+  COOK
+  DECORATOR
+  CAKE_PASTRY_MAKER
+  BAND
+  GROOMING_ARTIST
+  MC_COMPERE
+  PHOTOGRAPHER
+  VIDEOGRAPHER
+  DJ
+  CATERER
+  FLORIST
+}
+
+model EventVendor {
+  id          String   @id @default(cuid())
+  eventId     String
+  vendorId    String
+  role        String?  // e.g., "Primary", "Secondary", "Backup"
+  notes       String?  // Event-specific notes
+  status      EventVendorStatus @default(PENDING) // PENDING, ACCEPTED, DECLINED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  @@unique([eventId, vendorId])
+  @@index([eventId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+enum EventVendorStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+model VendorRating {
+  id          String   @id @default(cuid())
+  vendorId    String
+  eventId     String?  // Optional - can rate without event context
+  userId      String   // User who rated
+  rating      Int      // 1-5 stars
+  review      String?  // Optional text review
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([vendorId, userId, eventId]) // One rating per user per vendor per event
+  @@index([vendorId])
+  @@index([eventId])
+  @@index([userId])
 }

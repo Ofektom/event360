@@ -11,6 +11,7 @@ import { EventHeader } from '@/components/organisms/EventHeader'
 import { ShareEventModal } from '@/components/organisms/ShareEventModal'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
+import { EventVendorsList } from '@/components/organisms/EventVendorsList'
 
 interface Event {
   id: string
@@ -75,6 +76,10 @@ export default function EventDetailPage() {
       }
       const data = await response.json()
       setEvent(data)
+      // Check if current user is the owner
+      if (session?.user?.id && data.ownerId === session.user.id) {
+        setIsOwner(true)
+      }
     } catch (error) {
       console.error('Error fetching event:', error)
     } finally {
