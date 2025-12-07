@@ -114,7 +114,12 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
   const handleComment = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setShowCommentModal(true)
+    // If comments are not shown, show them first, otherwise open modal
+    if (!showComments && comments > 0) {
+      toggleComments(e)
+    } else {
+      setShowCommentModal(true)
+    }
   }
 
   const formatTimeAgo = (dateString: string) => {
@@ -247,7 +252,10 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
   }
 
   const renderComment = (comment: any, isReply = false, depth = 0) => {
-    const authorName = comment.user?.name || comment.guestName || 'Anonymous'
+    const fullName = comment.user?.name || comment.guestName || 'Anonymous'
+    // Show only first 2 names (first name and last name)
+    const nameParts = fullName.split(' ')
+    const authorName = nameParts.length > 2 ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` : fullName
     const authorImage = comment.user?.image
     const hasReplies = comment.replies && comment.replies.length > 0
     const isExpanded = expandedReplies.has(comment.id)
