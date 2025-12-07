@@ -34,6 +34,7 @@ model User {
   interactions  Interaction[]
   mediaAssets   MediaAsset[]
   vendor        Vendor?        // One-to-one: User can be a vendor
+  vendorRatings VendorRating[] // Ratings given by this user to vendors
 
   @@index([email])
 }
