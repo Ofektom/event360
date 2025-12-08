@@ -66,9 +66,8 @@ export async function sendVendorInvitation(
     })
 
     // Create invitation link
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                   process.env.NEXTAUTH_URL || 
-                   'https://event360-three.vercel.app'
+    const { getBaseUrl } = await import('@/lib/utils')
+    const baseUrl = getBaseUrl()
     const invitationLink = `${baseUrl}/vendor/invite/${invitationToken}`
 
     // Send WhatsApp invitation

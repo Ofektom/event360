@@ -29,6 +29,7 @@ Make sure these are all set in Vercel:
 - ✅ `DATABASE_URL` - Your PostgreSQL connection string
 - ✅ `NEXTAUTH_SECRET` - Generate with: `openssl rand -base64 32`
 - ✅ `NEXTAUTH_URL` - **`https://event360-three.vercel.app`** (NO trailing slash) ⚠️ **THIS IS THE FIX**
+- ✅ `NEXT_PUBLIC_APP_URL` - **`https://event360-three.vercel.app`** (NO trailing slash) - Used for generating share links, invitation links, and other absolute URLs
 
 **OAuth Providers:**
 - ✅ `FACEBOOK_CLIENT_ID` - Your Facebook App ID

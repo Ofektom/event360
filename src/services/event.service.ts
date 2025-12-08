@@ -1,6 +1,7 @@
 import { EventRepository } from '@/repositories/event.repository'
 import { CreateEventDto, UpdateEventDto, GetEventsFilters } from '@/types/event.types'
 import { EventStatus } from '@/types/enums'
+import { getBaseUrl } from '@/lib/utils'
 
 type Event = Awaited<ReturnType<EventRepository['findById']>>
 
@@ -46,7 +47,7 @@ export class EventService {
 
     // Generate QR code and share link
     const qrCode = `qr-${Date.now()}-${Math.random().toString(36).substring(7)}`
-    const shareLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/e/${uniqueSlug}`
+    const shareLink = `${getBaseUrl()}/e/${uniqueSlug}`
 
     // Create event
     return this.eventRepository.create({

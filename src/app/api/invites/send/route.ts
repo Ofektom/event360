@@ -140,9 +140,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate share link with full event URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const { getBaseUrl } = await import('@/lib/utils')
+    const baseUrl = getBaseUrl()
     const shareLink = event.slug
-      ? `${baseUrl}/events/${event.slug}`
+      ? `${baseUrl}/e/${event.slug}`
       : `${baseUrl}/events/${eventId}`
     
     console.log(`[${requestId}] 🔗 Share link: ${shareLink}`)

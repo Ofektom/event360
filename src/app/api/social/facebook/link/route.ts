@@ -32,14 +32,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate Facebook OAuth URL with state parameter for linking
-    // Use NEXTAUTH_URL from environment (set in Vercel) or fallback to request origin
-    // Normalize baseUrl to remove trailing slashes to match Facebook settings exactly
-    let baseUrl = process.env.NEXTAUTH_URL || 
-                  process.env.NEXT_PUBLIC_APP_URL || 
-                  (request.headers.get('origin') || 'http://localhost:3000')
-    
-    // Remove trailing slash to ensure exact match with Facebook settings
-    baseUrl = baseUrl.replace(/\/$/, '')
+    // Use getBaseUrl utility for consistent base URL handling
+    const { getBaseUrl } = await import('@/lib/utils')
+    const baseUrl = getBaseUrl()
     
     // Ensure redirect URI matches exactly what's in Facebook App settings
     const redirectUri = `${baseUrl}/api/auth/callback/facebook`

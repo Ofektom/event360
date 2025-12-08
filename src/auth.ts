@@ -334,10 +334,10 @@ export const authConfig = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Use NEXTAUTH_URL from environment if available, otherwise use baseUrl
+      // Use getBaseUrl utility for consistent base URL handling
       // This ensures production URLs are used even if baseUrl defaults to localhost
-      const productionUrl = process.env.NEXTAUTH_URL || baseUrl
-      const normalizedBaseUrl = productionUrl.replace(/\/$/, '')
+      const { getBaseUrl } = await import('@/lib/utils')
+      const normalizedBaseUrl = getBaseUrl()
       
       // Handle send-invitations redirects (from account linking flow)
       // The redirect path is passed in the URL itself from the linking flow

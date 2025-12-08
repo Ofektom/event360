@@ -193,9 +193,8 @@ export async function sendWhatsAppInvite(
       imageUrl = invitationImageUrl
       if (imageUrl.startsWith('/')) {
         // Relative URL - convert to absolute
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                       process.env.NEXTAUTH_URL || 
-                       'https://event360-three.vercel.app'
+        const { getBaseUrl } = await import('@/lib/utils')
+        const baseUrl = getBaseUrl()
         imageUrl = `${baseUrl}${imageUrl}`
         console.log(`[${requestId}] 🔗 Converted relative URL to absolute: ${imageUrl}`)
       } else if (imageUrl.startsWith('data:')) {
