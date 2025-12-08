@@ -55,7 +55,7 @@ export function VendorReminderSettings({ vendor }: VendorReminderSettingsProps) 
 
   const handleRemoveDay = (index: number) => {
     if (preferences.daysBefore.length > 1) {
-      const newDays = preferences.daysBefore.filter((_, i) => i !== index)
+      const newDays = preferences.daysBefore.filter((_: number, i: number) => i !== index)
       setPreferences({
         ...preferences,
         daysBefore: newDays,
