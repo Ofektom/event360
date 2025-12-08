@@ -34,6 +34,17 @@ interface Event {
   }
 }
 
+interface EventStats {
+  invitationDesigns: number
+  rsvpBreakdown: {
+    accepted: number
+    pending: number
+    declined: number
+    maybe: number
+  }
+  totalInvites: number
+}
+
 interface Ceremony {
   id: string
   name: string
@@ -55,6 +66,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showShareModal, setShowShareModal] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
+  const [stats, setStats] = useState<EventStats | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -68,21 +80,62 @@ export default function EventDetailPage() {
 
   const fetchEvent = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}`)
-      if (!response.ok) {
-        if (response.status === 401) {
+      const [eventResponse, designsResponse, inviteesResponse] = await Promise.all([
+        fetch(`/api/events/${eventId}`),
+        fetch(`/api/invitations/designs?eventId=${eventId}`),
+        fetch(`/api/events/${eventId}/invitees`),
+      ])
+
+      if (!eventResponse.ok) {
+        if (eventResponse.status === 401) {
           router.push('/auth/signin')
           return
         }
         throw new Error('Failed to fetch event')
       }
-      const data = await response.json()
-      setEvent(data)
+
+      const eventData = await eventResponse.json()
+      setEvent(eventData)
+
       // Check if current user is the owner
-      if (session?.user?.id && data.ownerId === session.user.id) {
-        setIsOwner(true)
-      } else {
-        setIsOwner(false)
+      const userIsOwner = session?.user?.id && eventData.ownerId === session.user.id
+      setIsOwner(userIsOwner || false)
+
+      // Fetch additional stats (only for owners)
+      if (userIsOwner) {
+        try {
+          const [designsData, inviteesData] = await Promise.all([
+            designsResponse.ok ? designsResponse.json() : Promise.resolve([]),
+            inviteesResponse.ok ? inviteesResponse.json() : Promise.resolve([]),
+          ])
+
+          // Calculate RSVP breakdown
+          const rsvpBreakdown = {
+            accepted: inviteesData.filter((i: any) => i.rsvpStatus === 'ACCEPTED').length,
+            pending: inviteesData.filter((i: any) => i.rsvpStatus === 'PENDING').length,
+            declined: inviteesData.filter((i: any) => i.rsvpStatus === 'DECLINED').length,
+            maybe: inviteesData.filter((i: any) => i.rsvpStatus === 'MAYBE').length,
+          }
+
+          // Count total invites sent
+          const totalInvites = inviteesData.reduce((sum: number, invitee: any) => {
+            return sum + (invitee._count?.invites || 0)
+          }, 0)
+
+          setStats({
+            invitationDesigns: designsData.length || 0,
+            rsvpBreakdown,
+            totalInvites,
+          })
+        } catch (statsError) {
+          console.error('Error fetching stats:', statsError)
+          // Set default stats if fetch fails
+          setStats({
+            invitationDesigns: 0,
+            rsvpBreakdown: { accepted: 0, pending: 0, declined: 0, maybe: 0 },
+            totalInvites: 0,
+          })
+        }
       }
     } catch (error) {
       console.error('Error fetching event:', error)
@@ -289,6 +342,11 @@ export default function EventDetailPage() {
               {event._count.invitees}
           </div>
             <div className="text-sm text-gray-600">Guests</div>
+            {stats && (
+              <div className="text-xs text-gray-500 mt-1">
+                {stats.rsvpBreakdown.accepted} accepted, {stats.rsvpBreakdown.pending} pending
+              </div>
+            )}
           </Card>
           <Card className="p-6">
             <div className="text-2xl font-bold text-blue-600">
@@ -303,6 +361,69 @@ export default function EventDetailPage() {
             <div className="text-sm text-gray-600">Vendors</div>
           </Card>
         </div>
+
+        {/* Additional Stats Row */}
+        {stats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-6">
+              <div className="text-2xl font-bold text-indigo-600">
+                {stats.invitationDesigns}
+              </div>
+              <div className="text-sm text-gray-600">Invitation Designs</div>
+            </Card>
+            <Card className="p-6">
+              <div className="text-2xl font-bold text-green-600">
+                {stats.totalInvites}
+              </div>
+              <div className="text-sm text-gray-600">Invites Sent</div>
+            </Card>
+            <Card className="p-6">
+              <div className="text-2xl font-bold text-orange-600">
+                {event._count.interactions}
+              </div>
+              <div className="text-sm text-gray-600">Interactions</div>
+            </Card>
+            <Card className="p-6">
+              <div className="text-2xl font-bold text-teal-600">
+                {stats.rsvpBreakdown.accepted + stats.rsvpBreakdown.maybe}
+              </div>
+              <div className="text-sm text-gray-600">Attending</div>
+            </Card>
+          </div>
+        )}
+
+        {/* RSVP Breakdown - Only for owners */}
+        {isOwner && stats && stats.rsvpBreakdown && (
+          <Card className="p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">RSVP Status</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.rsvpBreakdown.accepted}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Accepted</div>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {stats.rsvpBreakdown.pending}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Pending</div>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.rsvpBreakdown.declined}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Declined</div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {stats.rsvpBreakdown.maybe}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Maybe</div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Ceremonies Section */}
         <Card className="p-8">
