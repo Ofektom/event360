@@ -77,8 +77,8 @@ function formatPhoneNumber(phone: string): string {
     else {
       cleaned = `+${cleaned}`
     }
-    console.log(`📱 Added country code: "${cleaned}"`)
-  }
+      console.log(`📱 Added country code: "${cleaned}"`)
+    }
   
   // Validate E.164 format: + followed by 1-15 digits
   const e164Pattern = /^\+[1-9]\d{1,14}$/
@@ -120,14 +120,24 @@ export async function sendWhatsAppInvite(
     const phoneNumberId = process.env.SENDZEN_PHONE_NUMBER_ID // Keep for backward compatibility
     // Template configuration
     const templateName = process.env.SENDZEN_TEMPLATE_NAME || 'event_invitation'
-    const templateLanguage = process.env.SENDZEN_TEMPLATE_LANGUAGE || 'en_US'
+    const templateLanguage = (process.env.SENDZEN_TEMPLATE_LANGUAGE || 'en_US').trim() // Ensure no whitespace
     const useTemplate = process.env.SENDZEN_USE_TEMPLATE !== 'false' // Default to true
+    
+    // Validate template language code
+    if (!templateLanguage || templateLanguage.length === 0) {
+      console.error(`[${requestId}] ❌ Template language code is empty or invalid: "${templateLanguage}"`)
+      return {
+        success: false,
+        error: 'Template language code is required. Please set SENDZEN_TEMPLATE_LANGUAGE environment variable (e.g., "en_US").',
+      }
+    }
 
     console.log(`[${requestId}] 🔧 Configuration check:`)
     console.log(`[${requestId}]   - API Key: ${apiKey ? `✅ Present (${apiKey.substring(0, 10)}...)` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - API URL: ${apiUrl}`)
     console.log(`[${requestId}]   - From Phone Number: ${fromPhoneNumber ? `✅ ${fromPhoneNumber}` : '❌ MISSING'}`)
-    console.log(`[${requestId}]   - Phone Number ID (legacy): ${phoneNumberId ? `✅ ${phoneNumberId}` : '❌ MISSING'}`)
+    console.log(`[${requestId}]   - Phone Number ID: ${phoneNumberId ? `✅ ${phoneNumberId}` : '❌ MISSING'}`)
+    console.log(`[${requestId}]   - Phone Number: ${fromPhoneNumber ? `✅ ${fromPhoneNumber}` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - Template Name: ${templateName}`)
     console.log(`[${requestId}]   - Template Language: ${templateLanguage}`)
     console.log(`[${requestId}]   - Use Template: ${useTemplate ? '✅ Yes' : '❌ No'}`)
@@ -159,24 +169,61 @@ export async function sendWhatsAppInvite(
       }
     }
 
-    if (!fromPhoneNumber) {
+    // Check if either phone number or phone number ID is configured
+    if (!fromPhoneNumber && !phoneNumberId) {
       console.error(`[${requestId}] ❌ Phone Number not configured`)
       return {
         success: false,
         error: 'WhatsApp phone number not configured. Please set SENDZEN_PHONE_NUMBER (E.164 format, e.g., +1234567890) or SENDZEN_PHONE_NUMBER_ID in environment variables.',
       }
     }
+    
+    // Log which one we'll use
+    if (phoneNumberId) {
+      console.log(`[${requestId}] ✅ Phone Number ID found: ${phoneNumberId.substring(0, 10)}... (will use this for 'from' field)`)
+    } else if (fromPhoneNumber) {
+      console.log(`[${requestId}] ✅ Phone Number found: ${fromPhoneNumber} (will format and use for 'from' field)`)
+    }
 
     // Ensure the 'from' phone number is in E.164 format
+    // SendZen might require the phone number ID instead of the actual number
+    // Try using phoneNumberId first if available, otherwise use formatted phone number
     let formattedFrom: string
     try {
-      formattedFrom = formatPhoneNumber(fromPhoneNumber)
-      console.log(`[${requestId}] ✅ Formatted 'from' number: "${fromPhoneNumber}" → "${formattedFrom}"`)
+      // If phoneNumberId is set, use it directly (SendZen might prefer this)
+      if (phoneNumberId && phoneNumberId.trim().length > 0) {
+        formattedFrom = phoneNumberId.trim()
+        console.log(`[${requestId}] ✅ Using phone number ID as 'from': "${formattedFrom}"`)
+      } else {
+        // Otherwise, format the phone number
+        formattedFrom = formatPhoneNumber(fromPhoneNumber)
+        console.log(`[${requestId}] ✅ Formatted 'from' number: "${fromPhoneNumber}" → "${formattedFrom}"`)
+        
+        // Validate E.164 format: should be + followed by 1-15 digits
+        const e164Pattern = /^\+[1-9]\d{1,14}$/
+        if (!e164Pattern.test(formattedFrom)) {
+          console.error(`[${requestId}] ❌ 'From' number "${formattedFrom}" is not in valid E.164 format (length: ${formattedFrom.length})`)
+          return {
+            success: false,
+            error: `Invalid 'from' phone number format: "${formattedFrom}". Phone number must be in E.164 format (e.g., +1234567890 or +2348012345678). Current length: ${formattedFrom.length} characters. Please set SENDZEN_PHONE_NUMBER_ID if you have a phone number ID from SendZen.`,
+          }
+        }
+        
+        // Check length - E.164 should be 7-15 digits after the +
+        const digitsAfterPlus = formattedFrom.substring(1)
+        if (digitsAfterPlus.length < 7 || digitsAfterPlus.length > 15) {
+          console.error(`[${requestId}] ❌ 'From' number has invalid length: ${digitsAfterPlus.length} digits (should be 7-15)`)
+          return {
+            success: false,
+            error: `'From' phone number has invalid length: ${digitsAfterPlus.length} digits. E.164 format requires 7-15 digits after the country code (e.g., +1234567890 has 10 digits). Please check your phone number format or use SENDZEN_PHONE_NUMBER_ID.`,
+          }
+        }
+      }
     } catch (formatError: any) {
       console.error(`[${requestId}] ❌ 'From' phone number formatting error:`, formatError.message)
       return {
         success: false,
-        error: `Invalid 'from' phone number format: ${formatError.message}. Please ensure SENDZEN_PHONE_NUMBER is in E.164 format (e.g., +1234567890).`,
+        error: `Invalid 'from' phone number format: ${formatError.message}. Please ensure SENDZEN_PHONE_NUMBER is in E.164 format (e.g., +1234567890) or set SENDZEN_PHONE_NUMBER_ID.`,
       }
     }
 
@@ -235,11 +282,25 @@ export async function sendWhatsAppInvite(
       requestBody.type = 'template'
       requestBody.template = {
         name: templateName,
-        language: {
-          code: templateLanguage,
-        },
+        lang_code: templateLanguage, // SendZen expects 'lang_code' directly (e.g., "en_US")
         components: [],
       }
+      
+      // Validate template structure before sending
+      if (!requestBody.template.lang_code || requestBody.template.lang_code.trim().length === 0) {
+        console.error(`[${requestId}] ❌ Template lang_code is empty or invalid: "${requestBody.template.lang_code}"`)
+        return {
+          success: false,
+          error: `Template language code is required. Current value: "${requestBody.template.lang_code}". Please set SENDZEN_TEMPLATE_LANGUAGE environment variable (e.g., "en_US").`,
+        }
+      }
+      
+      console.log(`[${requestId}] ✅ Template structure validated:`, {
+        name: requestBody.template.name,
+        lang_code: requestBody.template.lang_code,
+        lang_codeLength: requestBody.template.lang_code.length,
+        componentsCount: requestBody.template.components.length
+      })
 
       // Add header component if we have an image
       if (imageUrl) {

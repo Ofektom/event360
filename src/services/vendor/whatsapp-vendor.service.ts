@@ -131,9 +131,7 @@ export async function sendWhatsAppVendorInvite(
       requestBody.type = 'template'
       requestBody.template = {
         name: templateName,
-        language: {
-          code: templateLanguage,
-        },
+        lang_code: templateLanguage, // SendZen expects 'lang_code' directly, not nested in 'language.code'
         components: [
           {
             type: 'body',
