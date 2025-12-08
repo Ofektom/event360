@@ -309,15 +309,26 @@ export async function sendWhatsAppInvite(
 
     console.log(`[${requestId}] 📤 Request body prepared:`, {
       type: requestBody.type,
+      from: requestBody.from,
       to: requestBody.to,
       hasImage: !!requestBody.image,
       hasText: !!requestBody.text,
       hasTemplate: !!requestBody.template,
       templateName: requestBody.template?.name,
+      templateLanguage: requestBody.template?.language?.code,
       imageLink: requestBody.image?.link?.substring(0, 100) || requestBody.template?.components?.[0]?.parameters?.[0]?.image?.link?.substring(0, 100),
       textLength: requestBody.text?.body?.length,
       templateVariables: requestBody.template?.components?.find((c: any) => c.type === 'body')?.parameters?.map((p: any) => p.text?.substring(0, 30)),
+      templateComponents: requestBody.template?.components?.map((c: any) => ({
+        type: c.type,
+        parametersCount: c.parameters?.length || 0
+      }))
     })
+
+    // Log the full request body for debugging
+    const requestBodyString = JSON.stringify(requestBody, null, 2)
+    console.log(`[${requestId}] 📤 Full Request Body:`, requestBodyString)
+    console.log(`[${requestId}] 📤 Request Body Size: ${requestBodyString.length} bytes`)
 
     // Make API request to SendZen
     // SendZen API format: POST https://api.sendzen.io/v1/messages
@@ -333,8 +344,7 @@ export async function sendWhatsAppInvite(
         'Authorization': `Bearer ${apiKey.substring(0, 10)}...`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody, null, 2),
-      bodySize: JSON.stringify(requestBody).length
+      bodySize: requestBodyString.length
     })
 
     const startTime = Date.now()
@@ -356,20 +366,41 @@ export async function sendWhatsAppInvite(
     })
 
     let responseData: any
+    let responseText: string = ''
     try {
-      const responseText = await response.text()
+      responseText = await response.text()
       console.log(`[${requestId}] 📥 Response body (raw):`, responseText)
+      console.log(`[${requestId}] 📥 Response body length:`, responseText.length)
       
-      try {
-        responseData = JSON.parse(responseText)
-        console.log(`[${requestId}] 📥 Response body (parsed):`, JSON.stringify(responseData, null, 2))
-      } catch (parseError) {
-        console.error(`[${requestId}] ❌ Failed to parse response as JSON:`, parseError)
-        responseData = { raw: responseText }
+      // Try to parse as JSON
+      if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+        try {
+          responseData = JSON.parse(responseText)
+          console.log(`[${requestId}] 📥 Response body (parsed JSON):`, JSON.stringify(responseData, null, 2))
+        } catch (parseError: any) {
+          console.error(`[${requestId}] ❌ Failed to parse response as JSON:`, parseError.message)
+          console.error(`[${requestId}] ❌ Response text that failed to parse:`, responseText.substring(0, 500))
+          responseData = { 
+            raw: responseText,
+            parseError: parseError.message 
+          }
+        }
+      } else {
+        // Not JSON, treat as plain text error
+        console.log(`[${requestId}] 📥 Response is not JSON, treating as text error`)
+        responseData = { 
+          error: responseText,
+          message: responseText,
+          raw: responseText
+        }
       }
-    } catch (readError) {
-      console.error(`[${requestId}] ❌ Failed to read response:`, readError)
-      responseData = { error: 'Failed to read response' }
+    } catch (readError: any) {
+      console.error(`[${requestId}] ❌ Failed to read response:`, readError.message)
+      console.error(`[${requestId}] ❌ Read error stack:`, readError.stack)
+      responseData = { 
+        error: 'Failed to read response',
+        readError: readError.message 
+      }
     }
 
     if (!response.ok) {
@@ -390,44 +421,93 @@ export async function sendWhatsAppInvite(
       
       if (response.status === 400) {
         console.error(`[${requestId}] ❌ Bad Request (400) - Invalid request format`)
+        console.error(`[${requestId}] ❌ Response Status: ${response.status} ${response.statusText}`)
+        console.error(`[${requestId}] ❌ Response Headers:`, Object.fromEntries(response.headers.entries()))
         
-        // Extract error details more thoroughly
-        const errorDetails = responseData?.error || responseData
-        const errorMessage = errorDetails?.message || 
-                           responseData?.message || 
-                           (typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails)) ||
-                           'Invalid request. Please check phone number format.'
+        // Extract error details more thoroughly - try multiple paths
+        const errorDetails = responseData?.error || 
+                            responseData?.data?.error || 
+                            responseData?.errors || 
+                            responseData
         
-        // Extract validation errors if present
-        const validationErrors = errorDetails?.errors || 
+        // Try to extract error message from multiple possible locations
+        let errorMessage = errorDetails?.message || 
+                          responseData?.message || 
+                          errorDetails?.error?.message ||
+                          errorDetails?.title ||
+                          errorDetails?.detail ||
+                          (typeof errorDetails === 'string' ? errorDetails : null) ||
+                          (typeof responseData === 'string' ? responseData : null) ||
+                          'Invalid request. Please check phone number format.'
+        
+        // If errorMessage is still generic, try to extract from raw response
+        if (errorMessage === 'One or more validation errors occurred.' || errorMessage.includes('validation')) {
+          // Try to find more specific error details
+          if (responseData?.errors) {
+            errorMessage = `Validation errors: ${JSON.stringify(responseData.errors)}`
+          } else if (responseData?.error?.errors) {
+            errorMessage = `Validation errors: ${JSON.stringify(responseData.error.errors)}`
+          } else if (responseText) {
+            // Try to extract from raw text
+            errorMessage = `Validation error. Raw response: ${responseText.substring(0, 500)}`
+          }
+        }
+        
+        // Extract validation errors if present - check multiple possible locations
+        const validationErrors = responseData?.errors ||
+                                responseData?.error?.errors ||
+                                errorDetails?.errors || 
                                 errorDetails?.validation_errors || 
                                 errorDetails?.details ||
                                 errorDetails?.validationErrors ||
-                                (Array.isArray(errorDetails) ? errorDetails : null)
+                                responseData?.validation_errors ||
+                                (Array.isArray(errorDetails) ? errorDetails : null) ||
+                                (Array.isArray(responseData) ? responseData : null)
         
         // Log full error details
-        console.error(`[${requestId}] ❌ Full Error Response:`, JSON.stringify(responseData, null, 2))
+        console.error(`[${requestId}] ❌ Full Error Response Object:`, JSON.stringify(responseData, null, 2))
+        console.error(`[${requestId}] ❌ Raw Response Text:`, responseText)
         if (validationErrors) {
-          console.error(`[${requestId}] ❌ Validation Errors:`, JSON.stringify(validationErrors, null, 2))
+          console.error(`[${requestId}] ❌ Validation Errors Found:`, JSON.stringify(validationErrors, null, 2))
+        } else {
+          console.error(`[${requestId}] ⚠️ No validation errors array found in response`)
         }
         
         // Build detailed error message
         let detailedErrorMessage = errorMessage
         if (validationErrors) {
           if (Array.isArray(validationErrors)) {
-            detailedErrorMessage += `\nValidation errors: ${validationErrors.map(e => typeof e === 'string' ? e : JSON.stringify(e)).join(', ')}`
+            const errorList = validationErrors.map(e => {
+              if (typeof e === 'string') return e
+              if (e?.field && e?.message) return `${e.field}: ${e.message}`
+              if (e?.property && e?.message) return `${e.property}: ${e.message}`
+              return JSON.stringify(e)
+            }).join('\n')
+            detailedErrorMessage = `Validation errors:\n${errorList}`
           } else if (typeof validationErrors === 'object') {
             const errorList = Object.entries(validationErrors)
-              .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+              .map(([key, value]) => {
+                if (Array.isArray(value)) {
+                  return `${key}: ${value.join(', ')}`
+                }
+                return `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`
+              })
               .join('\n')
-            detailedErrorMessage += `\nValidation errors:\n${errorList}`
+            detailedErrorMessage = `Validation errors:\n${errorList}`
           } else {
-            detailedErrorMessage += `\nValidation errors: ${validationErrors}`
+            detailedErrorMessage = `Validation errors: ${validationErrors}`
           }
+        } else if (responseText && responseText.length > 0) {
+          // If no structured errors, include raw response
+          detailedErrorMessage = `${errorMessage}\n\nRaw response: ${responseText.substring(0, 1000)}`
         }
         
         // Check for specific WhatsApp Business API errors
-        const errorCode = errorDetails?.code || errorDetails?.subcode || responseData?.error?.code || responseData?.error?.subcode
+        const errorCode = errorDetails?.code || 
+                         errorDetails?.subcode || 
+                         responseData?.error?.code || 
+                         responseData?.error?.subcode ||
+                         responseData?.code
         
         // If template message fails, try regular message as fallback
         if (useTemplate && requestBody.type === 'template' && (errorCode === 131047 || errorMessage.toLowerCase().includes('cannot be delivered') || errorMessage.toLowerCase().includes('template') || errorMessage.toLowerCase().includes('not found') || errorMessage.toLowerCase().includes('not approved') || errorMessage.toLowerCase().includes('validation'))) {
