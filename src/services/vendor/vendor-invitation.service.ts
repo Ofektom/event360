@@ -82,8 +82,8 @@ export async function sendVendorInvitation(
 
     const result = await sendWhatsAppVendorInvite({
       to: whatsappNumber,
-      vendorName: vendor.ownerName || vendor.businessName,
-      businessName: vendor.businessName,
+      vendorName: vendor.ownerName || vendor.businessName || 'Vendor',
+      businessName: vendor.businessName || 'Vendor Service',
       eventTitle,
       eventOwnerName: eventOwnerName || 'Event Organizer',
       invitationLink,
