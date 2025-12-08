@@ -140,15 +140,16 @@ export async function sendWhatsAppInvite(
     }
 
     console.log(`[${requestId}] 🔧 Configuration check:`)
-    console.log(`[${requestId}]   - API Key: ${apiKey ? `✅ Present (${apiKey.substring(0, 10)}...)` : '❌ MISSING'}`)
+    console.log(`[${requestId}]   - API Key: ${apiKey ? `✅ Present (${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)})` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - API URL: ${apiUrl}`)
     console.log(`[${requestId}]   - From Phone Number: ${fromPhoneNumber ? `✅ ${fromPhoneNumber}` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - Phone Number ID: ${phoneNumberId ? `✅ ${phoneNumberId}` : '❌ MISSING'}`)
-    console.log(`[${requestId}]   - Phone Number: ${fromPhoneNumber ? `✅ ${fromPhoneNumber}` : '❌ MISSING'}`)
     console.log(`[${requestId}]   - Template Name: ${templateName}`)
     console.log(`[${requestId}]   - Template Language: ${templateLanguage}`)
     console.log(`[${requestId}]   - Use Template: ${useTemplate ? '✅ Yes' : '❌ No'}`)
     console.log(`[${requestId}]   - NODE_ENV: ${process.env.NODE_ENV}`)
+    console.log(`[${requestId}]   - Invitation Image URL: ${invitationImageUrl ? `✅ Present (${invitationImageUrl.substring(0, 80)}...)` : '❌ MISSING'}`)
+    console.log(`[${requestId}]   - Share Link: ${shareLink}`)
 
     // Development mode fallback
     if (!apiKey && process.env.NODE_ENV === 'development') {
@@ -429,7 +430,7 @@ export async function sendWhatsAppInvite(
       hasText: !!requestBody.text,
       hasTemplate: !!requestBody.template,
       templateName: requestBody.template?.name,
-      templateLanguage: requestBody.template?.language?.code,
+      templateLanguage: requestBody.template?.lang_code,
       imageLink: requestBody.image?.link?.substring(0, 100) || requestBody.template?.components?.[0]?.parameters?.[0]?.image?.link?.substring(0, 100),
       textLength: requestBody.text?.body?.length,
       templateVariables: requestBody.template?.components?.find((c: any) => c.type === 'body')?.parameters?.map((p: any) => p.text?.substring(0, 30)),
@@ -443,6 +444,25 @@ export async function sendWhatsAppInvite(
     const requestBodyString = JSON.stringify(requestBody, null, 2)
     console.log(`[${requestId}] 📤 Full Request Body:`, requestBodyString)
     console.log(`[${requestId}] 📤 Request Body Size: ${requestBodyString.length} bytes`)
+    
+    // Log configuration summary
+    console.log(`[${requestId}] ⚙️ SendZen Configuration Summary:`)
+    console.log(`[${requestId}]   - API URL: ${apiUrl}`)
+    console.log(`[${requestId}]   - API Key: ${apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT SET'}`)
+    console.log(`[${requestId}]   - From Phone: ${formattedFrom}`)
+    console.log(`[${requestId}]   - To Phone: ${formattedTo}`)
+    console.log(`[${requestId}]   - Message Type: ${requestBody.type}`)
+    console.log(`[${requestId}]   - Using Template: ${useTemplate ? 'Yes' : 'No'}`)
+    if (useTemplate) {
+      console.log(`[${requestId}]   - Template Name: ${templateName}`)
+      console.log(`[${requestId}]   - Template Language: ${templateLanguage}`)
+    }
+    console.log(`[${requestId}]   - Has Image: ${!!imageUrl}`)
+    if (imageUrl) {
+      console.log(`[${requestId}]   - Image URL: ${imageUrl.substring(0, 150)}${imageUrl.length > 150 ? '...' : ''}`)
+      console.log(`[${requestId}]   - Image URL Length: ${imageUrl.length} characters`)
+      console.log(`[${requestId}]   - Image URL Valid: ${imageUrl.startsWith('http') ? 'Yes (HTTPS/HTTP)' : imageUrl.startsWith('data:') ? 'No (Data URL)' : 'Unknown'}`)
+    }
 
     // Make API request to SendZen
     // SendZen API format: POST https://api.sendzen.io/v1/messages
@@ -725,8 +745,126 @@ export async function sendWhatsAppInvite(
       }
     }
 
-    console.log(`[${requestId}] ✅ WhatsApp message sent via SendZen successfully!`)
-    console.log(`[${requestId}] Response data:`, JSON.stringify(responseData, null, 2))
+    // Validate that SendZen actually accepted the message
+    // Even with 200 OK, SendZen might return errors in the response body
+    console.log(`[${requestId}] 🔍 Validating SendZen response body...`)
+    console.log(`[${requestId}] Response status: ${response.status} ${response.statusText}`)
+    console.log(`[${requestId}] Response OK: ${response.ok}`)
+    console.log(`[${requestId}] Response data type: ${typeof responseData}`)
+    console.log(`[${requestId}] Response data keys: ${responseData ? Object.keys(responseData).join(', ') : 'null'}`)
+    
+    if (response.ok && responseData) {
+      // Check for errors in response body (even with 200 status)
+      if (responseData.error || responseData.errors) {
+        const errorDetails = responseData.error || responseData.errors
+        console.error(`[${requestId}] ❌ SendZen returned error in response body despite 200 status:`)
+        console.error(`[${requestId}] Error details:`, JSON.stringify(errorDetails, null, 2))
+        return {
+          success: false,
+          error: `SendZen error in response: ${JSON.stringify(errorDetails)}`,
+        }
+      }
+
+      // Extract message ID and status from various possible response formats
+      const messageId = responseData.message_id || 
+                       responseData.id || 
+                       responseData.messages?.[0]?.id ||
+                       responseData.data?.message_id ||
+                       responseData.data?.id ||
+                       responseData.result?.message_id ||
+                       responseData.result?.id
+      
+      const status = responseData.status || 
+                    responseData.messages?.[0]?.status ||
+                    responseData.data?.status ||
+                    responseData.result?.status
+      
+      const wamid = responseData.messages?.[0]?.wamid || 
+                   responseData.wamid ||
+                   responseData.data?.wamid ||
+                   responseData.result?.wamid
+
+      // Log message identifiers
+      if (messageId) {
+        console.log(`[${requestId}] ✅ Message ID found: ${messageId}`)
+      } else {
+        console.warn(`[${requestId}] ⚠️ No message ID found in response`)
+      }
+
+      if (wamid) {
+        console.log(`[${requestId}] ✅ WhatsApp Message ID (wamid): ${wamid}`)
+      } else {
+        console.warn(`[${requestId}] ⚠️ No WhatsApp Message ID (wamid) found in response`)
+      }
+
+      if (status) {
+        console.log(`[${requestId}] 📊 Message status: ${status}`)
+        
+        // Check if status indicates pending/queued (might still be processing)
+        const statusLower = status.toLowerCase()
+        if (['pending', 'queued', 'accepted', 'processing'].includes(statusLower)) {
+          console.log(`[${requestId}] ⚠️ Message status is "${status}" - Message may be queued or processing`)
+          console.log(`[${requestId}] ℹ️ This is normal for template messages. Check SendZen dashboard for delivery status.`)
+        } else if (['sent', 'delivered', 'read'].includes(statusLower)) {
+          console.log(`[${requestId}] ✅ Message status indicates success: ${status}`)
+        } else if (['failed', 'rejected', 'error'].includes(statusLower)) {
+          console.error(`[${requestId}] ❌ Message status indicates failure: ${status}`)
+          return {
+            success: false,
+            error: `Message status: ${status}. Check SendZen dashboard for details.`,
+          }
+        }
+      } else {
+        console.warn(`[${requestId}] ⚠️ No status field found in response`)
+      }
+
+      // Check for account-level issues in response
+      if (responseData.account_status || responseData.account_issues) {
+        console.warn(`[${requestId}] ⚠️ Account status/issues detected:`, responseData.account_status || responseData.account_issues)
+      }
+
+      // Check for rate limiting or quota issues
+      if (responseData.rate_limit || responseData.quota_exceeded) {
+        console.error(`[${requestId}] ❌ Rate limit or quota issue:`, responseData.rate_limit || responseData.quota_exceeded)
+        return {
+          success: false,
+          error: `Rate limit or quota exceeded. Check SendZen dashboard.`,
+        }
+      }
+
+      // Log full response for debugging
+      console.log(`[${requestId}] 📋 Full SendZen response structure:`)
+      console.log(`[${requestId}] ${JSON.stringify(responseData, null, 2)}`)
+    } else if (response.ok && !responseData) {
+      console.warn(`[${requestId}] ⚠️ Response OK but no response data received`)
+      console.warn(`[${requestId}] This might indicate an empty response or parsing issue`)
+    }
+
+    // Final validation - if we have a message ID or status, consider it successful
+    const hasMessageId = responseData?.message_id || 
+                        responseData?.id || 
+                        responseData?.messages?.[0]?.id ||
+                        responseData?.data?.message_id ||
+                        responseData?.wamid
+    
+    if (!hasMessageId && response.ok) {
+      console.warn(`[${requestId}] ⚠️ WARNING: Response OK but no message ID found`)
+      console.warn(`[${requestId}] ⚠️ This might indicate the message was not actually sent`)
+      console.warn(`[${requestId}] ⚠️ Check SendZen dashboard for account issues (payment, verification)`)
+      console.warn(`[${requestId}] ⚠️ Response data:`, JSON.stringify(responseData, null, 2))
+      
+      // Still return success but with a warning
+      // The message might be queued or there might be account issues
+      console.log(`[${requestId}] ⚠️ Returning success but recommend checking SendZen dashboard`)
+    }
+
+    console.log(`[${requestId}] ✅ WhatsApp message API call completed`)
+    console.log(`[${requestId}] 📊 Summary:`)
+    console.log(`[${requestId}]   - HTTP Status: ${response.status}`)
+    console.log(`[${requestId}]   - Response OK: ${response.ok}`)
+    console.log(`[${requestId}]   - Has Message ID: ${hasMessageId ? 'Yes' : 'No'}`)
+    console.log(`[${requestId}]   - Message Status: ${responseData?.status || responseData?.messages?.[0]?.status || 'Not provided'}`)
+    console.log(`[${requestId}]   - Response Data:`, JSON.stringify(responseData, null, 2))
 
     return { success: true }
   } catch (error: any) {
