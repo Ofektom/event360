@@ -752,21 +752,3 @@ export async function sendWhatsAppInvite(
   }
 }
 
-
-    
-    // Handle network errors
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-      console.error(`[${requestId}] ❌ Network error:`, error.code)
-      return {
-        success: false,
-        error: 'Unable to connect to WhatsApp service. Please check your internet connection and API URL.',
-      }
-    }
-
-    return {
-      success: false,
-      error: error.message || 'Failed to send WhatsApp invitation',
-    }
-  }
-}
-
