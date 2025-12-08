@@ -93,7 +93,7 @@ export default function CeremonyDetailPage() {
       setCeremony(foundCeremony)
       
       // Check if current user is the owner
-      const isCurrentUserOwner = session?.user?.id && eventData.ownerId === session.user.id
+      const isCurrentUserOwner = !!(session?.user?.id && eventData.ownerId === session.user.id)
       setIsOwner(isCurrentUserOwner)
     } catch (err: any) {
       console.error('Error fetching ceremony data:', err)
