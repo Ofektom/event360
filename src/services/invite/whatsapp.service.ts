@@ -46,21 +46,32 @@ function formatPhoneNumber(phone: string): string {
   // If it doesn't start with +, we need to add country code
   if (!cleaned.startsWith('+')) {
     // Try to detect country code from common patterns
+    // Nigerian numbers: typically 10 digits starting with 0, or 9 digits after removing 0
+    // After removing leading 0, if it's 9 digits and starts with 7, 8, or 9, it's likely Nigeria (+234)
+    if (cleaned.length === 9 && /^[789]/.test(cleaned)) {
+      cleaned = `+234${cleaned}`
+      console.log(`📱 Detected Nigerian number, added +234 country code`)
+    }
+    // If it starts with 234 and is 12-13 digits, it's already a Nigerian number without +
+    else if (cleaned.length >= 12 && cleaned.length <= 13 && cleaned.startsWith('234')) {
+      cleaned = `+${cleaned}`
+      console.log(`📱 Detected Nigerian number with country code, added +`)
+    }
     // If it starts with 1 and is 11 digits, it's likely US/Canada (+1)
-    if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    else if (cleaned.length === 11 && cleaned.startsWith('1')) {
       cleaned = `+${cleaned}`
     }
     // If it's 10 digits, assume US/Canada (+1)
     else if (cleaned.length === 10) {
       cleaned = `+1${cleaned}`
+      console.log(`📱 Assuming US/Canada country code (+1)`)
     }
-    // If it's 9-15 digits, assume it needs a country code (default to +1 for US)
-    // In production, you might want to use a library like libphonenumber-js
+    // If it's 9-15 digits, assume it needs a country code
+    // Default to +234 for Nigeria (most common use case), but warn user
     else if (cleaned.length >= 9 && cleaned.length <= 15) {
-      // For now, default to +1 (US/Canada)
-      // TODO: Add country code detection or require users to include country code
-      cleaned = `+1${cleaned}`
-      console.log(`📱 ⚠️ Assuming US/Canada country code (+1). For other countries, please include country code.`)
+      // Default to +234 (Nigeria) as it's the most common use case
+      cleaned = `+234${cleaned}`
+      console.log(`📱 ⚠️ Assuming Nigerian country code (+234). For other countries, please include country code.`)
     }
     // If it's already in a format we don't recognize, just add +
     else {
@@ -378,19 +389,50 @@ export async function sendWhatsAppInvite(
       }
       
       if (response.status === 400) {
-        console.error(`[${requestId}] ❌ Bad Request - Invalid request format`)
-        const errorMessage = responseData?.error?.message || 
+        console.error(`[${requestId}] ❌ Bad Request (400) - Invalid request format`)
+        
+        // Extract error details more thoroughly
+        const errorDetails = responseData?.error || responseData
+        const errorMessage = errorDetails?.message || 
                            responseData?.message || 
-                           responseData?.error ||
+                           (typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails)) ||
                            'Invalid request. Please check phone number format.'
         
+        // Extract validation errors if present
+        const validationErrors = errorDetails?.errors || 
+                                errorDetails?.validation_errors || 
+                                errorDetails?.details ||
+                                errorDetails?.validationErrors ||
+                                (Array.isArray(errorDetails) ? errorDetails : null)
+        
+        // Log full error details
+        console.error(`[${requestId}] ❌ Full Error Response:`, JSON.stringify(responseData, null, 2))
+        if (validationErrors) {
+          console.error(`[${requestId}] ❌ Validation Errors:`, JSON.stringify(validationErrors, null, 2))
+        }
+        
+        // Build detailed error message
+        let detailedErrorMessage = errorMessage
+        if (validationErrors) {
+          if (Array.isArray(validationErrors)) {
+            detailedErrorMessage += `\nValidation errors: ${validationErrors.map(e => typeof e === 'string' ? e : JSON.stringify(e)).join(', ')}`
+          } else if (typeof validationErrors === 'object') {
+            const errorList = Object.entries(validationErrors)
+              .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+              .join('\n')
+            detailedErrorMessage += `\nValidation errors:\n${errorList}`
+          } else {
+            detailedErrorMessage += `\nValidation errors: ${validationErrors}`
+          }
+        }
+        
         // Check for specific WhatsApp Business API errors
-        const errorCode = responseData?.error?.code || responseData?.error?.subcode
+        const errorCode = errorDetails?.code || errorDetails?.subcode || responseData?.error?.code || responseData?.error?.subcode
         
         // If template message fails, try regular message as fallback
-        if (useTemplate && requestBody.type === 'template' && (errorCode === 131047 || errorMessage.includes('cannot be delivered') || errorMessage.includes('template') || errorMessage.includes('not found') || errorMessage.includes('not approved'))) {
+        if (useTemplate && requestBody.type === 'template' && (errorCode === 131047 || errorMessage.toLowerCase().includes('cannot be delivered') || errorMessage.toLowerCase().includes('template') || errorMessage.toLowerCase().includes('not found') || errorMessage.toLowerCase().includes('not approved') || errorMessage.toLowerCase().includes('validation'))) {
           console.log(`[${requestId}] ⚠️ Template message failed, trying regular message as fallback...`)
-          console.log(`[${requestId}] ⚠️ Error: ${errorMessage}`)
+          console.log(`[${requestId}] ⚠️ Error: ${detailedErrorMessage}`)
           
           // Retry with regular message
           const fallbackBody: any = {
@@ -457,9 +499,10 @@ export async function sendWhatsAppInvite(
           }
         }
         
+        // Return detailed error message with validation errors if available
         return {
           success: false,
-          error: errorMessage,
+          error: detailedErrorMessage,
         }
       }
 
