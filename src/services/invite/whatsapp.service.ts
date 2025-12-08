@@ -194,7 +194,7 @@ export async function sendWhatsAppInvite(
       if (phoneNumberId && phoneNumberId.trim().length > 0) {
         formattedFrom = phoneNumberId.trim()
         console.log(`[${requestId}] ✅ Using phone number ID as 'from': "${formattedFrom}"`)
-      } else {
+      } else if (fromPhoneNumber) {
         // Otherwise, format the phone number
         formattedFrom = formatPhoneNumber(fromPhoneNumber)
         console.log(`[${requestId}] ✅ Formatted 'from' number: "${fromPhoneNumber}" → "${formattedFrom}"`)
@@ -217,6 +217,13 @@ export async function sendWhatsAppInvite(
             success: false,
             error: `'From' phone number has invalid length: ${digitsAfterPlus.length} digits. E.164 format requires 7-15 digits after the country code (e.g., +1234567890 has 10 digits). Please check your phone number format or use SENDZEN_PHONE_NUMBER_ID.`,
           }
+        }
+      } else {
+        // Neither phoneNumberId nor fromPhoneNumber is available
+        console.error(`[${requestId}] ❌ Neither phone number ID nor phone number is available`)
+        return {
+          success: false,
+          error: 'Phone number not configured. Please set either SENDZEN_PHONE_NUMBER (E.164 format) or SENDZEN_PHONE_NUMBER_ID in environment variables.',
         }
       }
     } catch (formatError: any) {
