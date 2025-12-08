@@ -66,13 +66,7 @@ export function DashboardLayout({ children, eventId: propEventId }: DashboardLay
     ) {
       setActiveMenuType('invitations')
     } 
-    // Check for order-of-events/ceremonies routes
-    else if (
-      pathname?.startsWith('/order-of-events') || 
-      pathname?.includes('/ceremonies')
-    ) {
-      setActiveMenuType('order-of-events')
-    } 
+    // Order of events is now managed within ceremonies, not as a separate menu 
     // Check for gallery routes
     else if (
       pathname?.startsWith('/gallery') || 

@@ -12,6 +12,7 @@ import { ShareEventModal } from '@/components/organisms/ShareEventModal'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { EventVendorsList } from '@/components/organisms/EventVendorsList'
+import { OrderOfEventsList } from '@/components/organisms/OrderOfEventsList'
 
 interface Event {
   id: string
@@ -501,6 +502,28 @@ export default function EventDetailPage() {
             </div>
           )}
         </Card>
+
+        {/* Order of Events Section - Grouped by Ceremony */}
+        {event.ceremonies && event.ceremonies.length > 0 ? (
+          <div className="space-y-6">
+            {event.ceremonies.map((ceremony) => (
+              <OrderOfEventsList
+                key={ceremony.id}
+                ceremonyId={ceremony.id}
+                ceremonyName={ceremony.name}
+                isOwner={isOwner}
+                onCreateNew={() => {
+                  // TODO: Open modal to create new schedule item
+                  alert('Create schedule item modal - to be implemented')
+                }}
+                onEdit={(itemId) => {
+                  // TODO: Open modal to edit schedule item
+                  alert(`Edit schedule item ${itemId} - to be implemented`)
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
 
         {/* Vendors Section - Grouped by Ceremony */}
         {event.ceremonies && event.ceremonies.length > 0 ? (

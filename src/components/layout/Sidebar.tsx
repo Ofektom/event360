@@ -68,28 +68,7 @@ const menuConfigs: Record<string, MenuItem[]> = {
       icon: '📄',
     },
   ],
-  'order-of-events': [
-    {
-      label: 'All Programmes',
-      href: '/order-of-events',
-      icon: '📅',
-    },
-    {
-      label: 'Create Programme',
-      href: '/order-of-events/new',
-      icon: '➕',
-    },
-    {
-      label: 'Schedule Builder',
-      href: '/order-of-events/builder',
-      icon: '🔨',
-    },
-    {
-      label: 'Programme Templates',
-      href: '/order-of-events/templates',
-      icon: '📋',
-    },
-  ],
+  // Order of events is now managed within ceremonies, not as a separate menu
   gallery: [
     {
       label: 'All Photos',
