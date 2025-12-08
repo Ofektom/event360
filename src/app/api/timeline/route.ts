@@ -116,6 +116,13 @@ export async function GET(request: NextRequest) {
       eventsWithDetails = await prisma.event.findMany({
         where: { id: { in: eventsToQuery } },
         include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
           ceremonies: {
             select: {
               id: true,
@@ -127,6 +134,9 @@ export async function GET(request: NextRequest) {
           _count: {
             select: {
               ceremonies: true, // Programme/order of events
+              invitees: true,
+              mediaAssets: true,
+              eventVendors: true,
             },
           },
         },
@@ -282,6 +292,7 @@ export async function GET(request: NextRequest) {
               mediaAssets: true,
               interactions: true,
               invitees: true,
+              eventVendors: true,
             },
           },
         },

@@ -7,6 +7,7 @@ import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { EventPhotoGallery } from '@/components/organisms/EventPhotoGallery'
 import { EventTimeline } from '@/components/organisms/EventTimeline'
+import { EventVendorsList } from '@/components/organisms/EventVendorsList'
 import { JoinEventBanner } from '@/components/organisms/JoinEventBanner'
 import { RequestAccessBanner } from '@/components/organisms/RequestAccessBanner'
 import { OAuthEventJoinHandler } from '@/components/organisms/OAuthEventJoinHandler'
@@ -120,6 +121,14 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
                   Programme details will be available soon.
                 </p>
               )}
+            </Card>
+          </div>
+
+          {/* Vendors Section - Always visible */}
+          <div className="container mx-auto px-4">
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Vendors</h2>
+              <EventVendorsList eventId={event.id} isOwner={access.isOrganizer} />
             </Card>
           </div>
 
