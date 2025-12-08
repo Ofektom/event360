@@ -11,8 +11,6 @@ import { EventHeader } from '@/components/organisms/EventHeader'
 import { ShareEventModal } from '@/components/organisms/ShareEventModal'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
-import { EventVendorsList } from '@/components/organisms/EventVendorsList'
-import { OrderOfEventsList } from '@/components/organisms/OrderOfEventsList'
 
 interface Event {
   id: string
@@ -503,49 +501,66 @@ export default function EventDetailPage() {
           )}
         </Card>
 
-        {/* Order of Events Section - Grouped by Ceremony */}
+        {/* Ceremonies List */}
         {event.ceremonies && event.ceremonies.length > 0 ? (
-          <div className="space-y-6">
-            {event.ceremonies.map((ceremony) => (
-              <OrderOfEventsList
-                key={ceremony.id}
-                ceremonyId={ceremony.id}
-                ceremonyName={ceremony.name}
-                isOwner={isOwner}
-                onCreateNew={() => {
-                  // TODO: Open modal to create new schedule item
-                  alert('Create schedule item modal - to be implemented')
-                }}
-                onEdit={(itemId) => {
-                  // TODO: Open modal to edit schedule item
-                  alert(`Edit schedule item ${itemId} - to be implemented`)
-                }}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {/* Vendors Section - Grouped by Ceremony */}
-        {event.ceremonies && event.ceremonies.length > 0 ? (
-          <div className="space-y-6">
-            {event.ceremonies.map((ceremony) => (
-              <Card key={ceremony.id} className="p-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  Vendors for {ceremony.name}
-                </h2>
-                <EventVendorsList 
-                  eventId={eventId} 
-                  ceremonyId={ceremony.id}
-                  isOwner={isOwner} 
-                />
-              </Card>
-            ))}
-          </div>
+          <Card className="p-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Ceremonies</h2>
+              {isOwner && (
+                <Link href={`/events/${eventId}/ceremonies/new`}>
+                  <Button variant="primary">+ Add Ceremony</Button>
+                </Link>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {event.ceremonies.map((ceremony) => (
+                <Link
+                  key={ceremony.id}
+                  href={`/events/${eventId}/ceremonies/${ceremony.id}`}
+                  className="block"
+                >
+                  <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {ceremony.name}
+                    </h3>
+                    {ceremony.description && (
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {ceremony.description}
+                      </p>
+                    )}
+                    <div className="space-y-1 text-sm text-gray-500">
+                      {ceremony.date && (
+                        <div>📅 {new Date(ceremony.date).toLocaleDateString()}</div>
+                      )}
+                      {ceremony.location && <div>📍 {ceremony.location}</div>}
+                      {ceremony.isStreaming && (
+                        <div className="text-red-600 font-semibold">🔴 Live</div>
+                      )}
+                    </div>
+                    <div className="mt-4 text-sm text-purple-600 font-medium">
+                      View Details →
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </Card>
         ) : (
           <Card className="p-8">
-            <p className="text-gray-500 text-center py-8">
-              No ceremonies found. Please create a ceremony first to add vendors.
-            </p>
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-4xl mb-4">🎉</div>
+              <p>No ceremonies added yet.</p>
+              {isOwner && (
+                <>
+                  <p className="text-sm mt-2 mb-4">
+                    Add ceremonies like Traditional Wedding, White Wedding, Reception, etc.
+                  </p>
+                  <Link href={`/events/${eventId}/ceremonies/new`}>
+                    <Button variant="primary">Add Your First Ceremony</Button>
+                  </Link>
+                </>
+              )}
+            </div>
           </Card>
         )}
 

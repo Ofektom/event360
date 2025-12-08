@@ -6,8 +6,6 @@ import { ProgrammeList } from '@/components/organisms/ProgrammeList'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { EventPhotoGallery } from '@/components/organisms/EventPhotoGallery'
-import { EventVendorsList } from '@/components/organisms/EventVendorsList'
-import { OrderOfEventsList } from '@/components/organisms/OrderOfEventsList'
 import { JoinEventBanner } from '@/components/organisms/JoinEventBanner'
 import { RequestAccessBanner } from '@/components/organisms/RequestAccessBanner'
 import { OAuthEventJoinHandler } from '@/components/organisms/OAuthEventJoinHandler'
@@ -195,33 +193,44 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
             <RequestAccessBanner eventId={event.id} eventSlug={slug} />
           )}
 
-          {/* Ceremonies with Order of Events - Always visible (filtered by visibility) */}
+          {/* Ceremonies List - Always visible (filtered by visibility) */}
           {visibleCeremonies.length > 0 ? (
-            <div className="container mx-auto px-4 space-y-6">
-              {visibleCeremonies.map((ceremony) => (
-                <div key={ceremony.id}>
-                  {/* Ceremony Header */}
-                  <Card className="p-6 mb-4">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{ceremony.name}</h2>
-                    {ceremony.description && (
-                      <p className="text-gray-600 mb-3">{ceremony.description}</p>
-                    )}
-                    <div className="flex gap-4 text-sm text-gray-500">
-                      {ceremony.date && (
-                        <span>📅 {new Date(ceremony.date).toLocaleDateString()}</span>
-                      )}
-                      {ceremony.location && <span>📍 {ceremony.location}</span>}
-                    </div>
-                  </Card>
-                  
-                  {/* Order of Events for this Ceremony */}
-                  <OrderOfEventsList
-                    ceremonyId={ceremony.id}
-                    ceremonyName={ceremony.name}
-                    isOwner={access.isOrganizer}
-                  />
+          <div className="container mx-auto px-4">
+            <Card className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Ceremonies</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {visibleCeremonies.map((ceremony) => (
+                    <Link
+                      key={ceremony.id}
+                      href={`/e/${slug}/ceremony/${ceremony.id}`}
+                      className="block"
+                    >
+                      <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          {ceremony.name}
+                        </h3>
+                        {ceremony.description && (
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            {ceremony.description}
+                          </p>
+                        )}
+                        <div className="space-y-1 text-sm text-gray-500">
+                          {ceremony.date && (
+                            <div>📅 {new Date(ceremony.date).toLocaleDateString()}</div>
+                          )}
+                          {ceremony.location && <div>📍 {ceremony.location}</div>}
+                          {ceremony.isStreaming && (
+                            <div className="text-red-600 font-semibold">🔴 Live</div>
+                          )}
+                        </div>
+                        <div className="mt-4 text-sm text-purple-600 font-medium">
+                          View Details →
+                        </div>
+                      </Card>
+                    </Link>
+                  ))}
                 </div>
-              ))}
+              </Card>
             </div>
           ) : (
             <div className="container mx-auto px-4">
@@ -300,26 +309,6 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
             </div>
           )}
 
-          {/* Vendors Section - Grouped by ceremony */}
-          {visibleCeremonies.length > 0 && (
-            <div className="container mx-auto px-4 space-y-6">
-              {visibleCeremonies.map((ceremony) => {
-                // Fetch vendors for this ceremony
-                return (
-                  <Card key={ceremony.id} className="p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">
-                      Vendors for {ceremony.name}
-                    </h2>
-                    <EventVendorsList 
-                      eventId={event.id} 
-                      ceremonyId={ceremony.id}
-                      isOwner={access.isOrganizer} 
-                    />
-                  </Card>
-                )
-              })}
-            </div>
-          )}
 
           {/* Invitation Designs Section - Always visible */}
           {invitationDesigns.length > 0 && (
@@ -399,9 +388,9 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
                       Showing {invitees.length} of {eventStats._count.invitees} guests
                     </p>
                   </div>
-                )}
-              </Card>
-            </div>
+              )}
+            </Card>
+          </div>
           )}
 
           {/* Full Access Content (only for authenticated, linked users) */}
