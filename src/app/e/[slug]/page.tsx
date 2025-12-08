@@ -6,7 +6,6 @@ import { ProgrammeList } from '@/components/organisms/ProgrammeList'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { EventPhotoGallery } from '@/components/organisms/EventPhotoGallery'
-import { EventTimeline } from '@/components/organisms/EventTimeline'
 import { EventVendorsList } from '@/components/organisms/EventVendorsList'
 import { JoinEventBanner } from '@/components/organisms/JoinEventBanner'
 import { RequestAccessBanner } from '@/components/organisms/RequestAccessBanner'
@@ -127,7 +126,6 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
           {/* Vendors Section - Always visible */}
           <div className="container mx-auto px-4">
             <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-6">Vendors</h2>
               <EventVendorsList eventId={event.id} isOwner={access.isOrganizer} />
             </Card>
           </div>
@@ -135,14 +133,6 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
           {/* Full Access Content (only for authenticated, linked users) */}
           {access.canInteract && (
             <>
-              {/* Timeline */}
-              <div className="container mx-auto px-4">
-                <Card className="p-6">
-                  <h2 className="text-2xl font-bold mb-6">Timeline</h2>
-                  <EventTimeline eventId={event.id} />
-                </Card>
-              </div>
-
               {/* Photo Gallery */}
               <div className="container mx-auto px-4">
                 <Card className="p-6">
