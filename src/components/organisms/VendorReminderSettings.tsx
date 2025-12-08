@@ -155,7 +155,7 @@ export function VendorReminderSettings({ vendor }: VendorReminderSettingsProps) 
               Remind me before event (days)
             </label>
             <div className="space-y-2">
-              {preferences.daysBefore.map((days, index) => (
+              {preferences.daysBefore.map((days: number, index: number) => (
                 <div key={index} className="flex items-center gap-3">
                   <input
                     type="number"
