@@ -11,9 +11,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
+  const { eventId } = await params
+  
   try {
     const sessionUser = await requireAuth()
-    const { eventId } = await params
 
     // Fetch full user from database to get phone number
     const user = await prisma.user.findUnique({
@@ -124,19 +125,25 @@ export async function POST(
     if (error.code === 'P2002') {
       // Try to find and return existing invitee
       try {
-        const user = await requireAuth()
-        const existingInvitee = await prisma.invitee.findFirst({
-          where: {
-            eventId,
-            userId: user.id,
-          },
+        const sessionUser = await requireAuth()
+        const fullUser = await prisma.user.findUnique({
+          where: { id: sessionUser.id },
+          select: { id: true },
         })
-        if (existingInvitee) {
-          return NextResponse.json({
-            message: 'You are already a guest for this event',
-            invitee: existingInvitee,
-            alreadyGuest: true,
+        if (fullUser) {
+          const existingInvitee = await prisma.invitee.findFirst({
+            where: {
+              eventId,
+              userId: fullUser.id,
+            },
           })
+          if (existingInvitee) {
+            return NextResponse.json({
+              message: 'You are already a guest for this event',
+              invitee: existingInvitee,
+              alreadyGuest: true,
+            })
+          }
         }
       } catch {
         // Fall through to error response
