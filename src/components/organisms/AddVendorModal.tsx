@@ -36,6 +36,7 @@ interface Vendor {
   state?: string
   isVerified: boolean
   averageRating: number
+  totalRatings: number
 }
 
 interface AddVendorModalProps {
