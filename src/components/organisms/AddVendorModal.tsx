@@ -42,11 +42,12 @@ interface Vendor {
 
 interface AddVendorModalProps {
   eventId: string
+  ceremonyId: string // Required: Vendors must be assigned to a ceremony
   onClose: () => void
   onSuccess: () => void
 }
 
-export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalProps) {
+export function AddVendorModal({ eventId, ceremonyId, onClose, onSuccess }: AddVendorModalProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [isLoadingVendors, setIsLoadingVendors] = useState(false)
@@ -139,6 +140,7 @@ export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalPr
 
     try {
       const payload: any = {
+        ceremonyId, // Required: Vendors must be assigned to a ceremony
         role: formData.role || null,
         notes: formData.notes || null,
       }

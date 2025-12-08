@@ -238,7 +238,8 @@ export class EventRepository {
     const visibility = 'PUBLIC' // Default from schema
     const isPublic = true // Auto-sync: PUBLIC visibility = isPublic true
     
-    return prisma.event.create({
+    // Create event first
+    const event = await prisma.event.create({
       data: {
         title: data.title,
         description: data.description,
@@ -263,6 +264,33 @@ export class EventRepository {
         ceremonies: true,
       },
     })
+
+    // Auto-create default ceremony with event details
+    // This allows users to immediately start adding schedule items, vendors, etc.
+    await prisma.ceremony.create({
+      data: {
+        eventId: event.id,
+        name: event.title, // Use event title as default ceremony name
+        description: event.description,
+        date: event.startDate || new Date(),
+        startTime: event.startDate || null,
+        endTime: event.endDate || null,
+        location: event.location,
+        order: 1, // First ceremony
+        visibility: 'PUBLIC', // Default visibility
+      },
+    })
+
+    // Fetch event again with the newly created ceremony
+    return prisma.event.findUnique({
+      where: { id: event.id },
+      include: {
+        theme: true,
+        ceremonies: {
+          orderBy: { order: 'asc' },
+        },
+      },
+    })!
   }
 
   async update(id: string, data: UpdateEventDto) {

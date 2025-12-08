@@ -128,3 +128,100 @@ export async function getEventsAccess(
   return accessMap
 }
 
+/**
+ * Check if a user can access a specific ceremony
+ * Takes into account ceremony visibility and user's invite status
+ */
+export async function canAccessCeremony(
+  userId: string | null,
+  ceremonyId: string
+): Promise<boolean> {
+  try {
+    const ceremony = await prisma.ceremony.findUnique({
+      where: { id: ceremonyId },
+      select: {
+        id: true,
+        eventId: true,
+        visibility: true,
+        event: {
+          select: {
+            ownerId: true,
+            visibility: true,
+            isPublic: true,
+          },
+        },
+      },
+    })
+
+    if (!ceremony) {
+      return false
+    }
+
+    // Organizers can always access all ceremonies
+    if (userId && ceremony.event.ownerId === userId) {
+      return true
+    }
+
+    // Check ceremony visibility
+    switch (ceremony.visibility) {
+      case 'PUBLIC':
+        // Public ceremonies are visible to everyone
+        return true
+
+      case 'CONNECTED':
+        // Connected: Anyone connected to the user (for now, anyone with event access)
+        if (!userId) return false
+        const eventAccess = await canAccessEvent(userId, ceremony.eventId)
+        return eventAccess.canView
+
+      case 'INVITED_ONLY':
+        // Only invited guests can see
+        if (!userId) return false
+        
+        // Check if user is invited to this specific ceremony
+        const ceremonyInvite = await prisma.invite.findFirst({
+          where: {
+            ceremonyId: ceremonyId,
+            invitee: {
+              userId: userId,
+            },
+            status: {
+              in: ['PENDING', 'SENT', 'DELIVERED', 'OPENED', 'CLICKED'],
+            },
+          },
+        })
+
+        if (ceremonyInvite) {
+          return true
+        }
+
+        // Also check if user is an invitee to the event (they can see all ceremonies they're invited to)
+        const invitee = await prisma.invitee.findFirst({
+          where: {
+            eventId: ceremony.eventId,
+            userId: userId,
+          },
+        })
+
+        // If user is an invitee, check if they have an invite to this ceremony
+        if (invitee) {
+          const hasCeremonyInvite = await prisma.invite.findFirst({
+            where: {
+              ceremonyId: ceremonyId,
+              inviteeId: invitee.id,
+            },
+          })
+          return !!hasCeremonyInvite
+        }
+
+        return false
+
+      default:
+        return false
+    }
+  } catch (error) {
+    console.error('Error checking ceremony access:', error)
+    return false
+  }
+}
+

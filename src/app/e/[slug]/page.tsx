@@ -11,7 +11,7 @@ import { JoinEventBanner } from '@/components/organisms/JoinEventBanner'
 import { RequestAccessBanner } from '@/components/organisms/RequestAccessBanner'
 import { OAuthEventJoinHandler } from '@/components/organisms/OAuthEventJoinHandler'
 import { EventService } from '@/services/event.service'
-import { canAccessEvent } from '@/lib/access-control'
+import { canAccessEvent, canAccessCeremony } from '@/lib/access-control'
 import { ThemeConfig, defaultTheme } from '@/types/theme.types'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
@@ -60,8 +60,19 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
       )
     }
 
-    // Convert ceremonies to ProgrammeList format
-    const programmeItems = event.ceremonies.map((ceremony) => ({
+    // Filter ceremonies based on visibility and user access
+    const ceremonyAccessChecks = await Promise.all(
+      event.ceremonies.map(async (ceremony) => {
+        const canAccess = await canAccessCeremony(user.id, ceremony.id)
+        return { ceremony, canAccess }
+      })
+    )
+    const visibleCeremonies = ceremonyAccessChecks
+      .filter(({ canAccess }) => canAccess)
+      .map(({ ceremony }) => ceremony)
+
+    // Convert ceremonies to ProgrammeList format (these are ceremonies, not schedule items)
+    const programmeItems = visibleCeremonies.map((ceremony) => ({
       id: ceremony.id,
       title: ceremony.name,
       description: ceremony.description || undefined,
@@ -183,15 +194,35 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
             <RequestAccessBanner eventId={event.id} eventSlug={slug} />
           )}
 
-          {/* Programme/Order of Events - Always visible */}
+          {/* Ceremonies - Always visible (filtered by visibility) */}
           <div className="container mx-auto px-4">
             <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-6">Order of Events</h2>
+              <h2 className="text-2xl font-bold mb-6">Ceremonies</h2>
               {programmeItems.length > 0 ? (
-                <ProgrammeList items={programmeItems} variant="timeline" />
+                <div className="space-y-4">
+                  {programmeItems.map((ceremony) => (
+                    <div key={ceremony.id} className="border-l-4 border-purple-500 pl-4 py-2">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-1">{ceremony.title}</h3>
+                      {ceremony.description && (
+                        <p className="text-gray-600 mb-2">{ceremony.description}</p>
+                      )}
+                      <div className="flex gap-4 text-sm text-gray-500">
+                        {ceremony.startTime && (
+                          <span>📅 {ceremony.startTime.toLocaleDateString()}</span>
+                        )}
+                        {ceremony.location && <span>📍 {ceremony.location}</span>}
+                      </div>
+                      <p className="text-sm text-purple-600 mt-2">
+                        <Link href={`/e/${slug}?ceremony=${ceremony.id}`}>
+                          View Order of Events →
+                        </Link>
+                      </p>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <p className="text-gray-500 text-center py-8">
-                  Programme details will be available soon.
+                  Ceremony details will be available soon.
                 </p>
               )}
             </Card>
@@ -264,12 +295,26 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
             </div>
           )}
 
-          {/* Vendors Section - Always visible */}
-          <div className="container mx-auto px-4">
-            <Card className="p-6">
-              <EventVendorsList eventId={event.id} isOwner={access.isOrganizer} />
-            </Card>
-          </div>
+          {/* Vendors Section - Grouped by ceremony */}
+          {visibleCeremonies.length > 0 && (
+            <div className="container mx-auto px-4 space-y-6">
+              {visibleCeremonies.map((ceremony) => {
+                // Fetch vendors for this ceremony
+                return (
+                  <Card key={ceremony.id} className="p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">
+                      Vendors for {ceremony.name}
+                    </h2>
+                    <EventVendorsList 
+                      eventId={event.id} 
+                      ceremonyId={ceremony.id}
+                      isOwner={access.isOrganizer} 
+                    />
+                  </Card>
+                )
+              })}
+            </div>
+          )}
 
           {/* Invitation Designs Section - Always visible */}
           {invitationDesigns.length > 0 && (

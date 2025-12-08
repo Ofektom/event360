@@ -194,6 +194,9 @@ model Ceremony {
   dressCode   String?
   notes       String?
   
+  // Ceremony-specific visibility
+  visibility  EventVisibility @default(PUBLIC) // Who can view this ceremony
+  
   // Streaming
   streamUrl   String?
   streamKey   String?
@@ -207,6 +210,8 @@ model Ceremony {
   scheduleItems ScheduleItem[]
   mediaAssets MediaAsset[]
   interactions Interaction[]
+  eventVendors EventVendor[]  // Vendors specific to this ceremony
+  invites     Invite[]        // Invites specific to this ceremony
 
   @@index([eventId])
   @@index([eventId, order])
@@ -290,6 +295,7 @@ enum RSVPStatus {
 model Invite {
   id          String        @id @default(cuid())
   eventId     String
+  ceremonyId  String?       // Link to specific ceremony (null = event-wide invite)
   inviteeId   String?
   email       String?
   phone       String?
@@ -305,9 +311,11 @@ model Invite {
 
   // Relations
   event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ceremony    Ceremony?     @relation(fields: [ceremonyId], references: [id], onDelete: Cascade)
   invitee     Invitee?      @relation(fields: [inviteeId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
+  @@index([ceremonyId])
   @@index([token])
   @@index([email])
   @@index([phone])
@@ -655,6 +663,7 @@ enum VendorCategory {
 model EventVendor {
   id          String   @id @default(cuid())
   eventId     String
+  ceremonyId  String?  // Link to specific ceremony (required for ceremony-specific vendors)
   vendorId    String
   role        String?  // e.g., "Primary", "Secondary", "Backup"
   notes       String?  // Event-specific notes
@@ -663,10 +672,12 @@ model EventVendor {
   updatedAt   DateTime @updatedAt
   
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ceremony    Ceremony? @relation(fields: [ceremonyId], references: [id], onDelete: Cascade)
   vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   
-  @@unique([eventId, vendorId])
+  @@unique([eventId, ceremonyId, vendorId])
   @@index([eventId])
+  @@index([ceremonyId])
   @@index([vendorId])
   @@index([status])
 }

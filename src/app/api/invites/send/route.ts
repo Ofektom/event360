@@ -14,6 +14,7 @@ interface SendInvitesRequest {
   eventId: string
   designId: string
   channel: string
+  ceremonyIds?: string[] // Optional: Array of ceremony IDs to invite to (if not provided, invites to all ceremonies)
   contacts: Array<{
     name: string
     contactInfo: string
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { eventId, designId, channel, contacts } = body
+    const { eventId, designId, channel, ceremonyIds, contacts } = body
 
     // Validate input with detailed logging
     console.log(`[${requestId}] 🔍 Validating input...`)
@@ -336,20 +337,60 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create invite record
-        console.log(`[${requestId}] [${contactId}] Creating invite record...`)
-        const invite = await prisma.invite.create({
-          data: {
-            eventId,
-            inviteeId: invitee.id,
-            email: inviteChannel === 'EMAIL' ? contact.contactInfo : null,
-            phone: ['WHATSAPP', 'SMS'].includes(inviteChannel) ? contact.contactInfo : null,
-            channel: inviteChannel,
-            status: 'PENDING',
-            token,
-          },
-        })
-        console.log(`[${requestId}] [${contactId}] ✅ Created invite: ${invite.id}`)
+        // Determine which ceremonies to invite to
+        let targetCeremonyIds: string[] | null[] = []
+        
+        if (ceremonyIds && ceremonyIds.length > 0) {
+          // Verify all ceremony IDs belong to this event
+          const ceremonies = await prisma.ceremony.findMany({
+            where: {
+              id: { in: ceremonyIds },
+              eventId,
+            },
+            select: { id: true },
+          })
+          
+          if (ceremonies.length !== ceremonyIds.length) {
+            console.warn(`[${requestId}] [${contactId}] ⚠️ Some ceremony IDs are invalid, using valid ones only`)
+          }
+          
+          targetCeremonyIds = ceremonies.map(c => c.id)
+        } else {
+          // If no ceremonyIds specified, create event-wide invite (ceremonyId = null)
+          targetCeremonyIds = [null]
+        }
+
+        // Create invite record(s) - one per ceremony (or one event-wide if no ceremonies specified)
+        console.log(`[${requestId}] [${contactId}] Creating invite record(s) for ${targetCeremonyIds.length} ceremony(ies)...`)
+        
+        const invites = await Promise.all(
+          targetCeremonyIds.map(async (ceremonyId, index) => {
+            // Generate unique token for each ceremony invite
+            const inviteToken = ceremonyId 
+              ? `${token}_${ceremonyId}_${index}` 
+              : index === 0 
+                ? token 
+                : `${token}_${index}`
+            
+            return prisma.invite.create({
+              data: {
+                eventId,
+                ceremonyId: ceremonyId || null,
+                inviteeId: invitee.id,
+                email: inviteChannel === 'EMAIL' ? contact.contactInfo : null,
+                phone: ['WHATSAPP', 'SMS'].includes(inviteChannel) ? contact.contactInfo : null,
+                channel: inviteChannel,
+                status: 'PENDING',
+                token: inviteToken,
+              },
+            })
+          })
+        )
+        
+        console.log(`[${requestId}] [${contactId}] ✅ Created ${invites.length} invite(s): ${invites.map(i => i.id).join(', ')}`)
+        
+        // Use the first invite for tracking (or event-wide invite if exists)
+        const invite = invites.find(i => !i.ceremonyId) || invites[0]
 
         // Send invitation via appropriate service
         console.log(`[${requestId}] [${contactId}] 📤 Sending invitation via ${inviteChannel}...`)

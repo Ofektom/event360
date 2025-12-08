@@ -31,21 +31,25 @@ interface EventVendor {
 
 interface EventVendorsListProps {
   eventId: string
+  ceremonyId?: string // Optional: Filter vendors by ceremony
   isOwner?: boolean
 }
 
-export function EventVendorsList({ eventId, isOwner = false }: EventVendorsListProps) {
+export function EventVendorsList({ eventId, ceremonyId, isOwner = false }: EventVendorsListProps) {
   const [vendors, setVendors] = useState<EventVendor[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
     fetchVendors()
-  }, [eventId])
+  }, [eventId, ceremonyId])
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}/vendors`)
+      const url = ceremonyId 
+        ? `/api/events/${eventId}/vendors?ceremonyId=${ceremonyId}`
+        : `/api/events/${eventId}/vendors`
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setVendors(data)
@@ -58,12 +62,17 @@ export function EventVendorsList({ eventId, isOwner = false }: EventVendorsListP
   }
 
   const handleRemoveVendor = async (vendorId: string) => {
-    if (!confirm('Are you sure you want to remove this vendor from the event?')) {
+    if (!ceremonyId) {
+      alert('Cannot remove vendor: Ceremony ID is required')
+      return
+    }
+
+    if (!confirm('Are you sure you want to remove this vendor from this ceremony?')) {
       return
     }
 
     try {
-      const response = await fetch(`/api/events/${eventId}/vendors/${vendorId}`, {
+      const response = await fetch(`/api/events/${eventId}/vendors/${vendorId}?ceremonyId=${ceremonyId}`, {
         method: 'DELETE',
       })
 
@@ -91,7 +100,7 @@ export function EventVendorsList({ eventId, isOwner = false }: EventVendorsListP
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Vendors</h2>
-        {isOwner && (
+        {isOwner && ceremonyId && (
           <Button
             variant="primary"
             onClick={() => setShowAddModal(true)}
@@ -99,19 +108,25 @@ export function EventVendorsList({ eventId, isOwner = false }: EventVendorsListP
             + Add Vendor
           </Button>
         )}
+        {isOwner && !ceremonyId && (
+          <p className="text-sm text-gray-500">Select a ceremony to add vendors</p>
+        )}
       </div>
 
       {vendors.length === 0 ? (
         <Card variant="elevated" padding="md">
           <div className="text-center py-8">
             <p className="text-gray-500 mb-4">No vendors added yet</p>
-            {isOwner && (
+            {isOwner && ceremonyId && (
               <Button
                 variant="primary"
                 onClick={() => setShowAddModal(true)}
               >
                 Add Your First Vendor
               </Button>
+            )}
+            {isOwner && !ceremonyId && (
+              <p className="text-sm text-gray-500">Select a ceremony to add vendors</p>
             )}
           </div>
         </Card>
@@ -221,9 +236,10 @@ export function EventVendorsList({ eventId, isOwner = false }: EventVendorsListP
         </div>
       )}
 
-      {showAddModal && (
+      {showAddModal && ceremonyId && (
         <AddVendorModal
           eventId={eventId}
+          ceremonyId={ceremonyId}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             fetchVendors()

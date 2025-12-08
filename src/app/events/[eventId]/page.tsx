@@ -502,10 +502,29 @@ export default function EventDetailPage() {
           )}
         </Card>
 
-        {/* Vendors Section */}
-        <Card className="p-8">
-          <EventVendorsList eventId={eventId} isOwner={isOwner} />
-        </Card>
+        {/* Vendors Section - Grouped by Ceremony */}
+        {event.ceremonies && event.ceremonies.length > 0 ? (
+          <div className="space-y-6">
+            {event.ceremonies.map((ceremony) => (
+              <Card key={ceremony.id} className="p-8">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Vendors for {ceremony.name}
+                </h2>
+                <EventVendorsList 
+                  eventId={eventId} 
+                  ceremonyId={ceremony.id}
+                  isOwner={isOwner} 
+                />
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-8">
+            <p className="text-gray-500 text-center py-8">
+              No ceremonies found. Please create a ceremony first to add vendors.
+            </p>
+          </Card>
+        )}
 
         {/* Guest List Section */}
         {isOwner && (

@@ -3,14 +3,17 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendVendorInvitation } from '@/services/vendor/vendor-invitation.service'
 
-// GET /api/events/[eventId]/vendors - Get vendors for an event
+// GET /api/events/[eventId]/vendors - Get vendors for an event or specific ceremony
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const { eventId } = await params
-    console.log(`[GET /api/events/${eventId}/vendors] Fetching vendors for event`)
+    const searchParams = request.nextUrl.searchParams
+    const ceremonyId = searchParams.get('ceremonyId')
+    
+    console.log(`[GET /api/events/${eventId}/vendors] Fetching vendors${ceremonyId ? ` for ceremony ${ceremonyId}` : ' for event'}`)
 
     // Verify event exists
     const event = await prisma.event.findUnique({
@@ -26,8 +29,26 @@ export async function GET(
       )
     }
 
+    // If ceremonyId provided, verify it belongs to this event
+    if (ceremonyId) {
+      const ceremony = await prisma.ceremony.findUnique({
+        where: { id: ceremonyId },
+        select: { id: true, eventId: true },
+      })
+
+      if (!ceremony || ceremony.eventId !== eventId) {
+        return NextResponse.json(
+          { error: 'Ceremony not found or does not belong to this event' },
+          { status: 404 }
+        )
+      }
+    }
+
     const eventVendors = await prisma.eventVendor.findMany({
-      where: { eventId },
+      where: {
+        eventId,
+        ...(ceremonyId && { ceremonyId }),
+      },
       include: {
         vendor: {
           select: {
@@ -46,6 +67,12 @@ export async function GET(
             isVerified: true,
             averageRating: true,
             totalRatings: true,
+          },
+        },
+        ceremony: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -175,11 +202,40 @@ export async function POST(
       }
     }
 
-    // Check if vendor is already added to this event
+    // Require ceremonyId for vendor assignment
+    if (!body.ceremonyId) {
+      return NextResponse.json(
+        { error: 'Ceremony ID is required. Vendors must be assigned to a specific ceremony.' },
+        { status: 400 }
+      )
+    }
+
+    // Verify ceremony exists and belongs to this event
+    const ceremony = await prisma.ceremony.findUnique({
+      where: { id: body.ceremonyId },
+      select: { id: true, eventId: true },
+    })
+
+    if (!ceremony) {
+      return NextResponse.json(
+        { error: 'Ceremony not found' },
+        { status: 404 }
+      )
+    }
+
+    if (ceremony.eventId !== eventId) {
+      return NextResponse.json(
+        { error: 'Ceremony does not belong to this event' },
+        { status: 400 }
+      )
+    }
+
+    // Check if vendor is already added to this ceremony
     const existingEventVendor = await prisma.eventVendor.findUnique({
       where: {
-        eventId_vendorId: {
+        eventId_ceremonyId_vendorId: {
           eventId,
+          ceremonyId: body.ceremonyId,
           vendorId,
         },
       },
@@ -187,7 +243,7 @@ export async function POST(
 
     if (existingEventVendor) {
       return NextResponse.json(
-        { error: 'Vendor is already added to this event' },
+        { error: 'Vendor is already added to this ceremony' },
         { status: 400 }
       )
     }
@@ -205,10 +261,11 @@ export async function POST(
       },
     })
 
-    // Add vendor to event
+    // Add vendor to ceremony
     const eventVendor = await prisma.eventVendor.create({
       data: {
         eventId,
+        ceremonyId: body.ceremonyId,
         vendorId,
         role: body.role || null,
         notes: body.notes || null,
@@ -268,7 +325,7 @@ export async function POST(
     // Handle unique constraint violation
     if (error.code === 'P2002') {
       return NextResponse.json(
-        { error: 'Vendor is already added to this event' },
+        { error: 'Vendor is already added to this ceremony' },
         { status: 400 }
       )
     }

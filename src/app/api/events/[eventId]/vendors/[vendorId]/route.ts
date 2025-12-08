@@ -31,17 +31,42 @@ export async function DELETE(
       )
     }
 
-    // Remove vendor from event
+    // Get ceremonyId from query params or body
+    const searchParams = request.nextUrl.searchParams
+    const ceremonyId = searchParams.get('ceremonyId') || (await request.json().catch(() => ({}))).ceremonyId
+
+    if (!ceremonyId) {
+      return NextResponse.json(
+        { error: 'Ceremony ID is required to remove vendor' },
+        { status: 400 }
+      )
+    }
+
+    // Verify ceremony belongs to this event
+    const ceremony = await prisma.ceremony.findUnique({
+      where: { id: ceremonyId },
+      select: { id: true, eventId: true },
+    })
+
+    if (!ceremony || ceremony.eventId !== eventId) {
+      return NextResponse.json(
+        { error: 'Ceremony not found or does not belong to this event' },
+        { status: 404 }
+      )
+    }
+
+    // Remove vendor from ceremony
     await prisma.eventVendor.delete({
       where: {
-        eventId_vendorId: {
+        eventId_ceremonyId_vendorId: {
           eventId,
+          ceremonyId,
           vendorId,
         },
       },
     })
 
-    return NextResponse.json({ message: 'Vendor removed from event' })
+    return NextResponse.json({ message: 'Vendor removed from ceremony' })
   } catch (error: any) {
     console.error('Error removing vendor from event:', error)
     
@@ -59,7 +84,7 @@ export async function DELETE(
   }
 }
 
-// PATCH /api/events/[eventId]/vendors/[vendorId] - Update vendor details for event
+// PATCH /api/events/[eventId]/vendors/[vendorId] - Update vendor details for ceremony
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ eventId: string; vendorId: string }> }
@@ -68,6 +93,14 @@ export async function PATCH(
     const user = await requireAuth()
     const { eventId, vendorId } = await params
     const body = await request.json()
+
+    // Require ceremonyId
+    if (!body.ceremonyId) {
+      return NextResponse.json(
+        { error: 'Ceremony ID is required' },
+        { status: 400 }
+      )
+    }
 
     // Verify user owns the event
     const event = await prisma.event.findUnique({
@@ -89,11 +122,25 @@ export async function PATCH(
       )
     }
 
+    // Verify ceremony belongs to this event
+    const ceremony = await prisma.ceremony.findUnique({
+      where: { id: body.ceremonyId },
+      select: { id: true, eventId: true },
+    })
+
+    if (!ceremony || ceremony.eventId !== eventId) {
+      return NextResponse.json(
+        { error: 'Ceremony not found or does not belong to this event' },
+        { status: 404 }
+      )
+    }
+
     // Update event vendor
     const eventVendor = await prisma.eventVendor.update({
       where: {
-        eventId_vendorId: {
+        eventId_ceremonyId_vendorId: {
           eventId,
+          ceremonyId: body.ceremonyId,
           vendorId,
         },
       },
