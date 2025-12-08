@@ -150,13 +150,13 @@ export function DashboardLayout({ children, eventId: propEventId }: DashboardLay
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-w-0">
           <div className="w-full max-w-full px-[10px] pt-4 pb-4">
-            {children}
+        {children}
           </div>
         </div>
         
         {/* Footer - Always at bottom, outside scrollable area */}
         <div className="flex-shrink-0">
-          <Footer variant="dashboard" />
+      <Footer variant="dashboard" />
         </div>
       </div>
     </div>

@@ -291,13 +291,31 @@ export async function sendWhatsAppInvite(
         imageUrl = `${baseUrl}${imageUrl}`
         console.log(`[${requestId}] 🔗 Converted relative URL to absolute: ${imageUrl}`)
       } else if (imageUrl.startsWith('data:')) {
-        // Data URL - WhatsApp doesn't support data URLs directly
-        // We'll skip the image and send text only
-        console.warn(`[${requestId}] ⚠️ Data URL detected. WhatsApp requires absolute URLs. Skipping image.`)
+        // Data URL - Should have been converted to absolute URL in the API route
+        // If we still see a data URL here, skip it
+        console.warn(`[${requestId}] ⚠️ Data URL detected in WhatsApp service. This should have been converted earlier. Skipping image.`)
         imageUrl = null
       } else {
-        // Already absolute URL
-        console.log(`[${requestId}] ✅ Using absolute URL: ${imageUrl.substring(0, 100)}...`)
+        // Already absolute URL - validate it
+        try {
+          const url = new URL(imageUrl)
+          // Validate URL format
+          if (!url.protocol.startsWith('http')) {
+            console.error(`[${requestId}] ❌ Invalid URL protocol: ${url.protocol}. Must be http:// or https://`)
+            imageUrl = null
+          } else {
+            console.log(`[${requestId}] ✅ Using absolute URL: ${imageUrl.substring(0, 150)}...`)
+            console.log(`[${requestId}] 📏 URL length: ${imageUrl.length} characters`)
+            
+            // Check if URL is too long (SendZen might have limits)
+            if (imageUrl.length > 2048) {
+              console.warn(`[${requestId}] ⚠️ URL is very long (${imageUrl.length} chars). SendZen might reject it.`)
+            }
+          }
+        } catch (urlError: any) {
+          console.error(`[${requestId}] ❌ Invalid URL format: ${imageUrl.substring(0, 100)}... Error: ${urlError.message}`)
+          imageUrl = null
+        }
       }
     }
 
@@ -717,6 +735,24 @@ export async function sendWhatsAppInvite(
     console.error(`[${requestId}] Error message:`, error.message)
     console.error(`[${requestId}] Error stack:`, error.stack)
     console.error(`[${requestId}] Error code:`, error.code)
+    
+    // Handle network errors
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.error(`[${requestId}] ❌ Network error:`, error.code)
+      return {
+        success: false,
+        error: 'Unable to connect to WhatsApp service. Please check your internet connection and API URL.',
+      }
+    }
+
+    return {
+      success: false,
+      error: error.message || 'Failed to send WhatsApp invitation',
+    }
+  }
+}
+
+
     
     // Handle network errors
     if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {

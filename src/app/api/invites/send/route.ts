@@ -8,6 +8,7 @@ import { sendEmailInvite } from '@/services/invite/email.service'
 import { sendInstagramDMInvite } from '@/services/invite/instagram.service'
 import { InviteChannel } from '@prisma/client'
 import { randomBytes } from 'crypto'
+import { uploadDataUrlToCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary'
 
 interface SendInvitesRequest {
   eventId: string
@@ -139,22 +140,59 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Convert data URL to absolute URL if needed
-    // WhatsApp requires absolute URLs, not data URLs
+    // Convert data URL to Cloudinary URL if needed
+    // WhatsApp and other APIs require absolute HTTP/HTTPS URLs, not data URLs
     if (invitationImageUrl.startsWith('data:')) {
-      console.log(`[${requestId}] 🔄 Converting data URL to absolute URL...`)
-      const { getBaseUrl } = await import('@/lib/utils')
-      const baseUrl = getBaseUrl()
+      console.log(`[${requestId}] 🔄 Converting data URL to Cloudinary URL...`)
       
-      // Create a data URL endpoint URL
-      // We'll need to encode the data URL or create an API endpoint to serve it
-      // For now, we'll create a temporary endpoint that serves the image
-      // In production, you should use a proper storage service (S3, Cloudinary, Vercel Blob)
-      
-      // Encode the data URL to pass it as a parameter
-      const encodedDataUrl = encodeURIComponent(invitationImageUrl)
-      invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
-      console.log(`[${requestId}] ✅ Converted data URL to absolute URL: ${invitationImageUrl.substring(0, 100)}...`)
+      if (isCloudinaryConfigured()) {
+        try {
+          // Upload data URL to Cloudinary
+          const uploadType = 'invitation'
+          const folder = `event360/${uploadType}/${eventId}`
+          
+          const result = await uploadDataUrlToCloudinary(invitationImageUrl, {
+            folder,
+            publicId: `invitation-${designId}-${Date.now()}`,
+            overwrite: false,
+          })
+          
+          invitationImageUrl = result.secureUrl
+          console.log(`[${requestId}] ✅ Uploaded data URL to Cloudinary: ${invitationImageUrl.substring(0, 100)}...`)
+          
+          // Update the design record with the Cloudinary URL for future use
+          try {
+            await prisma.invitationDesign.update({
+              where: { id: designId },
+              data: {
+                imageUrl: result.secureUrl,
+                customImage: design.customImage?.startsWith('data:') ? result.secureUrl : design.customImage,
+              },
+            })
+            console.log(`[${requestId}] ✅ Updated design record with Cloudinary URL`)
+          } catch (updateError) {
+            // Log but don't fail - the URL is still valid for this send
+            console.warn(`[${requestId}] ⚠️ Failed to update design record:`, updateError)
+          }
+        } catch (cloudinaryError: any) {
+          console.error(`[${requestId}] ❌ Failed to upload to Cloudinary:`, cloudinaryError.message)
+          // Fallback to API endpoint method (less ideal but works)
+          const { getBaseUrl } = await import('@/lib/utils')
+          const baseUrl = getBaseUrl()
+          const encodedDataUrl = encodeURIComponent(invitationImageUrl)
+          invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
+          console.log(`[${requestId}] ⚠️ Fallback: Using API endpoint URL: ${invitationImageUrl.substring(0, 100)}...`)
+        }
+      } else {
+        // Cloudinary not configured - use API endpoint as fallback
+        console.log(`[${requestId}] ⚠️ Cloudinary not configured, using API endpoint fallback...`)
+        const { getBaseUrl } = await import('@/lib/utils')
+        const baseUrl = getBaseUrl()
+        const encodedDataUrl = encodeURIComponent(invitationImageUrl)
+        invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
+        console.log(`[${requestId}] ⚠️ Using API endpoint URL: ${invitationImageUrl.substring(0, 100)}...`)
+        console.log(`[${requestId}] ⚠️ Note: Configure Cloudinary for better reliability`)
+      }
     } else if (invitationImageUrl.startsWith('/')) {
       // Relative URL - convert to absolute
       const { getBaseUrl } = await import('@/lib/utils')
