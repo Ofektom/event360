@@ -766,9 +766,11 @@ export async function sendWhatsAppInvite(
       }
 
       // Extract message ID and status from various possible response formats
+      // SendZen can return: { message: "...", data: [{ message_id, status, ... }] }
       const messageId = responseData.message_id || 
                        responseData.id || 
                        responseData.messages?.[0]?.id ||
+                       responseData.data?.[0]?.message_id ||  // Array format: data[0].message_id
                        responseData.data?.message_id ||
                        responseData.data?.id ||
                        responseData.result?.message_id ||
@@ -776,13 +778,33 @@ export async function sendWhatsAppInvite(
       
       const status = responseData.status || 
                     responseData.messages?.[0]?.status ||
+                    responseData.data?.[0]?.status ||  // Array format: data[0].status
                     responseData.data?.status ||
                     responseData.result?.status
       
       const wamid = responseData.messages?.[0]?.wamid || 
                    responseData.wamid ||
+                   responseData.data?.[0]?.wamid ||  // Array format: data[0].wamid
                    responseData.data?.wamid ||
                    responseData.result?.wamid
+      
+      // Log the response message if present
+      if (responseData.message) {
+        console.log(`[${requestId}] 📨 SendZen response message: ${responseData.message}`)
+      }
+      
+      // Log data array details if present
+      if (Array.isArray(responseData.data) && responseData.data.length > 0) {
+        console.log(`[${requestId}] 📋 SendZen data array contains ${responseData.data.length} message(s)`)
+        responseData.data.forEach((msg: any, index: number) => {
+          console.log(`[${requestId}]   Message ${index + 1}:`, {
+            message_id: msg.message_id || msg.id,
+            status: msg.status,
+            to: msg.to,
+            timestamp: msg.timestamp
+          })
+        })
+      }
 
       // Log message identifiers
       if (messageId) {
