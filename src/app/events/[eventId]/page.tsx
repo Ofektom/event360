@@ -45,6 +45,22 @@ interface EventStats {
   totalInvites: number
 }
 
+interface Invitee {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  rsvpStatus: string
+  role: string | null
+}
+
+interface InvitationDesign {
+  id: string
+  name: string
+  imageUrl: string | null
+  isDefault: boolean
+}
+
 interface Ceremony {
   id: string
   name: string
@@ -67,6 +83,8 @@ export default function EventDetailPage() {
   const [showShareModal, setShowShareModal] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
   const [stats, setStats] = useState<EventStats | null>(null)
+  const [invitees, setInvitees] = useState<Invitee[]>([])
+  const [invitationDesigns, setInvitationDesigns] = useState<InvitationDesign[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -127,6 +145,10 @@ export default function EventDetailPage() {
             rsvpBreakdown,
             totalInvites,
           })
+
+          // Store invitees and designs for display
+          setInvitees(inviteesData.slice(0, 10)) // Show first 10 invitees
+          setInvitationDesigns(designsData)
         } catch (statsError) {
           console.error('Error fetching stats:', statsError)
           // Set default stats if fetch fails
@@ -484,6 +506,123 @@ export default function EventDetailPage() {
         <Card className="p-8">
           <EventVendorsList eventId={eventId} isOwner={isOwner} />
         </Card>
+
+        {/* Guest List Section */}
+        {isOwner && (
+          <Card className="p-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Guest List</h2>
+              <Link href={`/events/${eventId}/invitees`}>
+                <Button variant="primary">View All Guests</Button>
+              </Link>
+            </div>
+
+            {invitees.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-4xl mb-4">👥</div>
+                <p>No guests added yet. Start inviting people to your event!</p>
+                <Link href={`/events/${eventId}/invitees`}>
+                  <Button variant="primary" className="mt-4">Add Guests</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {invitees.map((invitee) => (
+                    <Card key={invitee.id} className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-1">{invitee.name}</h3>
+                          {invitee.email && (
+                            <p className="text-sm text-gray-600 mb-1">📧 {invitee.email}</p>
+                          )}
+                          {invitee.phone && (
+                            <p className="text-sm text-gray-600 mb-1">📞 {invitee.phone}</p>
+                          )}
+                          {invitee.role && (
+                            <p className="text-xs text-purple-600 mt-1">Role: {invitee.role}</p>
+                          )}
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            invitee.rsvpStatus === 'ACCEPTED'
+                              ? 'bg-green-100 text-green-700'
+                              : invitee.rsvpStatus === 'DECLINED'
+                              ? 'bg-red-100 text-red-700'
+                              : invitee.rsvpStatus === 'MAYBE'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {invitee.rsvpStatus}
+                        </span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+                {event._count.invitees > invitees.length && (
+                  <div className="text-center pt-4">
+                    <Link href={`/events/${eventId}/invitees`}>
+                      <Button variant="secondary">
+                        View All {event._count.invitees} Guests →
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Invitation Designs Section */}
+        {isOwner && (
+          <Card className="p-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Invitation Designs</h2>
+              <Link href={`/events/${eventId}/invitations`}>
+                <Button variant="primary">Manage Invitations</Button>
+              </Link>
+            </div>
+
+            {invitationDesigns.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-4xl mb-4">💌</div>
+                <p>No invitation designs yet. Create your first invitation design!</p>
+                <Link href={`/events/${eventId}/invitations`}>
+                  <Button variant="primary" className="mt-4">Create Invitation</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {invitationDesigns.map((design) => (
+                  <Link key={design.id} href={`/events/${eventId}/invitations?designId=${design.id}`}>
+                    <Card className="p-4 hover:shadow-lg transition-shadow cursor-pointer">
+                      {design.imageUrl ? (
+                        <div className="relative w-full h-48 mb-3 rounded-lg overflow-hidden bg-gray-100">
+                          <img
+                            src={design.imageUrl}
+                            alt={design.name}
+                            className="w-full h-full object-cover"
+                          />
+                          {design.isDefault && (
+                            <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-full h-48 mb-3 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                          <span className="text-4xl">💌</span>
+                        </div>
+                      )}
+                      <h3 className="font-semibold text-gray-900">{design.name}</h3>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
