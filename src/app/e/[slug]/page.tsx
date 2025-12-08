@@ -13,6 +13,8 @@ import { OAuthEventJoinHandler } from '@/components/organisms/OAuthEventJoinHand
 import { EventService } from '@/services/event.service'
 import { canAccessEvent } from '@/lib/access-control'
 import { ThemeConfig, defaultTheme } from '@/types/theme.types'
+import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
 
 const eventService = new EventService()
 
@@ -90,6 +92,78 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
         }
       : undefined
 
+    // Fetch additional event data
+    const [invitationDesigns, invitees, eventStats] = await Promise.all([
+      // Fetch invitation designs (public - anyone can see)
+      prisma.invitationDesign.findMany({
+        where: { 
+          eventId: event.id,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          isDefault: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 6, // Show first 6 designs
+      }).catch(() => []),
+      
+      // Fetch invitees (limited view for public)
+      access.canInteract || access.isOrganizer
+        ? prisma.invitee.findMany({
+            where: { eventId: event.id },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              rsvpStatus: true,
+              role: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 12, // Show first 12 invitees
+          }).catch(() => [])
+        : Promise.resolve([]),
+      
+      // Get event stats
+      prisma.event.findUnique({
+        where: { id: event.id },
+        select: {
+          _count: {
+            select: {
+              invitees: true,
+              mediaAssets: true,
+              eventVendors: true,
+              ceremonies: true,
+              interactions: true,
+            },
+          },
+        },
+      }).catch(() => null),
+    ])
+
+    // Calculate RSVP breakdown (only for organizers or if user can interact)
+    let rsvpBreakdown = null
+    if (access.isOrganizer || access.canInteract) {
+      const allInvitees = await prisma.invitee.findMany({
+        where: { eventId: event.id },
+        select: { rsvpStatus: true },
+      }).catch(() => [])
+      
+      rsvpBreakdown = {
+        accepted: allInvitees.filter((i) => i.rsvpStatus === 'ACCEPTED').length,
+        pending: allInvitees.filter((i) => i.rsvpStatus === 'PENDING').length,
+        declined: allInvitees.filter((i) => i.rsvpStatus === 'DECLINED').length,
+        maybe: allInvitees.filter((i) => i.rsvpStatus === 'MAYBE').length,
+      }
+    }
+
     return (
       <PublicEventLayout theme={theme}>
         <OAuthEventJoinHandler />
@@ -123,12 +197,162 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
             </Card>
           </div>
 
+          {/* Stats Section */}
+          {eventStats && (
+            <div className="container mx-auto px-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Card className="p-4 text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {eventStats._count.ceremonies}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Ceremonies</div>
+                </Card>
+                <Card className="p-4 text-center">
+                  <div className="text-2xl font-bold text-pink-600">
+                    {eventStats._count.invitees}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Guests</div>
+                </Card>
+                <Card className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {eventStats._count.mediaAssets}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Photos</div>
+                </Card>
+                <Card className="p-4 text-center">
+                  <div className="text-2xl font-bold text-indigo-600">
+                    {eventStats._count.eventVendors}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">Vendors</div>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* RSVP Breakdown - Only for organizers or users with access */}
+          {rsvpBreakdown && (access.isOrganizer || access.canInteract) && (
+            <div className="container mx-auto px-4">
+              <Card className="p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">RSVP Status</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {rsvpBreakdown.accepted}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">Accepted</div>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {rsvpBreakdown.pending}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">Pending</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">
+                      {rsvpBreakdown.declined}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">Declined</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {rsvpBreakdown.maybe}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">Maybe</div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Vendors Section - Always visible */}
           <div className="container mx-auto px-4">
             <Card className="p-6">
               <EventVendorsList eventId={event.id} isOwner={access.isOrganizer} />
             </Card>
           </div>
+
+          {/* Invitation Designs Section - Always visible */}
+          {invitationDesigns.length > 0 && (
+            <div className="container mx-auto px-4">
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Invitation Designs</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {invitationDesigns.map((design) => (
+                    <div key={design.id} className="relative">
+                      {design.imageUrl ? (
+                        <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+                          <img
+                            src={design.imageUrl}
+                            alt={design.name}
+                            className="w-full h-full object-cover"
+                          />
+                          {design.isDefault && (
+                            <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-full h-48 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                          <span className="text-4xl">💌</span>
+                        </div>
+                      )}
+                      <h3 className="font-semibold text-gray-900 mt-2">{design.name}</h3>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Guest List Section - Only for users with access */}
+          {invitees.length > 0 && (access.canInteract || access.isOrganizer) && (
+            <div className="container mx-auto px-4">
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Guest List</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {invitees.map((invitee) => (
+                    <Card key={invitee.id} className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-1">{invitee.name}</h3>
+                          {invitee.email && (
+                            <p className="text-sm text-gray-600 mb-1">📧 {invitee.email}</p>
+                          )}
+                          {invitee.phone && (
+                            <p className="text-sm text-gray-600 mb-1">📞 {invitee.phone}</p>
+                          )}
+                          {invitee.role && (
+                            <p className="text-xs text-purple-600 mt-1">Role: {invitee.role}</p>
+                          )}
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            invitee.rsvpStatus === 'ACCEPTED'
+                              ? 'bg-green-100 text-green-700'
+                              : invitee.rsvpStatus === 'DECLINED'
+                              ? 'bg-red-100 text-red-700'
+                              : invitee.rsvpStatus === 'MAYBE'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {invitee.rsvpStatus}
+                        </span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+                {eventStats && eventStats._count.invitees > invitees.length && (
+                  <div className="text-center pt-4">
+                    <p className="text-sm text-gray-600">
+                      Showing {invitees.length} of {eventStats._count.invitees} guests
+                    </p>
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
 
           {/* Full Access Content (only for authenticated, linked users) */}
           {access.canInteract && (
