@@ -382,6 +382,7 @@ export default function EventDetailPage() {
           eventId={eventId}
           shareLink={event.shareLink || null}
           qrCode={event.qrCode || null}
+          slug={event.slug || null}
           onClose={() => setShowShareModal(false)}
         />
       )}

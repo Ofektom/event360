@@ -6,9 +6,18 @@ import Link from 'next/link'
 
 interface JoinEventBannerProps {
   eventSlug: string
+  eventId?: string
 }
 
-export function JoinEventBanner({ eventSlug }: JoinEventBannerProps) {
+export function JoinEventBanner({ eventSlug, eventId }: JoinEventBannerProps) {
+  const callbackUrl = `/e/${eventSlug}`
+  const signupUrl = eventId 
+    ? `/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}&eventId=${eventId}`
+    : `/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`
+  const signinUrl = eventId
+    ? `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}&eventId=${eventId}`
+    : `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
+
   return (
     <div className="container mx-auto px-4">
       <Card className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
@@ -22,10 +31,10 @@ export function JoinEventBanner({ eventSlug }: JoinEventBannerProps) {
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href={`/auth/signup?callbackUrl=/e/${eventSlug}`}>
+            <Link href={signupUrl}>
               <Button variant="primary">Sign Up</Button>
             </Link>
-            <Link href={`/auth/signin?callbackUrl=/e/${eventSlug}`}>
+            <Link href={signinUrl}>
               <Button variant="outline">Sign In</Button>
             </Link>
           </div>

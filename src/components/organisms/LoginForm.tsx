@@ -2,17 +2,27 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { Card } from '@/components/atoms/Card'
 
-export function LoginForm() {
+interface LoginFormProps {
+  callbackUrl?: string
+  eventId?: string
+}
+
+export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Get eventId from props or searchParams
+  const eventId = propEventId || searchParams.get('eventId') || null
+  const finalCallbackUrl = callbackUrl || searchParams.get('callbackUrl') || '/timeline'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +39,30 @@ export function LoginForm() {
       if (result?.error) {
         setError(result.error)
       } else if (result?.ok) {
-        router.push('/timeline')
+        // If eventId is provided, join the event
+        if (eventId) {
+          try {
+            const joinResponse = await fetch(`/api/events/${eventId}/join`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            })
+
+            if (joinResponse.ok) {
+              // Successfully joined event, redirect to event page
+              router.push(finalCallbackUrl)
+              router.refresh()
+              return
+            }
+          } catch (joinError) {
+            console.error('Error joining event:', joinError)
+            // Continue to redirect even if join fails
+          }
+        }
+
+        // Redirect to callback URL or timeline
+        router.push(finalCallbackUrl)
         router.refresh()
       }
     } catch (err) {
@@ -43,7 +76,11 @@ export function LoginForm() {
     setError('')
     setIsLoading(true)
     try {
-      await signIn(provider, { callbackUrl: '/timeline' })
+      // Include eventId in callback URL for OAuth
+      const oauthCallbackUrl = eventId 
+        ? `${finalCallbackUrl}?eventId=${eventId}`
+        : finalCallbackUrl
+      await signIn(provider, { callbackUrl: oauthCallbackUrl })
     } catch (err) {
       setError('Failed to sign in with ' + provider)
       setIsLoading(false)

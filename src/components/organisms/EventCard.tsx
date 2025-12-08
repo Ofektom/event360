@@ -71,6 +71,9 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const isLive = event.event.hasLiveStream && event.event.liveStreamUrl
 
+  // Generate full event URL
+  const fullEventUrl = `${window.location.origin}${eventUrl}`
+
   const handleCopyLink = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -80,6 +83,43 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
       setTimeout(() => setCopied(false), 2000)
     }).catch((err) => {
       console.error('Failed to copy:', err)
+    })
+  }
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const shareData = {
+      title: event.event.title,
+      text: `Check out this event: ${event.event.title}`,
+      url: fullEventUrl,
+    }
+
+    // Check if Web Share API is supported (mobile browsers)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData)
+      } catch (error: any) {
+        // User cancelled or error occurred
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error)
+          // Fallback to copying link
+          fallbackCopyLink()
+        }
+      }
+    } else {
+      // Fallback to copying link for desktop browsers
+      fallbackCopyLink()
+    }
+  }
+
+  const fallbackCopyLink = () => {
+    navigator.clipboard.writeText(fullEventUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch((err) => {
+      console.error('Failed to copy link:', err)
     })
   }
 
@@ -764,8 +804,8 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
         </div>
       )}
 
-      {/* Post Actions (Like, Comment, View Post, Watch Live) - Like Facebook */}
-      <div className={`flex items-center justify-between pt-3 border-t border-gray-200 ${isLive ? 'grid grid-cols-4 gap-1' : ''}`}>
+      {/* Post Actions (Like, Comment, Share, View Post, Watch Live) - Like Facebook */}
+      <div className={`flex items-center justify-between pt-3 border-t border-gray-200 ${isLive ? 'grid grid-cols-5 gap-1' : 'grid grid-cols-4 gap-1'}`}>
         <button
           onClick={handleLike}
           disabled={isLiking}
@@ -814,6 +854,25 @@ export function EventCard({ event, onRefresh }: EventCardProps) {
           {comments > 0 && (
             <span className="text-xs text-gray-500">({comments})</span>
           )}
+        </button>
+        <button
+          onClick={handleShare}
+          className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+            />
+          </svg>
+          <span className="text-sm font-medium">{copied ? 'Copied!' : 'Share'}</span>
         </button>
         <Link
           href={eventUrl}

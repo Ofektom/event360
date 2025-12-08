@@ -9,6 +9,7 @@ import { EventPhotoGallery } from '@/components/organisms/EventPhotoGallery'
 import { EventTimeline } from '@/components/organisms/EventTimeline'
 import { JoinEventBanner } from '@/components/organisms/JoinEventBanner'
 import { RequestAccessBanner } from '@/components/organisms/RequestAccessBanner'
+import { OAuthEventJoinHandler } from '@/components/organisms/OAuthEventJoinHandler'
 import { EventService } from '@/services/event.service'
 import { canAccessEvent } from '@/lib/access-control'
 import { ThemeConfig, defaultTheme } from '@/types/theme.types'
@@ -30,8 +31,19 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
     // Get event by slug
     const event = await eventService.getEventBySlug(slug)
 
+    // If user is not authenticated, redirect to signup with event info
+    if (!user) {
+      redirect(`/auth/signup?callbackUrl=/e/${slug}&eventId=${event.id}`)
+    }
+
     // Check access
-    const access = await canAccessEvent(user?.id || null, event.id)
+    const access = await canAccessEvent(user.id, event.id)
+
+    // If user is authenticated but not linked to event, automatically add them as guest
+    if (!access.canInteract && !access.isOrganizer) {
+      // This will be handled client-side to avoid blocking the page load
+      // The RequestAccessBanner will handle the join automatically
+    }
 
     if (!access.canView) {
       return (
@@ -80,6 +92,7 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
 
     return (
       <PublicEventLayout theme={theme}>
+        <OAuthEventJoinHandler />
         <div className="space-y-8">
           {/* Event Header */}
           <EventHeader
@@ -91,12 +104,9 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
             theme={themeColors}
           />
 
-          {/* Join Event Banner (for unauthenticated users) */}
-          {!user && <JoinEventBanner eventSlug={slug} />}
-
           {/* Request Access Banner (for authenticated but not linked users) */}
-          {user && !access.canInteract && !access.isOrganizer && (
-            <RequestAccessBanner eventId={event.id} />
+          {!access.canInteract && !access.isOrganizer && (
+            <RequestAccessBanner eventId={event.id} eventSlug={slug} />
           )}
 
           {/* Programme/Order of Events - Always visible */}

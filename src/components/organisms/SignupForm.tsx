@@ -1,14 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { Card } from '@/components/atoms/Card'
 
-export function SignupForm() {
+interface SignupFormProps {
+  callbackUrl?: string
+  eventId?: string
+}
+
+export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,6 +23,10 @@ export function SignupForm() {
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Get eventId from props or searchParams
+  const eventId = propEventId || searchParams.get('eventId') || null
+  const finalCallbackUrl = callbackUrl || searchParams.get('callbackUrl') || '/timeline'
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -63,8 +73,44 @@ export function SignupForm() {
         return
       }
 
-      // Redirect to sign in page
-      router.push('/auth/signin?registered=true')
+      // Sign in the user automatically after signup
+      const signInResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      })
+
+      if (signInResult?.error) {
+        // If sign in fails, redirect to sign in page
+        router.push(`/auth/signin?registered=true${eventId ? `&eventId=${eventId}&callbackUrl=${encodeURIComponent(finalCallbackUrl)}` : ''}`)
+        return
+      }
+
+      // If eventId is provided, join the event
+      if (eventId) {
+        try {
+          const joinResponse = await fetch(`/api/events/${eventId}/join`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (joinResponse.ok) {
+            // Successfully joined event, redirect to event page
+            router.push(finalCallbackUrl)
+            router.refresh()
+            return
+          }
+        } catch (joinError) {
+          console.error('Error joining event:', joinError)
+          // Continue to redirect even if join fails
+        }
+      }
+
+      // Redirect to callback URL or timeline
+      router.push(finalCallbackUrl)
+      router.refresh()
     } catch (err) {
       setError('An unexpected error occurred')
     } finally {
@@ -76,7 +122,11 @@ export function SignupForm() {
     setError('')
     setIsLoading(true)
     try {
-      await signIn(provider, { callbackUrl: '/timeline' })
+      // Include eventId in callback URL for OAuth
+      const oauthCallbackUrl = eventId 
+        ? `${finalCallbackUrl}?eventId=${eventId}`
+        : finalCallbackUrl
+      await signIn(provider, { callbackUrl: oauthCallbackUrl })
     } catch (err) {
       setError('Failed to sign up with ' + provider)
       setIsLoading(false)

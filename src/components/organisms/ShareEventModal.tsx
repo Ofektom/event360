@@ -1,35 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface ShareEventModalProps {
   eventId: string
   shareLink: string | null
   qrCode: string | null
+  slug?: string | null
   onClose: () => void
 }
 
-export function ShareEventModal({ eventId, shareLink, qrCode, onClose }: ShareEventModalProps) {
+export function ShareEventModal({ eventId, shareLink, qrCode, slug, onClose }: ShareEventModalProps) {
   const [copied, setCopied] = useState(false)
 
-  const handleCopyLink = async () => {
-    if (shareLink) {
+  // Generate the correct share link using current base URL
+  // This fixes the issue where old events have localhost:3000 in the database
+  const currentShareLink = useMemo(() => {
+    if (slug) {
+      // Use the current origin (production or localhost) with the slug
+      return `${window.location.origin}/e/${slug}`
+    } else if (shareLink) {
+      // If we have a shareLink but no slug, try to extract the path and use current origin
       try {
-        await navigator.clipboard.writeText(shareLink)
+        const url = new URL(shareLink)
+        return `${window.location.origin}${url.pathname}`
+      } catch {
+        // If shareLink is not a valid URL, construct from eventId
+        return `${window.location.origin}/events/${eventId}`
+      }
+    } else {
+      // Fallback: construct from eventId
+      return `${window.location.origin}/events/${eventId}`
+    }
+  }, [shareLink, slug, eventId])
+
+  const handleCopyLink = async () => {
+    if (currentShareLink) {
+      try {
+        await navigator.clipboard.writeText(currentShareLink)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       } catch (error) {
         console.error('Failed to copy link:', error)
       }
     }
-  }
-
-  const handleDownloadQR = () => {
-    // TODO: Implement QR code image generation and download
-    // For now, we'll just show the QR code string
-    alert(`QR Code: ${qrCode}\n\nQR code image download will be implemented soon.`)
   }
 
   return (
@@ -59,7 +76,7 @@ export function ShareEventModal({ eventId, shareLink, qrCode, onClose }: ShareEv
           <div className="flex gap-2">
             <input
               type="text"
-              value={shareLink || 'Generating...'}
+              value={currentShareLink || 'Generating...'}
               readOnly
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
             />
@@ -67,7 +84,7 @@ export function ShareEventModal({ eventId, shareLink, qrCode, onClose }: ShareEv
               variant="primary"
               onClick={handleCopyLink}
               size="sm"
-              disabled={!shareLink}
+              disabled={!currentShareLink}
             >
               {copied ? 'Copied!' : 'Copy'}
             </Button>
@@ -78,26 +95,20 @@ export function ShareEventModal({ eventId, shareLink, qrCode, onClose }: ShareEv
         </div>
 
         {/* QR Code */}
-        {qrCode && (
+        {currentShareLink && (
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               QR Code
             </label>
             <div className="flex flex-col items-center p-4 bg-white border border-gray-200 rounded-lg">
-              <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">📱</div>
-                  <p className="text-xs text-gray-500">QR Code</p>
-                  <p className="text-xs text-gray-400 mt-1">{qrCode.substring(0, 20)}...</p>
-                </div>
+              <div className="w-48 h-48 bg-white rounded-lg flex items-center justify-center p-4">
+                <QRCodeSVG
+                  value={currentShareLink}
+                  size={192}
+                  level="H"
+                  includeMargin={true}
+                />
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownloadQR}
-              >
-                Download QR Code
-              </Button>
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
               Scan this QR code to access the event
