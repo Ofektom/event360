@@ -247,28 +247,29 @@ export async function sendWhatsAppInvite(
       }
 
       // Add body component with variables
-      // Template variables: {{1}} = eventTitle, {{2}} = inviteeName, {{3}} = shareLink
+      // Template variables: {{1}} = inviteeName, {{2}} = eventTitle, {{3}} = shareLink
+      // Template text: "Hi {{1}}, you're cordially invited to {{2}}! ... {{3}}"
       requestBody.template.components.push({
         type: 'body',
         parameters: [
           {
             type: 'text',
-            text: eventTitle,
+            text: inviteeName, // {{1}} - Invitee Name
           },
           {
             type: 'text',
-            text: inviteeName,
+            text: eventTitle, // {{2}} - Event Title
           },
           {
             type: 'text',
-            text: shareLink,
+            text: shareLink, // {{3}} - Share Link
           },
         ],
       })
 
       console.log(`[${requestId}] 📋 Template message prepared with variables:`, {
-        '{{1}}': eventTitle,
-        '{{2}}': inviteeName,
+        '{{1}}': inviteeName,
+        '{{2}}': eventTitle,
         '{{3}}': shareLink,
         hasImageHeader: !!imageUrl,
       })
