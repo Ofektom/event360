@@ -120,7 +120,14 @@ export async function sendWhatsAppInvite(
     const phoneNumberId = process.env.SENDZEN_PHONE_NUMBER_ID // Keep for backward compatibility
     // Template configuration
     const templateName = process.env.SENDZEN_TEMPLATE_NAME || 'event_invitation'
-    const templateLanguage = (process.env.SENDZEN_TEMPLATE_LANGUAGE || 'en_US').trim() // Ensure no whitespace
+    let templateLanguage = (process.env.SENDZEN_TEMPLATE_LANGUAGE || 'en').trim().toLowerCase() // SendZen expects lowercase (e.g., "en" not "en_US")
+    
+    // Convert locale format (en_US) to language code (en) if needed
+    if (templateLanguage.includes('_')) {
+      templateLanguage = templateLanguage.split('_')[0]
+      console.log(`[${requestId}] ℹ️ Converted locale to language code: "${templateLanguage}"`)
+    }
+    
     const useTemplate = process.env.SENDZEN_USE_TEMPLATE !== 'false' // Default to true
     
     // Validate template language code
@@ -128,7 +135,7 @@ export async function sendWhatsAppInvite(
       console.error(`[${requestId}] ❌ Template language code is empty or invalid: "${templateLanguage}"`)
       return {
         success: false,
-        error: 'Template language code is required. Please set SENDZEN_TEMPLATE_LANGUAGE environment variable (e.g., "en_US").',
+        error: 'Template language code is required. Please set SENDZEN_TEMPLATE_LANGUAGE environment variable (e.g., "en" or "en_US" - will be converted to "en").',
       }
     }
 
@@ -178,26 +185,47 @@ export async function sendWhatsAppInvite(
       }
     }
     
-    // Log which one we'll use
-    if (phoneNumberId) {
-      console.log(`[${requestId}] ✅ Phone Number ID found: ${phoneNumberId.substring(0, 10)}... (will use this for 'from' field)`)
-    } else if (fromPhoneNumber) {
-      console.log(`[${requestId}] ✅ Phone Number found: ${fromPhoneNumber} (will format and use for 'from' field)`)
+    // Log which one we'll use (actual phone number is prioritized over ID)
+    if (fromPhoneNumber) {
+      console.log(`[${requestId}] ✅ Phone Number found: ${fromPhoneNumber} (will format and use for 'from' field - SendZen requires actual phone number)`)
+    } else if (phoneNumberId) {
+      console.log(`[${requestId}] ⚠️ Phone Number ID found: ${phoneNumberId.substring(0, 10)}... (will use as fallback, but SendZen may reject it - consider setting SENDZEN_PHONE_NUMBER)`)
     }
 
     // Ensure the 'from' phone number is in E.164 format
-    // SendZen might require the phone number ID instead of the actual number
-    // Try using phoneNumberId first if available, otherwise use formatted phone number
+    // SendZen requires the actual phone number in E.164 format, not the phone number ID
+    // Priority: 1) Actual phone number (SENDZEN_PHONE_NUMBER), 2) Phone number ID (SENDZEN_PHONE_NUMBER_ID) as fallback
     let formattedFrom: string
     try {
-      // If phoneNumberId is set, use it directly (SendZen might prefer this)
-      if (phoneNumberId && phoneNumberId.trim().length > 0) {
-        formattedFrom = phoneNumberId.trim()
-        console.log(`[${requestId}] ✅ Using phone number ID as 'from': "${formattedFrom}"`)
-      } else if (fromPhoneNumber) {
-        // Otherwise, format the phone number
+      // Prefer actual phone number if available (SendZen requires this)
+      if (fromPhoneNumber && fromPhoneNumber.trim().length > 0 && !fromPhoneNumber.match(/^\d+$/)) {
+        // If it looks like a phone number (not just digits), format it
         formattedFrom = formatPhoneNumber(fromPhoneNumber)
-        console.log(`[${requestId}] ✅ Formatted 'from' number: "${fromPhoneNumber}" → "${formattedFrom}"`)
+        console.log(`[${requestId}] ✅ Using formatted phone number as 'from': "${fromPhoneNumber}" → "${formattedFrom}"`)
+      } else if (fromPhoneNumber && fromPhoneNumber.trim().length > 0) {
+        // If it's already in a format we can use, use it directly
+        formattedFrom = fromPhoneNumber.trim()
+        // Ensure it starts with +
+        if (!formattedFrom.startsWith('+')) {
+          formattedFrom = formatPhoneNumber(formattedFrom)
+        }
+        console.log(`[${requestId}] ✅ Using phone number as 'from': "${formattedFrom}"`)
+      } else if (phoneNumberId && phoneNumberId.trim().length > 0) {
+        // Fallback to phone number ID if no actual phone number is available
+        formattedFrom = phoneNumberId.trim()
+        console.log(`[${requestId}] ⚠️ Using phone number ID as 'from' (fallback): "${formattedFrom}"`)
+        console.log(`[${requestId}] ⚠️ Note: SendZen may require the actual phone number. Consider setting SENDZEN_PHONE_NUMBER.`)
+      } else {
+        // Neither is available
+        console.error(`[${requestId}] ❌ Neither phone number nor phone number ID is available`)
+        return {
+          success: false,
+          error: 'Phone number not configured. Please set SENDZEN_PHONE_NUMBER (E.164 format, e.g., +2348012345678) in environment variables.',
+        }
+      }
+      
+      // Validate the formatted number if it's not a phone number ID (which is just digits)
+      if (!/^\d+$/.test(formattedFrom)) {
         
         // Validate E.164 format: should be + followed by 1-15 digits
         const e164Pattern = /^\+[1-9]\d{1,14}$/
@@ -289,7 +317,7 @@ export async function sendWhatsAppInvite(
       requestBody.type = 'template'
       requestBody.template = {
         name: templateName,
-        lang_code: templateLanguage, // SendZen expects 'lang_code' directly (e.g., "en_US")
+        lang_code: templateLanguage, // SendZen expects 'lang_code' in lowercase (e.g., "en" not "en_US")
         components: [],
       }
       
@@ -298,7 +326,7 @@ export async function sendWhatsAppInvite(
         console.error(`[${requestId}] ❌ Template lang_code is empty or invalid: "${requestBody.template.lang_code}"`)
         return {
           success: false,
-          error: `Template language code is required. Current value: "${requestBody.template.lang_code}". Please set SENDZEN_TEMPLATE_LANGUAGE environment variable (e.g., "en_US").`,
+          error: `Template language code is required. Current value: "${requestBody.template.lang_code}". Please set SENDZEN_TEMPLATE_LANGUAGE environment variable (e.g., "en" or "en_US" - will be converted to "en").`,
         }
       }
       
