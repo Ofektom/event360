@@ -313,7 +313,7 @@ export async function sendWhatsAppInvite(
             }
           }
         } catch (urlError: any) {
-          console.error(`[${requestId}] ❌ Invalid URL format: ${imageUrl.substring(0, 100)}... Error: ${urlError.message}`)
+          console.error(`[${requestId}] ❌ Invalid URL format: ${imageUrl ? imageUrl.substring(0, 100) : 'null'}... Error: ${urlError.message}`)
           imageUrl = null
         }
       }
