@@ -30,6 +30,7 @@ interface Event {
     invitees: number
     mediaAssets: number
     interactions: number
+    eventVendors: number
   }
 }
 
@@ -276,7 +277,7 @@ export default function EventDetailPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-6">
             <div className="text-2xl font-bold text-[var(--theme-primary)]">
               {event.ceremonies.length}
@@ -294,6 +295,12 @@ export default function EventDetailPage() {
               {event._count.mediaAssets}
           </div>
             <div className="text-sm text-gray-600">Photos</div>
+          </Card>
+          <Card className="p-6">
+            <div className="text-2xl font-bold text-purple-600">
+              {event._count.eventVendors}
+          </div>
+            <div className="text-sm text-gray-600">Vendors</div>
           </Card>
         </div>
 

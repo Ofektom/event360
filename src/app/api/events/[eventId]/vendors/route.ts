@@ -10,6 +10,21 @@ export async function GET(
 ) {
   try {
     const { eventId } = await params
+    console.log(`[GET /api/events/${eventId}/vendors] Fetching vendors for event`)
+
+    // Verify event exists
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true },
+    })
+
+    if (!event) {
+      console.error(`[GET /api/events/${eventId}/vendors] Event not found`)
+      return NextResponse.json(
+        { error: 'Event not found' },
+        { status: 404 }
+      )
+    }
 
     const eventVendors = await prisma.eventVendor.findMany({
       where: { eventId },
@@ -39,9 +54,14 @@ export async function GET(
       },
     })
 
+    console.log(`[GET /api/events/${eventId}/vendors] Found ${eventVendors.length} vendors`)
     return NextResponse.json(eventVendors)
-  } catch (error) {
-    console.error('Error fetching event vendors:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error(`[GET /api/events/${(await params).eventId}/vendors] Error fetching vendors:`, errorMessage)
+    if (error instanceof Error && error.stack) {
+      console.error('Stack trace:', error.stack)
+    }
     return NextResponse.json(
       { error: 'Failed to fetch vendors' },
       { status: 500 }

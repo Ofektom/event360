@@ -461,6 +461,7 @@ export async function GET(request: NextRequest) {
           location: event.location || null,
           mediaCount: event._count?.mediaAssets || 0,
           inviteeCount: event._count?.invitees || 0,
+          vendorCount: event._count?.eventVendors || 0,
         },
         media: eventMedia, // All media for this event
         likes: likeCounts.get(eventId) || 0,
