@@ -306,8 +306,121 @@ export async function sendWhatsAppVendorInvite(
       }
     }
 
-    console.log(`[${requestId}] ✅ Vendor WhatsApp invitation sent successfully!`)
-    console.log(`[${requestId}] 📊 Response data:`, responseData)
+    // Validate response body even if HTTP status is 200
+    // SendZen might return 200 OK but with errors in the response body
+    if (responseData?.error || responseData?.errors) {
+      const errorMessage = responseData?.error?.message || 
+                          responseData?.error ||
+                          responseData?.errors?.[0]?.message ||
+                          responseData?.message ||
+                          'Unknown error in response'
+      
+      console.error(`[${requestId}] ❌ Error in response body (despite 200 status):`, errorMessage)
+      console.error(`[${requestId}] Full error response:`, JSON.stringify(responseData, null, 2))
+      
+      return {
+        success: false,
+        error: errorMessage,
+      }
+    }
+
+    // Extract message ID and status from various possible response formats
+    // SendZen can return: { message: "...", data: [{ message_id, status, to, timestamp }] }
+    const responseArray = Array.isArray(responseData?.data) ? responseData.data : 
+                         Array.isArray(responseData?.messages) ? responseData.messages :
+                         Array.isArray(responseData) ? responseData : [responseData]
+    
+    const firstMessage = responseArray[0]
+    const messageId = firstMessage?.message_id || 
+                     firstMessage?.id || 
+                     responseData.message_id || 
+                     responseData.id ||
+                     responseData.messages?.[0]?.id ||
+                     responseData.result?.message_id ||
+                     responseData.result?.id
+    
+    const status = firstMessage?.status || 
+                  responseData.status || 
+                  responseData.messages?.[0]?.status ||
+                  responseData.result?.status
+    
+    const wamid = firstMessage?.wamid || 
+                 responseData.wamid ||
+                 responseData.messages?.[0]?.wamid || 
+                 responseData.result?.wamid
+    
+    const recipient = firstMessage?.to || 
+                     responseData.to ||
+                     formattedTo
+
+    // Log detailed response information
+    console.log(`[${requestId}] ✅ SendZen API Response (HTTP ${response.status}):`)
+    console.log(`[${requestId}]   📨 Message ID: ${messageId || 'N/A'}`)
+    console.log(`[${requestId}]   📊 Status: ${status || 'N/A'}`)
+    console.log(`[${requestId}]   📱 WhatsApp Message ID (wamid): ${wamid || 'N/A'}`)
+    console.log(`[${requestId}]   👤 Recipient: ${recipient || 'N/A'}`)
+    console.log(`[${requestId}]   📋 Response Message: ${responseData?.message || 'N/A'}`)
+    console.log(`[${requestId}]   📦 Response Data Array Length: ${responseArray.length}`)
+    
+    if (responseArray.length > 0) {
+      console.log(`[${requestId}]   📋 All Messages in Response:`)
+      responseArray.forEach((msg: any, index: number) => {
+        console.log(`[${requestId}]     [${index + 1}] Message ID: ${msg.message_id || msg.id || 'N/A'}, Status: ${msg.status || 'N/A'}, To: ${msg.to || 'N/A'}`)
+      })
+    }
+
+    // Check for account-level issues
+    if (responseData?.account_status) {
+      console.log(`[${requestId}] ⚠️ Account Status:`, responseData.account_status)
+      if (responseData.account_status !== 'active') {
+        console.warn(`[${requestId}] ⚠️ WARNING: SendZen account is not active. Status: ${responseData.account_status}`)
+      }
+    }
+
+    // Check for payment/verification warnings
+    if (responseData?.warnings || responseData?.account_warnings) {
+      const warnings = responseData.warnings || responseData.account_warnings || []
+      if (warnings.length > 0) {
+        console.warn(`[${requestId}] ⚠️ SendZen Account Warnings:`)
+        warnings.forEach((warning: any, index: number) => {
+          console.warn(`[${requestId}]   [${index + 1}] ${warning.message || warning}`)
+        })
+      }
+    }
+
+    // Validate message status
+    if (status) {
+      const validStatuses = ['queued', 'sent', 'delivered', 'read', 'failed', 'pending']
+      if (validStatuses.includes(status.toLowerCase())) {
+        console.log(`[${requestId}] ✅ Message status is valid: ${status}`)
+        
+        if (status.toLowerCase() === 'queued' || status.toLowerCase() === 'pending') {
+          console.log(`[${requestId}] ⏳ Message is queued/pending. It will be sent shortly.`)
+          console.log(`[${requestId}] ⚠️ NOTE: If message doesn't arrive, check SendZen dashboard for:`)
+          console.log(`[${requestId}]   - Payment method issues`)
+          console.log(`[${requestId}]   - Business verification status`)
+          console.log(`[${requestId}]   - Template approval status`)
+          console.log(`[${requestId}]   - Phone number verification`)
+        } else if (status.toLowerCase() === 'failed') {
+          console.error(`[${requestId}] ❌ Message status is FAILED`)
+          return {
+            success: false,
+            error: `Message failed with status: ${status}`,
+          }
+        } else {
+          console.log(`[${requestId}] ✅ Message status indicates success: ${status}`)
+        }
+      } else {
+        console.warn(`[${requestId}] ⚠️ Unknown message status: ${status}`)
+      }
+    } else {
+      console.warn(`[${requestId}] ⚠️ No message status found in response`)
+    }
+
+    // Log full response for debugging
+    console.log(`[${requestId}] 📊 Full Response Data:`, JSON.stringify(responseData, null, 2))
+
+    console.log(`[${requestId}] ✅ Vendor WhatsApp invitation processed successfully!`)
     return { success: true }
   } catch (error: any) {
     console.error(`[${requestId}] ❌ Exception in sendWhatsAppVendorInvite:`, error)
