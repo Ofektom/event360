@@ -12,8 +12,26 @@ export async function POST(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const user = await requireAuth()
+    const sessionUser = await requireAuth()
     const { eventId } = await params
+
+    // Fetch full user from database to get phone number
+    const user = await prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+      },
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
 
     // Verify event exists
     const event = await prisma.event.findUnique({
