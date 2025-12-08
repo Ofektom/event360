@@ -123,8 +123,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get invitation image URL
-    const invitationImageUrl = design.imageUrl || design.customImage
-    console.log(`[${requestId}] 🖼️  Image URL: ${invitationImageUrl ? '✅' : '❌'} ${invitationImageUrl || 'MISSING'}`)
+    let invitationImageUrl = design.imageUrl || design.customImage
+    console.log(`[${requestId}] 🖼️  Image URL: ${invitationImageUrl ? '✅' : '❌'} ${invitationImageUrl ? (invitationImageUrl.startsWith('data:') ? 'Data URL' : invitationImageUrl.substring(0, 50)) : 'MISSING'}`)
     
     if (!invitationImageUrl) {
       console.error(`[${requestId}] ❌ Design has no image. imageUrl: ${design.imageUrl}, customImage: ${design.customImage}`)
@@ -139,9 +139,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate share link with full event URL
-    const { getBaseUrl } = await import('@/lib/utils')
-    const baseUrl = getBaseUrl()
+    // Convert data URL to absolute URL if needed
+    // WhatsApp requires absolute URLs, not data URLs
+    if (invitationImageUrl.startsWith('data:')) {
+      console.log(`[${requestId}] 🔄 Converting data URL to absolute URL...`)
+      const { getBaseUrl } = await import('@/lib/utils')
+      const baseUrl = getBaseUrl()
+      
+      // Create a data URL endpoint URL
+      // We'll need to encode the data URL or create an API endpoint to serve it
+      // For now, we'll create a temporary endpoint that serves the image
+      // In production, you should use a proper storage service (S3, Cloudinary, Vercel Blob)
+      
+      // Encode the data URL to pass it as a parameter
+      const encodedDataUrl = encodeURIComponent(invitationImageUrl)
+      invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
+      console.log(`[${requestId}] ✅ Converted data URL to absolute URL: ${invitationImageUrl.substring(0, 100)}...`)
+    } else if (invitationImageUrl.startsWith('/')) {
+      // Relative URL - convert to absolute
+      const { getBaseUrl } = await import('@/lib/utils')
+      const baseUrl = getBaseUrl()
+      invitationImageUrl = `${baseUrl}${invitationImageUrl}`
+      console.log(`[${requestId}] ✅ Converted relative URL to absolute: ${invitationImageUrl}`)
+    }
+
+    // Generate share link with full event URL (reuse baseUrl if already imported)
+    const baseUrl = (await import('@/lib/utils')).getBaseUrl()
     const shareLink = event.slug
       ? `${baseUrl}/e/${event.slug}`
       : `${baseUrl}/events/${eventId}`
