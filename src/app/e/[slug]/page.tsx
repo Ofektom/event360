@@ -283,7 +283,7 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
                         <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
                           <img
                             src={design.imageUrl}
-                            alt={design.name}
+                            alt={design.name || 'Invitation design'}
                             className="w-full h-full object-cover"
                           />
                           {design.isDefault && (
@@ -297,7 +297,7 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
                           <span className="text-4xl">💌</span>
                         </div>
                       )}
-                      <h3 className="font-semibold text-gray-900 mt-2">{design.name}</h3>
+                      <h3 className="font-semibold text-gray-900 mt-2">{design.name || 'Untitled Design'}</h3>
                     </div>
                   ))}
                 </div>
