@@ -6,6 +6,7 @@ import { Input } from '@/components/atoms/Input'
 import { Card } from '@/components/atoms/Card'
 
 const VENDOR_CATEGORIES = [
+  { value: '', label: 'All Categories' },
   { value: 'MAKEUP_ARTIST', label: 'Make-up Artist' },
   { value: 'RENTALS', label: 'Rentals' },
   { value: 'BRIDALS', label: 'Bridals' },
@@ -46,10 +47,11 @@ interface AddVendorModalProps {
 }
 
 export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalProps) {
-  const [mode, setMode] = useState<'search' | 'new'>('search')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Vendor[]>([])
-  const [isSearching, setIsSearching] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [isLoadingVendors, setIsLoadingVendors] = useState(false)
+  const [selectedVendorId, setSelectedVendorId] = useState<string>('')
+  const [showNewVendorForm, setShowNewVendorForm] = useState(false)
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null)
   
   const [formData, setFormData] = useState({
@@ -72,41 +74,62 @@ export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalPr
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Search vendors
+  // Fetch vendors when category changes
   useEffect(() => {
-    if (mode === 'search' && searchQuery.trim().length >= 2) {
-      const timeoutId = setTimeout(() => {
-        searchVendors()
-      }, 300)
-      return () => clearTimeout(timeoutId)
-    } else {
-      setSearchResults([])
-    }
-  }, [searchQuery, mode])
+    fetchVendors()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory])
 
-  const searchVendors = async () => {
-    setIsSearching(true)
+  const fetchVendors = async () => {
+    setIsLoadingVendors(true)
     try {
-      const response = await fetch(`/api/vendors?search=${encodeURIComponent(searchQuery)}&limit=10`)
+      const params = new URLSearchParams()
+      if (selectedCategory) {
+        params.append('category', selectedCategory)
+      }
+      params.append('limit', '100') // Get more vendors for dropdown
+      
+      const response = await fetch(`/api/vendors?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
-        setSearchResults(data)
+        setVendors(data)
       }
     } catch (err) {
-      console.error('Error searching vendors:', err)
+      console.error('Error fetching vendors:', err)
     } finally {
-      setIsSearching(false)
+      setIsLoadingVendors(false)
     }
   }
 
-  const handleSelectVendor = (vendor: Vendor) => {
-    setSelectedVendor(vendor)
-    setFormData({
-      ...formData,
-      businessName: vendor.businessName,
-      email: vendor.email,
-      phone: vendor.phone,
-    })
+  const handleVendorSelect = (value: string) => {
+    if (value === '__NEW__') {
+      // User wants to add a new vendor
+      setShowNewVendorForm(true)
+      setSelectedVendorId('')
+      setSelectedVendor(null)
+      // Reset form data except role and notes
+      setFormData({
+        ...formData,
+        ownerName: '',
+        businessName: '',
+        category: '',
+        email: '',
+        phone: '',
+        whatsapp: '',
+        address: '',
+        city: '',
+        state: '',
+        country: 'Nigeria',
+        description: '',
+        website: '',
+      })
+    } else {
+      // User selected an existing vendor
+      setShowNewVendorForm(false)
+      setSelectedVendorId(value)
+      const vendor = vendors.find(v => v.id === value)
+      setSelectedVendor(vendor || null)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,9 +143,9 @@ export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalPr
         notes: formData.notes || null,
       }
 
-      if (mode === 'search' && selectedVendor) {
+      if (selectedVendorId && !showNewVendorForm) {
         // Add existing vendor
-        payload.vendorId = selectedVendor.id
+        payload.vendorId = selectedVendorId
       } else {
         // Create new vendor
         if (!formData.businessName || !formData.category || !formData.email || !formData.phone) {
@@ -182,118 +205,98 @@ export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalPr
             </button>
           </div>
 
-          {/* Mode Toggle */}
-          <div className="flex gap-2 mb-6">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('search')
-                setSelectedVendor(null)
-                setSearchQuery('')
-                setSearchResults([])
-              }}
-              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                mode === 'search'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Search Existing
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('new')
-                setSelectedVendor(null)
-                setSearchQuery('')
-                setSearchResults([])
-              }}
-              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                mode === 'new'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Add New Vendor
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'search' ? (
-              <>
-                {/* Search Input */}
-                <div>
-                  <Input
-                    label="Search Vendors"
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by business name, owner name, email, or phone..."
-                    disabled={isSubmitting}
-                  />
-                </div>
+            {/* Category Filter */}
+            <div>
+              <label htmlFor="categoryFilter" className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Category
+              </label>
+              <select
+                id="categoryFilter"
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value)
+                  setSelectedVendorId('')
+                  setShowNewVendorForm(false)
+                  setSelectedVendor(null)
+                }}
+                disabled={isSubmitting || isLoadingVendors}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                {VENDOR_CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                {/* Search Results */}
-                {isSearching && (
-                  <div className="text-center py-4 text-gray-500">Searching...</div>
+            {/* Vendor Dropdown */}
+            <div>
+              <label htmlFor="vendorSelect" className="block text-sm font-medium text-gray-700 mb-2">
+                Select Vendor
+              </label>
+              <select
+                id="vendorSelect"
+                value={selectedVendorId || (showNewVendorForm ? '__NEW__' : '')}
+                onChange={(e) => handleVendorSelect(e.target.value)}
+                disabled={isSubmitting || isLoadingVendors}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">-- Select a vendor --</option>
+                {isLoadingVendors ? (
+                  <option value="" disabled>Loading vendors...</option>
+                ) : vendors.length === 0 ? (
+                  <option value="" disabled>No vendors found in this category</option>
+                ) : (
+                  vendors.map((vendor) => (
+                    <option key={vendor.id} value={vendor.id}>
+                      {vendor.businessName}
+                      {vendor.ownerName ? ` (${vendor.ownerName})` : ''}
+                      {vendor.isVerified ? ' ✓' : ''}
+                      {vendor.averageRating > 0 ? ` ⭐ ${vendor.averageRating.toFixed(1)}` : ''}
+                      {vendor.city ? ` - ${vendor.city}` : ''}
+                    </option>
+                  ))
                 )}
+                <option value="__NEW__">+ Add New Vendor</option>
+              </select>
+            </div>
 
-                {!isSearching && searchResults.length > 0 && (
-                  <div className="border border-gray-200 rounded-lg max-h-60 overflow-y-auto">
-                    {searchResults.map((vendor) => (
-                      <button
-                        key={vendor.id}
-                        type="button"
-                        onClick={() => handleSelectVendor(vendor)}
-                        className={`w-full text-left p-4 border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors ${
-                          selectedVendor?.id === vendor.id ? 'bg-purple-50 border-purple-200' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold text-gray-900">
-                              {vendor.businessName}
-                              {vendor.isVerified && (
-                                <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                  Verified
-                                </span>
-                              )}
-                            </div>
-                            {vendor.ownerName && (
-                              <div className="text-sm text-gray-600">{vendor.ownerName}</div>
-                            )}
-                            <div className="text-sm text-gray-500 mt-1">
-                              {vendor.category.replace(/_/g, ' ')} • {vendor.email} • {vendor.phone}
-                            </div>
-                            {vendor.averageRating > 0 && (
-                              <div className="text-sm text-yellow-600 mt-1">
-                                ⭐ {vendor.averageRating.toFixed(1)} ({vendor.totalRatings} reviews)
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                  <div className="text-center py-4 text-gray-500">
-                    No vendors found. Try adding a new vendor instead.
-                  </div>
-                )}
-
-                {selectedVendor && (
-                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            {/* Selected Vendor Info */}
+            {selectedVendor && !showNewVendorForm && (
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div>
                     <p className="text-sm font-medium text-purple-900">
-                      Selected: {selectedVendor.businessName}
+                      {selectedVendor.businessName}
+                      {selectedVendor.isVerified && (
+                        <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                          Verified
+                        </span>
+                      )}
                     </p>
+                    {selectedVendor.ownerName && (
+                      <p className="text-sm text-purple-700 mt-1">{selectedVendor.ownerName}</p>
+                    )}
+                    <p className="text-xs text-purple-600 mt-1">
+                      {selectedVendor.category.replace(/_/g, ' ')} • {selectedVendor.email} • {selectedVendor.phone}
+                    </p>
+                    {selectedVendor.averageRating > 0 && (
+                      <p className="text-xs text-yellow-600 mt-1">
+                        ⭐ {selectedVendor.averageRating.toFixed(1)} ({selectedVendor.totalRatings} reviews)
+                      </p>
+                    )}
                   </div>
-                )}
-              </>
-            ) : (
-              <>
-                {/* New Vendor Form */}
+                </div>
+              </div>
+            )}
+
+            {/* New Vendor Form (shown when "Add New Vendor" is selected) */}
+            {showNewVendorForm && (
+              <div className="border-t border-gray-200 pt-4 space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">New Vendor Details</h3>
+                
                 <Input
                   label="Owner Name (Optional)"
                   type="text"
@@ -327,7 +330,7 @@ export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalPr
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="">Select a category</option>
-                    {VENDOR_CATEGORIES.map((cat) => (
+                    {VENDOR_CATEGORIES.filter(cat => cat.value).map((cat) => (
                       <option key={cat.value} value={cat.value}>
                         {cat.label}
                       </option>
@@ -402,7 +405,7 @@ export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalPr
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   disabled={isSubmitting}
                 />
-              </>
+              </div>
             )}
 
             {/* Event-specific fields */}
@@ -455,7 +458,7 @@ export function AddVendorModal({ eventId, onClose, onSuccess }: AddVendorModalPr
                 variant="primary"
                 className="flex-1"
                 isLoading={isSubmitting}
-                disabled={mode === 'search' && !selectedVendor}
+                disabled={!selectedVendorId && !showNewVendorForm}
               >
                 Add Vendor
               </Button>
