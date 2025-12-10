@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { OrderOfEventsList } from '@/components/organisms/OrderOfEventsList'
 import { EventVendorsList } from '@/components/organisms/EventVendorsList'
+import { ScheduleItemModal } from '@/components/organisms/ScheduleItemModal'
 
 interface Ceremony {
   id: string
@@ -46,6 +47,9 @@ export default function CeremonyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isOwner, setIsOwner] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -234,15 +238,32 @@ export default function CeremonyDetailPage() {
           ceremonyId={ceremonyId}
           ceremonyName={ceremony.name}
           isOwner={isOwner}
+          refreshTrigger={refreshTrigger}
           onCreateNew={() => {
-            // TODO: Open modal to create new schedule item
-            alert('Create schedule item modal - to be implemented')
+            setEditingItemId(null)
+            setShowScheduleModal(true)
           }}
           onEdit={(itemId) => {
-            // TODO: Open modal to edit schedule item
-            alert(`Edit schedule item ${itemId} - to be implemented`)
+            setEditingItemId(itemId)
+            setShowScheduleModal(true)
           }}
         />
+
+        {/* Schedule Item Modal */}
+        {showScheduleModal && (
+          <ScheduleItemModal
+            ceremonyId={ceremonyId}
+            itemId={editingItemId || undefined}
+            onClose={() => {
+              setShowScheduleModal(false)
+              setEditingItemId(null)
+            }}
+            onSuccess={() => {
+              // Trigger refresh of the order of events list
+              setRefreshTrigger((prev) => prev + 1)
+            }}
+          />
+        )}
 
         {/* Vendors */}
         <Card className="p-6">

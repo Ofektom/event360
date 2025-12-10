@@ -24,6 +24,7 @@ interface OrderOfEventsListProps {
   isOwner?: boolean
   onEdit?: (itemId: string) => void
   onCreateNew?: () => void
+  refreshTrigger?: number // Add refresh trigger to force re-fetch
 }
 
 export function OrderOfEventsList({
@@ -32,6 +33,7 @@ export function OrderOfEventsList({
   isOwner = false,
   onEdit,
   onCreateNew,
+  refreshTrigger,
 }: OrderOfEventsListProps) {
   const [items, setItems] = useState<ScheduleItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,7 +41,7 @@ export function OrderOfEventsList({
 
   useEffect(() => {
     fetchItems()
-  }, [ceremonyId])
+  }, [ceremonyId, refreshTrigger])
 
   const fetchItems = async () => {
     try {
