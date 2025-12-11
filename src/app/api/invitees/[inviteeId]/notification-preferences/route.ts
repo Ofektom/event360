@@ -20,6 +20,7 @@ export async function GET(
       select: {
         id: true,
         eventId: true,
+        userId: true,
         notificationChannels: true,
         whatsappChargesAccepted: true,
         event: {
