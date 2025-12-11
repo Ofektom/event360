@@ -72,130 +72,72 @@ export async function POST(request: NextRequest) {
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filename = `${timestamp}-${sanitizedName}`
     
+    // Cloudinary is required - no fallbacks
+    if (!isCloudinaryConfigured()) {
+      return NextResponse.json(
+        { error: 'Cloudinary is not configured. Please configure Cloudinary to upload media files.' },
+        { status: 500 }
+      )
+    }
+    
     let fileUrl: string
     let thumbnailUrl: string
 
-    // Try Cloudinary first if configured
-    if (isCloudinaryConfigured()) {
-      try {
-        console.log(`☁️ [CLOUDINARY] Cloudinary configured - Uploading file to Cloudinary...`)
-        console.log(`☁️ [CLOUDINARY] Cloud name: ${process.env.CLOUDINARY_CLOUD_NAME || 'from CLOUDINARY_URL'}`)
-        
-        // Determine resource type
-        const resourceType = file.type.startsWith('video/') 
-          ? 'video' as const
-          : file.type.startsWith('image/')
-          ? 'image' as const
-          : 'auto' as const
-
-        // Upload to Cloudinary with folder structure: event360/{uploadType}/{eventId}
-        const uploadType = formData.get('type') as string || 'media'
-        const folder = `event360/${uploadType}/${eventId}`
-        
-        const result = await uploadToCloudinary(buffer, {
-          folder,
-          resourceType,
-          publicId: `${timestamp}-${sanitizedName.replace(/\.[^/.]+$/, '')}`, // Remove extension for public_id
-          overwrite: false,
-        })
-
-        fileUrl = result.secureUrl // Use secure URL (HTTPS)
-        thumbnailUrl = file.type.startsWith('image/') 
-          ? result.secureUrl 
-          : result.secureUrl.replace(/\.(mp4|mov|avi|webm)$/i, '.jpg') // Video thumbnail (Cloudinary auto-generates)
-        
-        console.log(`✅ [CLOUDINARY] File uploaded successfully: ${fileUrl}`)
-      } catch (cloudinaryError: any) {
-        console.error('❌ [CLOUDINARY] Upload failed:', cloudinaryError.message)
-        // Fall back to local storage or base64
-        console.log('⚠️ [CLOUDINARY] Falling back to local storage...')
-        
-        // Continue to fallback logic below
-        const isVercel = process.env.VERCEL === '1'
-        
-        if (isVercel) {
-          // On Vercel without Cloudinary: Convert to base64 data URL (not ideal, but works)
-          const base64 = buffer.toString('base64')
-          fileUrl = `data:${file.type};base64,${base64}`
-          thumbnailUrl = file.type.startsWith('image/') ? fileUrl : `/thumbnails/${eventId}/${filename}.jpg`
-          console.log(`⚠️ [VERCEL] Using base64 data URL (size: ${base64.length} chars) - Cloudinary upload failed`)
-        } else {
-          // Local dev: Try to save to filesystem
-          try {
-            const fs = await import('fs/promises')
-            const path = await import('path')
-            
-            // Create uploads directory if it doesn't exist
-            const uploadsDir = path.join(process.cwd(), 'public', 'uploads', eventId)
-            try {
-              await fs.mkdir(uploadsDir, { recursive: true })
-            } catch (error) {
-              // Directory might already exist, that's fine
-            }
-
-            const filePath = path.join(uploadsDir, filename)
-            await fs.writeFile(filePath, buffer)
-
-            // Generate public URL - files in public folder are served directly
-            fileUrl = `/uploads/${eventId}/${filename}`
-            thumbnailUrl = file.type.startsWith('image/') ? fileUrl : `/thumbnails/${eventId}/${filename}.jpg`
-            
-            console.log(`✅ [LOCAL] File saved to filesystem: ${filePath}`)
-            console.log(`✅ [LOCAL] Public URL: ${fileUrl}`)
-          } catch (fsError: any) {
-            // Fallback to base64 if filesystem write fails
-            console.warn('⚠️ Filesystem write failed, using base64:', fsError.message)
-            const base64 = buffer.toString('base64')
-            fileUrl = `data:${file.type};base64,${base64}`
-            thumbnailUrl = file.type.startsWith('image/') ? fileUrl : `/thumbnails/${eventId}/${filename}.jpg`
-            console.log(`✅ Using base64 data URL (size: ${base64.length} chars)`)
-          }
-        }
-      }
-    } else {
-      // Cloudinary not configured - use local storage or base64
-      console.log('⚠️ [CLOUDINARY] Not configured, using local storage or base64')
-      const isVercel = process.env.VERCEL === '1'
+    try {
+      console.log(`☁️ [CLOUDINARY] Uploading file to Cloudinary...`)
+      console.log(`☁️ [CLOUDINARY] Cloud name: ${process.env.CLOUDINARY_CLOUD_NAME || 'from CLOUDINARY_URL'}`)
       
-      if (isVercel) {
-        // On Vercel: Convert to base64 data URL
-        const base64 = buffer.toString('base64')
-        fileUrl = `data:${file.type};base64,${base64}`
-        thumbnailUrl = file.type.startsWith('image/') ? fileUrl : `/thumbnails/${eventId}/${filename}.jpg`
-        console.log(`⚠️ [VERCEL] Using base64 data URL (size: ${base64.length} chars) - Cloudinary not configured`)
-        console.log(`⚠️ [VERCEL] Please configure Cloudinary for production use`)
-      } else {
-        // Local dev: Try to save to filesystem
-        try {
-          const fs = await import('fs/promises')
-          const path = await import('path')
-          
-          // Create uploads directory if it doesn't exist
-          const uploadsDir = path.join(process.cwd(), 'public', 'uploads', eventId)
-          try {
-            await fs.mkdir(uploadsDir, { recursive: true })
-          } catch (error) {
-            // Directory might already exist, that's fine
-          }
+      // Determine resource type
+      const resourceType = file.type.startsWith('video/') 
+        ? 'video' as const
+        : file.type.startsWith('image/')
+        ? 'image' as const
+        : 'auto' as const
 
-          const filePath = path.join(uploadsDir, filename)
-          await fs.writeFile(filePath, buffer)
+      // Upload to Cloudinary with folder structure: event360/{uploadType}/{eventId}
+      const uploadType = formData.get('type') as string || 'media'
+      const folder = `event360/${uploadType}/${eventId}`
+      
+      const result = await uploadToCloudinary(buffer, {
+        folder,
+        resourceType,
+        publicId: `${timestamp}-${sanitizedName.replace(/\.[^/.]+$/, '')}`, // Remove extension for public_id
+        overwrite: false,
+      })
 
-          // Generate public URL - files in public folder are served directly
-          fileUrl = `/uploads/${eventId}/${filename}`
-          thumbnailUrl = file.type.startsWith('image/') ? fileUrl : `/thumbnails/${eventId}/${filename}.jpg`
-          
-          console.log(`✅ [LOCAL] File saved to filesystem: ${filePath}`)
-          console.log(`✅ [LOCAL] Public URL: ${fileUrl}`)
-        } catch (fsError: any) {
-          // Fallback to base64 if filesystem write fails
-          console.warn('⚠️ Filesystem write failed, using base64:', fsError.message)
-          const base64 = buffer.toString('base64')
-          fileUrl = `data:${file.type};base64,${base64}`
-          thumbnailUrl = file.type.startsWith('image/') ? fileUrl : `/thumbnails/${eventId}/${filename}.jpg`
-          console.log(`✅ Using base64 data URL (size: ${base64.length} chars)`)
+      fileUrl = result.secureUrl // Use secure URL (HTTPS)
+      
+      // For videos, generate thumbnail URL using Cloudinary transformation
+      if (file.type.startsWith('video/')) {
+        // Cloudinary auto-generates video thumbnails
+        // Use transformation to get thumbnail: replace video extension with .jpg and add transformation
+        // Format: https://res.cloudinary.com/cloud_name/video/upload/w_400,h_300,c_fill/v1/folder/public_id.jpg
+        const urlParts = result.secureUrl.split('/upload/')
+        if (urlParts.length === 2) {
+          // Extract version and path
+          const pathParts = urlParts[1].split('/')
+          const version = pathParts[0] // e.g., "v1234567890"
+          const filePath = pathParts.slice(1).join('/') // rest of the path
+          const filePathWithoutExt = filePath.replace(/\.(mp4|mov|avi|webm|webp|mkv|flv)$/i, '')
+          thumbnailUrl = `${urlParts[0]}/upload/w_400,h_300,c_fill/${version}/${filePathWithoutExt}.jpg`
+        } else {
+          // Fallback: simple replacement
+          thumbnailUrl = result.secureUrl.replace(/\.(mp4|mov|avi|webm|webp|mkv|flv)$/i, '.jpg')
         }
+      } else {
+        thumbnailUrl = result.secureUrl
       }
+      
+      console.log(`✅ [CLOUDINARY] File uploaded successfully: ${fileUrl}`)
+      if (thumbnailUrl !== fileUrl) {
+        console.log(`✅ [CLOUDINARY] Thumbnail URL: ${thumbnailUrl}`)
+      }
+    } catch (cloudinaryError: any) {
+      console.error('❌ [CLOUDINARY] Upload failed:', cloudinaryError.message)
+      return NextResponse.json(
+        { error: `Failed to upload file to Cloudinary: ${cloudinaryError.message}` },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
