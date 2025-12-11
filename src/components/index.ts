@@ -37,6 +37,7 @@ export { PhoneContactsPicker } from './organisms/PhoneContactsPicker'
 export { InvitationDesignsList } from './organisms/InvitationDesignsList'
 export { CustomInvitationUpload } from './organisms/CustomInvitationUpload'
 export { InvitationPreview } from './organisms/InvitationPreview'
+export { NotificationPreferences } from './organisms/NotificationPreferences'
 
 // Layout
 export { Navbar } from './layout/Navbar'

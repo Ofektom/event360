@@ -31,6 +31,7 @@ export function DashboardLayout({ children, eventId: propEventId }: DashboardLay
   const shouldShowSidebar = 
     pathname?.startsWith('/timeline') || 
     pathname?.startsWith('/dashboard/events') ||
+    pathname?.startsWith('/dashboard/settings') ||
     pathname?.startsWith('/events/') ||
     pathname?.startsWith('/e/') || // Public event pages
     pathname?.startsWith('/invitations') ||
