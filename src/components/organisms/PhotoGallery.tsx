@@ -11,6 +11,7 @@ interface Photo {
   caption?: string
   uploadedBy?: string
   timestamp?: Date | string
+  type?: 'IMAGE' | 'VIDEO'
 }
 
 interface PhotoGalleryProps {
@@ -33,18 +34,35 @@ export function PhotoGallery({ photos, columns = 3, onPhotoClick }: PhotoGallery
     onPhotoClick?.(photo)
   }
 
+  const isVideo = (photo: Photo) => photo.type === 'VIDEO'
+
   return (
     <>
       <div className={`grid ${columnClasses[columns]} gap-4`}>
         {photos.map((photo) => (
-          <MediaCard
-            key={photo.id}
-            src={photo.thumbnailUrl || photo.url}
-            alt={photo.caption || 'Event photo'}
-            description={photo.caption}
-            onClick={() => handlePhotoClick(photo)}
-            aspectRatio="square"
-          />
+          <div key={photo.id} className="relative group">
+            <MediaCard
+              src={photo.thumbnailUrl || photo.url}
+              alt={photo.caption || 'Event media'}
+              description={photo.caption}
+              onClick={() => handlePhotoClick(photo)}
+              aspectRatio="square"
+            />
+            {/* Play icon overlay for videos */}
+            {isVideo(photo) && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-black bg-opacity-50 rounded-full p-4 group-hover:bg-opacity-70 transition-opacity">
+                  <svg
+                    className="w-12 h-12 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
@@ -54,23 +72,39 @@ export function PhotoGallery({ photos, columns = 3, onPhotoClick }: PhotoGallery
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedPhoto(null)}
         >
-          <div className="relative max-w-4xl max-h-full">
+          <div
+            className="relative max-w-4xl max-h-full w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setSelectedPhoto(null)}
-              className="absolute top-4 right-4 text-white text-2xl z-10 hover:text-gray-300"
+              className="absolute top-4 right-4 text-white text-2xl z-10 hover:text-gray-300 bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
             >
               ✕
             </button>
-            <Image
-              src={selectedPhoto.url}
-              alt={selectedPhoto.caption || 'Event photo'}
-              width={1200}
-              height={800}
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-            />
-            {selectedPhoto.caption && (
+            {isVideo(selectedPhoto) ? (
+              <div className="relative w-full aspect-video">
+                <video
+                  src={selectedPhoto.url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            ) : (
+              <Image
+                src={selectedPhoto.url}
+                alt={selectedPhoto.caption || 'Event photo'}
+                width={1200}
+                height={800}
+                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              />
+            )}
+            {(selectedPhoto.caption || selectedPhoto.uploadedBy) && (
               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-4 rounded-b-lg">
-                <p>{selectedPhoto.caption}</p>
+                {selectedPhoto.caption && <p>{selectedPhoto.caption}</p>}
                 {selectedPhoto.uploadedBy && (
                   <p className="text-sm text-gray-300 mt-1">
                     By {selectedPhoto.uploadedBy}

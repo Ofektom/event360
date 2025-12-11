@@ -9,51 +9,55 @@ interface EventPhotoGalleryProps {
   eventId: string
 }
 
-interface Photo {
+interface MediaItem {
   id: string
   url: string
   thumbnailUrl?: string
   caption?: string
   uploadedBy?: string
   timestamp?: Date | string
+  type: 'IMAGE' | 'VIDEO'
 }
 
 export function EventPhotoGallery({ eventId }: EventPhotoGalleryProps) {
-  const [photos, setPhotos] = useState<Photo[]>([])
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchPhotos() {
+    async function fetchMedia() {
       try {
         setLoading(true)
-        // Fetch media assets for this event (only images)
-        const response = await fetch(`/api/events/${eventId}/media?type=IMAGE&isApproved=true`)
+        // Fetch media assets for this event (both images and videos)
+        const response = await fetch(`/api/events/${eventId}/media?isApproved=true`)
         if (!response.ok) {
-          throw new Error('Failed to fetch photos')
+          throw new Error('Failed to fetch media')
         }
         const mediaAssets = await response.json()
 
-        // Transform media assets to photos
-        const galleryPhotos: Photo[] = mediaAssets.map((asset: any) => ({
-          id: asset.id,
-          url: asset.url,
-          thumbnailUrl: asset.thumbnailUrl || asset.url,
-          caption: asset.caption || undefined,
-          uploadedBy: asset.uploadedBy?.name || undefined,
-          timestamp: asset.createdAt,
-        }))
+        // Filter to only include IMAGE and VIDEO types, and transform to media items
+        const galleryMedia: MediaItem[] = mediaAssets
+          .filter((asset: any) => asset.type === 'IMAGE' || asset.type === 'VIDEO')
+          .map((asset: any) => ({
+            id: asset.id,
+            url: asset.url,
+            thumbnailUrl: asset.thumbnailUrl || asset.url,
+            caption: asset.caption || undefined,
+            uploadedBy: asset.uploadedBy?.name || undefined,
+            timestamp: asset.createdAt,
+            type: asset.type,
+          }))
 
-        setPhotos(galleryPhotos)
+        setMediaItems(galleryMedia)
         setError(null)
       } catch (err: any) {
-        setError(err.message || 'Failed to load photos')
+        setError(err.message || 'Failed to load media')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchPhotos()
+    fetchMedia()
   }, [eventId])
 
   if (loading) {
@@ -68,21 +72,21 @@ export function EventPhotoGallery({ eventId }: EventPhotoGalleryProps) {
     return <ErrorMessage message={error} />
   }
 
-  if (photos.length === 0) {
+  if (mediaItems.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
-        <p>No photos yet. Be the first to share a photo!</p>
+        <p>No photos or videos yet. Be the first to share!</p>
       </div>
     )
   }
 
   return (
     <PhotoGallery
-      photos={photos}
+      photos={mediaItems}
       columns={3}
       onPhotoClick={(photo) => {
         // Handle photo click
-        console.log('Photo clicked:', photo)
+        console.log('Media clicked:', photo)
       }}
     />
   )

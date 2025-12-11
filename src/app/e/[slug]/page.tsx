@@ -267,7 +267,7 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
                   <div className="text-2xl font-bold text-blue-600">
                     {eventStats._count.mediaAssets}
                   </div>
-                  <div className="text-sm text-gray-600 mt-1">Photos</div>
+                  <div className="text-sm text-gray-600 mt-1">Photos & Videos</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <div className="text-2xl font-bold text-indigo-600">
@@ -401,10 +401,10 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
           {/* Full Access Content (only for authenticated, linked users) */}
           {access.canInteract && (
             <>
-              {/* Photo Gallery */}
+              {/* Media Gallery */}
               <div className="container mx-auto px-4">
                 <Card className="p-6">
-                  <h2 className="text-2xl font-bold mb-6">Photo Gallery</h2>
+                  <h2 className="text-2xl font-bold mb-6">Photos & Videos</h2>
                   <EventPhotoGallery eventId={event.id} />
                 </Card>
               </div>
