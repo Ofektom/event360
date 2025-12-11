@@ -414,7 +414,7 @@ export async function POST(request: NextRequest) {
               messenger: invitee.messenger || undefined,
               instagram: invitee.instagram || undefined,
               name: contact.name,
-              eventId: event.id,
+              eventId: eventId,
               eventTitle: event.title,
               invitationImageUrl,
               shareLink,
