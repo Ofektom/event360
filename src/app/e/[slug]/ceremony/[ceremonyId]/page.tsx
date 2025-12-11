@@ -208,7 +208,7 @@ export default async function PublicCeremonyPage({ params }: PublicCeremonyPageP
           <OrderOfEventsList
             ceremonyId={ceremonyId}
             ceremonyName={ceremony.name}
-            isOwner={access.isOrganizer}
+            isOwner={false}
           />
 
           {/* Vendors */}
