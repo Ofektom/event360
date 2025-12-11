@@ -44,10 +44,28 @@ export class MediaService {
 
   async deleteMediaAsset(id: string): Promise<void> {
     // Check if media exists
-    await this.getMediaById(id)
+    const media = await this.getMediaById(id)
 
-    // Business logic (e.g., delete from storage service)
-    // TODO: Add storage cleanup logic here
+    // Delete from Cloudinary if URL is a Cloudinary URL
+    if (media.url.includes('cloudinary.com') || media.url.includes('res.cloudinary.com')) {
+      try {
+        const { deleteFromCloudinary } = await import('@/lib/cloudinary')
+        // Extract public_id from Cloudinary URL
+        // Format: https://res.cloudinary.com/cloud_name/resource_type/upload/v1234567890/folder/public_id.ext
+        const urlParts = media.url.split('/upload/')
+        if (urlParts.length === 2) {
+          const pathParts = urlParts[1].split('/')
+          // Skip version (v1234567890) and get folder + public_id
+          const publicIdParts = pathParts.slice(1) // Skip version
+          const publicId = publicIdParts.join('/').replace(/\.[^/.]+$/, '') // Remove extension
+          await deleteFromCloudinary(publicId)
+          console.log(`✅ Deleted media from Cloudinary: ${publicId}`)
+        }
+      } catch (error: any) {
+        console.error('⚠️  Failed to delete from Cloudinary:', error.message)
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
 
     await this.mediaRepository.delete(id)
   }

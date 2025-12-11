@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth'
 import { uploadToCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary'
 
 // POST /api/upload - Upload media files
-// Uploads files to Cloudinary for production use, with fallback to local storage for development
+// Uploads files to Cloudinary - Cloudinary is required, no local storage fallback
 
 export async function POST(request: NextRequest) {
   try {
