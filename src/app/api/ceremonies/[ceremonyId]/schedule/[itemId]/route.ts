@@ -63,8 +63,8 @@ export async function PATCH(
       startTime: body.startTime,
       endTime: body.endTime !== undefined ? body.endTime : undefined,
       order: body.order !== undefined ? body.order : undefined,
-      type: null, // Type is ceremony-level, not item-level
-      location: null, // Location is ceremony-level, not item-level
+      // Type and location are ceremony-level, not item-level, so we don't update them
+      // They will remain as they are in the database (likely null)
       notes: body.notes !== undefined ? body.notes : undefined,
     }
 
