@@ -19,6 +19,7 @@ interface ScheduleItem {
 
 interface ScheduleItemModalProps {
   ceremonyId: string
+  ceremonyDate?: string // Ceremony date to combine with time
   itemId?: string // If provided, we're editing; otherwise, creating
   onClose: () => void
   onSuccess: () => void
@@ -26,6 +27,7 @@ interface ScheduleItemModalProps {
 
 export function ScheduleItemModal({
   ceremonyId,
+  ceremonyDate,
   itemId,
   onClose,
   onSuccess,
@@ -39,6 +41,7 @@ export function ScheduleItemModal({
     order: '',
   })
 
+  const [hasTime, setHasTime] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -59,15 +62,19 @@ export function ScheduleItemModal({
       }
       const item: ScheduleItem = await response.json()
       
-      // Format dates for input fields (YYYY-MM-DDTHH:mm)
-      const startTime = new Date(item.startTime)
+      // Extract time from datetime (HH:mm format)
+      const startTime = item.startTime ? new Date(item.startTime) : null
       const endTime = item.endTime ? new Date(item.endTime) : null
+      
+      // Check if item has time
+      const itemHasTime = !!startTime
+      setHasTime(itemHasTime)
       
       setFormData({
         title: item.title || '',
         description: item.description || '',
-        startTime: startTime.toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
-        endTime: endTime ? endTime.toISOString().slice(0, 16) : '',
+        startTime: startTime ? `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}` : '',
+        endTime: endTime ? `${String(endTime.getHours()).padStart(2, '0')}:${String(endTime.getMinutes()).padStart(2, '0')}` : '',
         notes: item.notes || '',
         order: item.order.toString(),
       })
