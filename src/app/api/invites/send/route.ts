@@ -6,7 +6,8 @@ import { sendMessengerInvite } from '@/services/invite/messenger.service'
 import { sendInAppInvite } from '@/services/invite/in-app.service'
 import { sendEmailInvite } from '@/services/invite/email.service'
 import { sendInstagramDMInvite } from '@/services/invite/instagram.service'
-import { InviteChannel } from '@prisma/client'
+import { sendGuestInvitationNotification } from '@/services/notification/notification.service'
+import { InviteChannel, NotificationChannel } from '@prisma/client'
 import { randomBytes } from 'crypto'
 import { uploadDataUrlToCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary'
 
@@ -393,107 +394,156 @@ export async function POST(request: NextRequest) {
         const invite = invites.find(i => !i.ceremonyId) || invites[0]
 
         // Send invitation via appropriate service
+        // If channel is 'AUTO' or not specified, use notification preferences
+        // Otherwise, use the specified channel
         console.log(`[${requestId}] [${contactId}] 📤 Sending invitation via ${inviteChannel}...`)
         let sendResult: { success: boolean; error?: string } = { success: false }
 
-        switch (inviteChannel) {
-          case 'WHATSAPP':
-            // For WhatsApp, prefer invitee's whatsapp field, then phone, then contactInfo
-            const whatsappNumber = invitee.whatsapp || invitee.phone || contact.contactInfo
-            console.log(`[${requestId}] [${contactId}] Calling sendWhatsAppInvite with:`, {
-              to: whatsappNumber,
-              inviteeName: contact.name,
+        // If channel is AUTO or if invitee has preferences, use notification service
+        const useNotificationService = inviteChannel === 'AUTO' || invitee.userId || invitee.notificationChannels?.length > 0
+
+        if (useNotificationService) {
+          // Use notification service that respects preferences
+          try {
+            const notificationResult = await sendGuestInvitationNotification({
+              userId: invitee.userId || undefined,
+              inviteeId: invitee.id,
+              email: invitee.email || (inviteChannel === 'EMAIL' ? contact.contactInfo : undefined),
+              phone: invitee.phone || (inviteChannel === 'WHATSAPP' ? contact.contactInfo : undefined),
+              whatsapp: invitee.whatsapp || undefined,
+              messenger: invitee.messenger || undefined,
+              instagram: invitee.instagram || undefined,
+              name: contact.name,
+              eventId: event.id,
               eventTitle: event.title,
-              hasImage: !!invitationImageUrl,
-              imageUrl: invitationImageUrl?.substring(0, 100),
-              shareLink
+              invitationImageUrl,
+              shareLink,
+              token,
             })
-            
-            if (!whatsappNumber) {
-              console.error(`[${requestId}] [${contactId}] ❌ No WhatsApp number found for contact`)
-              sendResult = { 
-                success: false, 
-                error: 'No WhatsApp number found. Please ensure the contact has a phone number or WhatsApp ID.' 
-              }
+
+            // Check if at least one channel succeeded
+            const successfulChannels = notificationResult.channels.filter(c => c.success)
+            if (successfulChannels.length > 0) {
+              sendResult = { success: true }
+              console.log(`[${requestId}] [${contactId}] ✅ Invitation sent via notification service:`, {
+                successfulChannels: successfulChannels.map(c => c.channel),
+                failedChannels: notificationResult.channels.filter(c => !c.success).map(c => ({ channel: c.channel, error: c.error }))
+              })
             } else {
-              try {
-                sendResult = await sendWhatsAppInvite({
-                  to: whatsappNumber,
-                  inviteeName: contact.name,
-                  eventTitle: event.title,
-                  invitationImageUrl,
-                  shareLink,
-                  token,
-                })
-                console.log(`[${requestId}] [${contactId}] WhatsApp send result:`, sendResult)
-              } catch (whatsappError: any) {
-                console.error(`[${requestId}] [${contactId}] ❌ WhatsApp send error:`, whatsappError)
-                sendResult = {
-                  success: false,
-                  error: whatsappError.message || 'Failed to send WhatsApp invitation'
+              sendResult = {
+                success: false,
+                error: notificationResult.error || 'All notification channels failed'
+              }
+              console.error(`[${requestId}] [${contactId}] ❌ All notification channels failed:`, notificationResult.channels)
+            }
+          } catch (notificationError: any) {
+            console.error(`[${requestId}] [${contactId}] ❌ Notification service error:`, notificationError)
+            sendResult = {
+              success: false,
+              error: notificationError.message || 'Failed to send notification'
+            }
+          }
+        } else {
+          // Use legacy single-channel sending
+          switch (inviteChannel) {
+            case 'WHATSAPP':
+              // For WhatsApp, prefer invitee's whatsapp field, then phone, then contactInfo
+              const whatsappNumber = invitee.whatsapp || invitee.phone || contact.contactInfo
+              console.log(`[${requestId}] [${contactId}] Calling sendWhatsAppInvite with:`, {
+                to: whatsappNumber,
+                inviteeName: contact.name,
+                eventTitle: event.title,
+                hasImage: !!invitationImageUrl,
+                imageUrl: invitationImageUrl?.substring(0, 100),
+                shareLink
+              })
+              
+              if (!whatsappNumber) {
+                console.error(`[${requestId}] [${contactId}] ❌ No WhatsApp number found for contact`)
+                sendResult = { 
+                  success: false, 
+                  error: 'No WhatsApp number found. Please ensure the contact has a phone number or WhatsApp ID.' 
+                }
+              } else {
+                try {
+                  sendResult = await sendWhatsAppInvite({
+                    to: whatsappNumber,
+                    inviteeName: contact.name,
+                    eventTitle: event.title,
+                    invitationImageUrl,
+                    shareLink,
+                    token,
+                  })
+                  console.log(`[${requestId}] [${contactId}] WhatsApp send result:`, sendResult)
+                } catch (whatsappError: any) {
+                  console.error(`[${requestId}] [${contactId}] ❌ WhatsApp send error:`, whatsappError)
+                  sendResult = {
+                    success: false,
+                    error: whatsappError.message || 'Failed to send WhatsApp invitation'
+                  }
                 }
               }
-            }
-            break
-          case 'FACEBOOK_MESSENGER':
-            sendResult = await sendMessengerInvite({
-              to: contact.contactInfo,
-              inviteeName: contact.name,
-              eventTitle: event.title,
-              invitationImageUrl,
-              shareLink,
-              token,
-            })
-            break
-          case 'INSTAGRAM_DM':
-            sendResult = await sendInstagramDMInvite({
-              to: contact.contactInfo.replace('@', ''),
-              inviteeName: contact.name,
-              eventTitle: event.title,
-              invitationImageUrl,
-              shareLink,
-              token,
-            })
-            break
-          case 'EMAIL':
-            sendResult = await sendEmailInvite({
-              to: contact.contactInfo,
-              inviteeName: contact.name,
-              eventTitle: event.title,
-              invitationImageUrl,
-              shareLink,
-              token,
-            })
-            break
-          case 'LINK':
-            // For in-app users, find by email or create user link
-            const user = await prisma.user.findUnique({
-              where: { email: contact.contactInfo },
-            })
-            if (user) {
-              // Link invitee to user if not already linked
-              if (!invitee.userId) {
-                await prisma.invitee.update({
-                  where: { id: invitee.id },
-                  data: { userId: user.id },
-                })
-              }
-              sendResult = await sendInAppInvite({
-                userId: user.id,
+              break
+            case 'FACEBOOK_MESSENGER':
+              sendResult = await sendMessengerInvite({
+                to: contact.contactInfo,
                 inviteeName: contact.name,
                 eventTitle: event.title,
                 invitationImageUrl,
                 shareLink,
                 token,
-                inviteId: invite.id,
               })
-            } else {
-              sendResult = { success: false, error: 'User not found' }
-            }
-            break
-          default:
-            console.error(`[${requestId}] [${contactId}] ❌ Unsupported channel: ${inviteChannel}`)
-            sendResult = { success: false, error: 'Unsupported channel' }
+              break
+            case 'INSTAGRAM_DM':
+              sendResult = await sendInstagramDMInvite({
+                to: contact.contactInfo.replace('@', ''),
+                inviteeName: contact.name,
+                eventTitle: event.title,
+                invitationImageUrl,
+                shareLink,
+                token,
+              })
+              break
+            case 'EMAIL':
+              sendResult = await sendEmailInvite({
+                to: contact.contactInfo,
+                inviteeName: contact.name,
+                eventTitle: event.title,
+                invitationImageUrl,
+                shareLink,
+                token,
+              })
+              break
+            case 'LINK':
+              // For in-app users, find by email or create user link
+              const user = await prisma.user.findUnique({
+                where: { email: contact.contactInfo },
+              })
+              if (user) {
+                // Link invitee to user if not already linked
+                if (!invitee.userId) {
+                  await prisma.invitee.update({
+                    where: { id: invitee.id },
+                    data: { userId: user.id },
+                  })
+                }
+                sendResult = await sendInAppInvite({
+                  userId: user.id,
+                  inviteeName: contact.name,
+                  eventTitle: event.title,
+                  invitationImageUrl,
+                  shareLink,
+                  token,
+                  inviteId: invite.id,
+                })
+              } else {
+                sendResult = { success: false, error: 'User not found' }
+              }
+              break
+            default:
+              console.error(`[${requestId}] [${contactId}] ❌ Unsupported channel: ${inviteChannel}`)
+              sendResult = { success: false, error: 'Unsupported channel' }
+          }
         }
 
         if (sendResult.success) {

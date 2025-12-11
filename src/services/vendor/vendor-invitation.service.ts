@@ -4,6 +4,7 @@
  */
 
 import { sendWhatsAppVendorInvite } from './whatsapp-vendor.service'
+import { sendVendorInvitationNotification } from '@/services/notification/notification.service'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 
@@ -45,6 +46,7 @@ export async function sendVendorInvitation(
         whatsapp: true,
         invitationToken: true,
         invitationSent: true,
+        userId: true, // For notification preferences
       },
     })
 
@@ -102,33 +104,69 @@ export async function sendVendorInvitation(
       baseUrl,
     })
 
-    // Send WhatsApp invitation
-    const whatsappNumber = vendor.whatsapp || vendor.phone
-    if (!whatsappNumber) {
-      console.error(`[${requestId}] ❌ Vendor phone number not found`)
-      return {
-        success: false,
-        error: 'Vendor phone number not found',
+    // Send vendor invitation using notification service (respects preferences)
+    // If vendor has a userId, use notification service; otherwise, fall back to WhatsApp
+    let result: { success: boolean; error?: string }
+
+    if (vendor.userId) {
+      // Use notification service that respects user preferences
+      console.log(`[${requestId}] 📤 Using notification service (vendor has user account)...`)
+      const notificationResult = await sendVendorInvitationNotification({
+        userId: vendor.userId,
+        vendorId: vendor.id,
+        email: vendor.email || undefined,
+        phone: vendor.phone || undefined,
+        whatsapp: vendor.whatsapp || undefined,
+        name: vendor.ownerName || undefined,
+        vendorName: vendor.ownerName || vendor.businessName || 'Vendor',
+        businessName: vendor.businessName || 'Vendor Service',
+        eventTitle,
+        eventOwnerName: eventOwnerName || 'Event Organizer',
+        invitationLink,
+        eventLink,
+      })
+
+      const successfulChannels = notificationResult.channels.filter(c => c.success)
+      if (successfulChannels.length > 0) {
+        result = { success: true }
+        console.log(`[${requestId}] ✅ Vendor invitation sent via notification service:`, {
+          successfulChannels: successfulChannels.map(c => c.channel),
+        })
+      } else {
+        result = {
+          success: false,
+          error: notificationResult.error || 'All notification channels failed'
+        }
+        console.error(`[${requestId}] ❌ All notification channels failed:`, notificationResult.channels)
       }
+    } else {
+      // Fall back to WhatsApp for vendors without user accounts
+      const whatsappNumber = vendor.whatsapp || vendor.phone
+      if (!whatsappNumber) {
+        console.error(`[${requestId}] ❌ Vendor phone number not found`)
+        return {
+          success: false,
+          error: 'Vendor phone number not found',
+        }
+      }
+
+      console.log(`[${requestId}] 📱 Preparing to send WhatsApp invitation to: ${whatsappNumber}`)
+      console.log(`[${requestId}] 📤 Calling sendWhatsAppVendorInvite...`)
+      result = await sendWhatsAppVendorInvite({
+        to: whatsappNumber,
+        vendorName: vendor.ownerName || vendor.businessName || 'Vendor',
+        businessName: vendor.businessName || 'Vendor Service',
+        eventTitle,
+        eventOwnerName: eventOwnerName || 'Event Organizer',
+        invitationLink,
+        eventLink,
+      })
+
+      console.log(`[${requestId}] 📥 WhatsApp invitation result:`, {
+        success: result.success,
+        error: result.error,
+      })
     }
-
-    console.log(`[${requestId}] 📱 Preparing to send WhatsApp invitation to: ${whatsappNumber}`)
-
-    console.log(`[${requestId}] 📤 Calling sendWhatsAppVendorInvite...`)
-    const result = await sendWhatsAppVendorInvite({
-      to: whatsappNumber,
-      vendorName: vendor.ownerName || vendor.businessName || 'Vendor',
-      businessName: vendor.businessName || 'Vendor Service',
-      eventTitle,
-      eventOwnerName: eventOwnerName || 'Event Organizer',
-      invitationLink,
-      eventLink,
-    })
-
-    console.log(`[${requestId}] 📥 WhatsApp invitation result:`, {
-      success: result.success,
-      error: result.error,
-    })
 
     // Update vendor invitation status
     if (result.success) {

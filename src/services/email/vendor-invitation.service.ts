@@ -1,25 +1,25 @@
 /**
- * Email Invitation Service
+ * Vendor Invitation Email Service
  * 
- * This service handles sending invitations via email using Resend.
+ * Handles sending vendor invitation emails
  */
 
 import { getEmailClient, isEmailConfigured, FROM_EMAIL } from '@/lib/email'
-import { getGuestInvitationTemplate } from '@/lib/email-templates'
+import { getVendorInvitationTemplate } from '@/lib/email-templates'
 
-interface SendEmailInviteParams {
+interface SendVendorInvitationEmailParams {
   to: string
-  inviteeName: string
+  vendorName: string
   eventTitle: string
-  invitationImageUrl: string
+  eventOrganizerName?: string
   shareLink: string
-  token: string
+  token?: string
 }
 
-export async function sendEmailInvite(
-  params: SendEmailInviteParams
+export async function sendVendorInvitationEmail(
+  params: SendVendorInvitationEmailParams
 ): Promise<{ success: boolean; error?: string }> {
-  const { to, inviteeName, eventTitle, invitationImageUrl, shareLink } = params
+  const { to, vendorName, eventTitle, eventOrganizerName, shareLink } = params
 
   try {
     // Check if email is configured
@@ -40,10 +40,10 @@ export async function sendEmailInvite(
     }
 
     // Generate email HTML using template
-    const html = getGuestInvitationTemplate({
-      recipientName: inviteeName,
+    const html = getVendorInvitationTemplate({
+      recipientName: vendorName,
       eventTitle,
-      invitationImageUrl,
+      vendorName,
       shareLink,
     })
 
@@ -51,31 +51,31 @@ export async function sendEmailInvite(
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: [to],
-      subject: `You're invited to ${eventTitle}!`,
+      subject: `Vendor Invitation: ${eventTitle}`,
       html,
     })
 
     if (result.error) {
-      console.error('📧 Email send error:', result.error)
-    return {
-      success: false,
-        error: result.error.message || 'Failed to send email',
+      console.error('📧 Vendor invitation email send error:', result.error)
+      return {
+        success: false,
+        error: result.error.message || 'Failed to send vendor invitation email',
       }
     }
 
-    console.log('📧 Email sent successfully:', {
+    console.log('📧 Vendor invitation email sent successfully:', {
       to,
-      inviteeName,
+      vendorName,
       eventTitle,
       emailId: result.data?.id,
     })
 
     return { success: true }
   } catch (error: any) {
-    console.error('📧 Error sending email invite:', error)
+    console.error('📧 Error sending vendor invitation email:', error)
     return {
       success: false,
-      error: error.message || 'Failed to send email invitation',
+      error: error.message || 'Failed to send vendor invitation email',
     }
   }
 }

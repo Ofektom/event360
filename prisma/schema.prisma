@@ -20,6 +20,11 @@ model User {
   passwordHash  String?   // For password-based auth
   image         String?   // Profile picture
   role          UserRole  @default(USER)
+  
+  // Notification preferences - array of preferred channels
+  notificationChannels NotificationChannel[] @default([EMAIL])
+  whatsappChargesAccepted Boolean @default(false) // User accepted charges for WhatsApp
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -43,6 +48,15 @@ enum UserRole {
   USER
   VENDOR
   ADMIN
+}
+
+enum NotificationChannel {
+  EMAIL
+  WHATSAPP
+  FACEBOOK_MESSENGER
+  INSTAGRAM_DM
+  SMS
+  IN_APP
 }
 
 // Family/Account grouping - allows multiple family members to manage events
@@ -261,8 +275,9 @@ model Invitee {
   // Attendance tracking
   attendedCeremonies String[] // Array of ceremony IDs
   
-  // Contact preferences
-  preferredChannel String? // "email", "whatsapp", "sms", "messenger", "in-app"
+  // Notification preferences - array of preferred channels
+  notificationChannels NotificationChannel[] @default([EMAIL])
+  whatsappChargesAccepted Boolean @default(false) // Invitee accepted charges for WhatsApp
   
   // Registration tracking
   registeredAt DateTime?  // When they registered/linked account
