@@ -219,7 +219,7 @@ export default async function PublicCeremonyPage({ params }: PublicCeremonyPageP
             <EventVendorsList
               eventId={eventData.id}
               ceremonyId={ceremonyId}
-              isOwner={access.isOrganizer}
+              isOwner={false}
             />
           </Card>
         </div>
