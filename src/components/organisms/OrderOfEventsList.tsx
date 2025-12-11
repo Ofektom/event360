@@ -96,13 +96,13 @@ export function OrderOfEventsList({
   }
 
   // Convert to ProgrammeList format
+  // Note: We don't pass location or type since these are ceremony-level details
   const programmeItems = items.map((item) => ({
     id: item.id,
     title: item.title,
     description: item.description || undefined,
     startTime: new Date(item.startTime),
     endTime: item.endTime ? new Date(item.endTime) : undefined,
-    location: item.location || undefined,
     order: item.order,
   }))
 
@@ -117,8 +117,13 @@ export function OrderOfEventsList({
             The sequence of activities for this ceremony
           </p>
         </div>
-        {isOwner && onCreateNew && (
-          <Button variant="primary" onClick={onCreateNew} className="w-full sm:w-auto">
+        {isOwner && (
+          <Button 
+            variant="primary" 
+            onClick={onCreateNew || (() => {})} 
+            className="w-full sm:w-auto"
+            disabled={!onCreateNew}
+          >
             + Add Item
           </Button>
         )}
@@ -128,12 +133,16 @@ export function OrderOfEventsList({
         <div className="text-center py-12 text-gray-500">
           <div className="text-4xl mb-4">📋</div>
           <p>No items in the order of events yet.</p>
-          {isOwner && onCreateNew && (
+          {isOwner && (
             <>
               <p className="text-sm mt-2 mb-4">
                 Add items like opening prayer, processional, vows, etc.
               </p>
-              <Button variant="primary" onClick={onCreateNew}>
+              <Button 
+                variant="primary" 
+                onClick={onCreateNew || (() => {})}
+                disabled={!onCreateNew}
+              >
                 Add Your First Item
               </Button>
             </>
@@ -141,73 +150,97 @@ export function OrderOfEventsList({
         </div>
       ) : (
         <div className="space-y-4">
-          <ProgrammeList items={programmeItems} variant="timeline" />
-          
-          {isOwner && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((item) => (
-                  <Card
-                    key={item.id}
-                    className="p-4 hover:shadow-md transition-shadow relative group"
-                  >
-                    <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {onEdit && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onEdit(item.id)
-                          }}
-                          className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors"
-                          title="Edit item"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={(e) => handleDelete(item.id, e)}
-                        disabled={deletingId === item.id}
-                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 disabled:opacity-50 transition-colors"
-                        title="Delete item"
-                      >
-                        {deletingId === item.id ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
+          <div className="relative">
+            {/* Timeline line */}
+            <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-[var(--theme-primary)] opacity-20"></div>
 
-                    <div className="pr-12">
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        {item.title}
-                      </h3>
-                      {item.description && (
-                        <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                      )}
-                      <div className="text-xs text-gray-500 space-y-1">
-                        <div>
-                          🕐 {new Date(item.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {item.endTime && ` - ${new Date(item.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            <div className="space-y-8">
+              {items.map((item, index) => (
+                <div key={item.id} className="relative flex gap-6">
+                  {/* Timeline dot */}
+                  <div className="relative z-10 flex-shrink-0">
+                    <div className="w-16 h-16 rounded-full bg-[var(--theme-primary)] flex items-center justify-center text-white font-bold text-lg">
+                      {index + 1}
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 pb-8">
+                    <Card variant="elevated" padding="md" className="relative group">
+                      {/* Edit/Delete buttons - always visible for owners */}
+                      {isOwner && (
+                        <div className="absolute top-4 right-4 z-10 flex gap-2">
+                          {onEdit && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onEdit(item.id)
+                              }}
+                              className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors shadow-md"
+                              title="Edit item"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          )}
+                          
+                          <button
+                            onClick={(e) => handleDelete(item.id, e)}
+                            disabled={deletingId === item.id}
+                            className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 disabled:opacity-50 transition-colors shadow-md"
+                            title="Delete item"
+                          >
+                            {deletingId === item.id ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
-                        {item.location && (
-                          <div>📍 {item.location}</div>
+                      )}
+
+                      <div className={isOwner ? "pr-20" : ""}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                              {item.title}
+                            </h3>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-[var(--theme-primary)]">
+                              {new Date(item.startTime).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              })}
+                            </p>
+                            {item.endTime && (
+                              <p className="text-xs text-gray-500">
+                                - {new Date(item.endTime).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true,
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {item.description && (
+                          <p className="text-gray-600 mb-3">{item.description}</p>
                         )}
-                        {item.type && (
-                          <div className="text-purple-600">🏷️ {item.type}</div>
+                        {item.notes && (
+                          <div className="text-sm text-gray-500 italic">📝 {item.notes}</div>
                         )}
                       </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                    </Card>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       )}
     </Card>

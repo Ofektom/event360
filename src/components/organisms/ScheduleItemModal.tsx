@@ -35,8 +35,6 @@ export function ScheduleItemModal({
     description: '',
     startTime: '',
     endTime: '',
-    type: '',
-    location: '',
     notes: '',
     order: '',
   })
@@ -70,8 +68,6 @@ export function ScheduleItemModal({
         description: item.description || '',
         startTime: startTime.toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
         endTime: endTime ? endTime.toISOString().slice(0, 16) : '',
-        type: item.type || '',
-        location: item.location || '',
         notes: item.notes || '',
         order: item.order.toString(),
       })
@@ -100,8 +96,6 @@ export function ScheduleItemModal({
         description: formData.description || null,
         startTime: new Date(formData.startTime).toISOString(),
         endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
-        type: formData.type || null,
-        location: formData.location || null,
         notes: formData.notes || null,
       }
 
@@ -227,34 +221,6 @@ export function ScheduleItemModal({
                   type="datetime-local"
                   value={formData.endTime}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <Input
-                  id="type"
-                  type="text"
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  placeholder="e.g., Ceremony, Reception, Dinner"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
-                </label>
-                <Input
-                  id="location"
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., Main Hall, Stage, Altar"
                 />
               </div>
             </div>

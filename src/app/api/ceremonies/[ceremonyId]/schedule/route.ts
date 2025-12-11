@@ -32,13 +32,13 @@ export async function POST(
     const body = await request.json()
     const scheduleData: CreateScheduleItemDto = {
       title: body.title,
-      description: body.description,
+      description: body.description || null,
       startTime: body.startTime,
-      endTime: body.endTime,
-      order: body.order,
-      type: body.type,
-      location: body.location,
-      notes: body.notes,
+      endTime: body.endTime || null,
+      order: body.order || undefined,
+      type: null, // Type is ceremony-level, not item-level
+      location: null, // Location is ceremony-level, not item-level
+      notes: body.notes || null,
     }
 
     const scheduleItem = await scheduleService.createScheduleItem(ceremonyId, scheduleData)

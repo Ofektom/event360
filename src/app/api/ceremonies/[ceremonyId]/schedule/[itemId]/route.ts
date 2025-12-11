@@ -59,13 +59,13 @@ export async function PATCH(
 
     const updateData: UpdateScheduleItemDto = {
       title: body.title,
-      description: body.description,
+      description: body.description !== undefined ? body.description : undefined,
       startTime: body.startTime,
-      endTime: body.endTime,
-      order: body.order,
-      type: body.type,
-      location: body.location,
-      notes: body.notes,
+      endTime: body.endTime !== undefined ? body.endTime : undefined,
+      order: body.order !== undefined ? body.order : undefined,
+      type: null, // Type is ceremony-level, not item-level
+      location: null, // Location is ceremony-level, not item-level
+      notes: body.notes !== undefined ? body.notes : undefined,
     }
 
     const updatedItem = await scheduleService.updateScheduleItem(itemId, updateData)

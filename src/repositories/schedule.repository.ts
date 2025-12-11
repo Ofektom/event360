@@ -38,13 +38,14 @@ export class ScheduleRepository {
       data: {
         ceremonyId,
         title: data.title,
-        description: data.description,
+        description: data.description || null,
         startTime: new Date(data.startTime),
         endTime: data.endTime ? new Date(data.endTime) : null,
         order: data.order,
-        type: data.type,
-        location: data.location,
-        notes: data.notes,
+        // Type and location are ceremony-level, not item-level, so they should be null
+        type: data.type || null,
+        location: data.location || null,
+        notes: data.notes || null,
       },
     })
   }
