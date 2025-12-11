@@ -68,16 +68,34 @@ export function NotificationPreferences({ userId }: NotificationPreferencesProps
       setLoading(true)
       setError(null)
       const response = await fetch('/api/user/notification-preferences')
-      if (!response.ok) {
-        throw new Error('Failed to fetch notification preferences')
-      }
       const data = await response.json()
+      
+      if (!response.ok) {
+        // If it's a migration error, show a helpful message
+        if (data.error?.includes('migration')) {
+          setError('Database migration required. Please contact support or run: npx prisma migrate deploy')
+        } else {
+          setError(data.error || 'Failed to fetch notification preferences')
+        }
+        // Still set default preferences so UI can render
+        setPreferences({
+          notificationChannels: [NotificationChannel.EMAIL],
+          whatsappChargesAccepted: false,
+        })
+        return
+      }
+      
       setPreferences({
         notificationChannels: data.notificationChannels || [NotificationChannel.EMAIL],
         whatsappChargesAccepted: data.whatsappChargesAccepted || false,
       })
     } catch (err: any) {
       setError(err.message || 'Failed to load notification preferences')
+      // Set default preferences so UI can still render
+      setPreferences({
+        notificationChannels: [NotificationChannel.EMAIL],
+        whatsappChargesAccepted: false,
+      })
     } finally {
       setLoading(false)
     }

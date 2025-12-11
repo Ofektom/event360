@@ -32,8 +32,21 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error fetching notification preferences:', error)
+    
+    // If the error is about missing columns, it means migration hasn't been run
+    if (error.message?.includes('column') || error.message?.includes('does not exist')) {
+      console.warn('Database migration may not have been applied. Returning default preferences.')
+      return NextResponse.json({
+        notificationChannels: [NotificationChannel.EMAIL],
+        whatsappChargesAccepted: false,
+      })
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch notification preferences' },
+      { 
+        error: 'Failed to fetch notification preferences',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     )
   }
@@ -97,8 +110,23 @@ export async function PATCH(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error updating notification preferences:', error)
+    
+    // If the error is about missing columns, it means migration hasn't been run
+    if (error.message?.includes('column') || error.message?.includes('does not exist')) {
+      return NextResponse.json(
+        { 
+          error: 'Database migration required. Please run: npx prisma migrate deploy',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to update notification preferences' },
+      { 
+        error: 'Failed to update notification preferences',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     )
   }
