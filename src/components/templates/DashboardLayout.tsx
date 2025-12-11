@@ -32,10 +32,12 @@ export function DashboardLayout({ children, eventId: propEventId }: DashboardLay
     pathname?.startsWith('/timeline') || 
     pathname?.startsWith('/dashboard/events') ||
     pathname?.startsWith('/events/') ||
+    pathname?.startsWith('/e/') || // Public event pages
     pathname?.startsWith('/invitations') ||
     pathname?.startsWith('/order-of-events') ||
     pathname?.startsWith('/gallery') ||
-    pathname?.startsWith('/reels')
+    pathname?.startsWith('/reels') ||
+    pathname?.startsWith('/posts/')
 
   // Handle window resize
   useEffect(() => {
