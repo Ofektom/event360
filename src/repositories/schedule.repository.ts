@@ -43,8 +43,8 @@ export class ScheduleRepository {
         endTime: data.endTime ? new Date(data.endTime) : null,
         order: data.order,
         // Type and location are ceremony-level, not item-level, so they should be null
-        type: data.type || null,
-        location: data.location || null,
+        type: data.type ?? null,
+        location: data.location ?? null,
         notes: data.notes || null,
       },
     })
