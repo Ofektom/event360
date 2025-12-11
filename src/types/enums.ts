@@ -100,3 +100,13 @@ export enum FamilyRole {
   MEMBER = 'MEMBER',
 }
 
+// Notification Enums
+export enum NotificationChannel {
+  EMAIL = 'EMAIL',
+  WHATSAPP = 'WHATSAPP',
+  FACEBOOK_MESSENGER = 'FACEBOOK_MESSENGER',
+  INSTAGRAM_DM = 'INSTAGRAM_DM',
+  SMS = 'SMS',
+  IN_APP = 'IN_APP',
+}
+

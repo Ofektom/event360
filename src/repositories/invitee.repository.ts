@@ -49,7 +49,7 @@ export class InviteeRepository {
         instagram: data.instagram,
         role: data.role,
         group: data.group,
-        preferredChannel: data.preferredChannel,
+        notificationChannels: data.notificationChannels,
         rsvpStatus: 'PENDING',
       },
     })
@@ -67,7 +67,7 @@ export class InviteeRepository {
         instagram: invitee.instagram,
         role: invitee.role,
         group: invitee.group,
-        preferredChannel: invitee.preferredChannel,
+        notificationChannels: invitee.notificationChannels,
         rsvpStatus: 'PENDING',
       })),
       skipDuplicates: true,
@@ -90,7 +90,7 @@ export class InviteeRepository {
       updateData.rsvpDate = new Date()
     }
     if (data.rsvpNotes !== undefined) updateData.rsvpNotes = data.rsvpNotes
-    if (data.preferredChannel !== undefined) updateData.preferredChannel = data.preferredChannel
+    if (data.notificationChannels !== undefined) updateData.notificationChannels = data.notificationChannels
 
     return prisma.invitee.update({
       where: { id },

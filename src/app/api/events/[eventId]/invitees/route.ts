@@ -61,7 +61,7 @@ export async function POST(
         instagram: body.instagram,
         role: body.role,
         group: body.group,
-        preferredChannel: body.preferredChannel,
+        notificationChannels: body.notificationChannels,
       }
       const invitee = await inviteeService.createInvitee(eventId, inviteeData)
       return NextResponse.json(invitee, { status: 201 })

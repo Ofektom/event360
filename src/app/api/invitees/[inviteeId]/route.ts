@@ -78,7 +78,7 @@ export async function PATCH(
       group: body.group,
       rsvpStatus: body.rsvpStatus,
       rsvpNotes: body.rsvpNotes,
-      preferredChannel: body.preferredChannel,
+      notificationChannels: body.notificationChannels,
     }
 
     const updatedInvitee = await inviteeService.updateInvitee(inviteeId, updateData)

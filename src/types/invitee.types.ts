@@ -1,4 +1,4 @@
-import { RSVPStatus } from './enums'
+import { RSVPStatus, NotificationChannel } from './enums'
 
 // Request DTOs
 export interface CreateInviteeDto {
@@ -10,7 +10,7 @@ export interface CreateInviteeDto {
   instagram?: string
   role?: string
   group?: string
-  preferredChannel?: string
+  notificationChannels?: NotificationChannel[]
 }
 
 export interface BulkCreateInviteesDto {
@@ -28,7 +28,7 @@ export interface UpdateInviteeDto {
   group?: string
   rsvpStatus?: RSVPStatus
   rsvpNotes?: string
-  preferredChannel?: string
+  notificationChannels?: NotificationChannel[]
 }
 
 export interface GetInviteesFilters {
