@@ -45,7 +45,7 @@ export function ScheduleItemModal({
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [ceremonyDate, setCeremonyDate] = useState<string | null>(null)
+  const [fetchedCeremonyDate, setFetchedCeremonyDate] = useState<string | null>(null)
 
   // Fetch ceremony date and item data if editing
   useEffect(() => {
@@ -61,7 +61,7 @@ export function ScheduleItemModal({
       if (response.ok) {
         const ceremony = await response.json()
         if (ceremony.date) {
-          setCeremonyDate(ceremony.date)
+          setFetchedCeremonyDate(ceremony.date)
         }
       }
     } catch (err) {
@@ -129,16 +129,18 @@ export function ScheduleItemModal({
       }
 
       // Only include times if hasTime is checked and times are provided
-      if (hasTime && formData.startTime && ceremonyDate) {
+      // Use prop ceremonyDate first, then fetched date, then current date as fallback
+      const dateToUse = ceremonyDate || fetchedCeremonyDate
+      if (hasTime && formData.startTime && dateToUse) {
         // Combine ceremony date with time (HH:mm format)
         const [hours, minutes] = formData.startTime.split(':')
-        const startDateTime = new Date(ceremonyDate)
+        const startDateTime = new Date(dateToUse)
         startDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
         payload.startTime = startDateTime.toISOString()
 
         if (formData.endTime) {
           const [endHours, endMinutes] = formData.endTime.split(':')
-          const endDateTime = new Date(ceremonyDate)
+          const endDateTime = new Date(dateToUse)
           endDateTime.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0)
           payload.endTime = endDateTime.toISOString()
         }
