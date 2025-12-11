@@ -22,8 +22,8 @@ export class ScheduleService {
 
   async createScheduleItem(ceremonyId: string, data: CreateScheduleItemDto) {
     // Business logic validation
-    if (!data.title || !data.startTime) {
-      throw new Error('Title and start time are required')
+    if (!data.title) {
+      throw new Error('Title is required')
     }
 
     // If order not provided, get the next order number

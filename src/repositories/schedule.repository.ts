@@ -34,12 +34,25 @@ export class ScheduleRepository {
   }
 
   async create(ceremonyId: string, data: CreateScheduleItemDto & { order: number }) {
+    // If startTime is not provided, use ceremony date or current date as fallback
+    let startTime: Date
+    if (data.startTime) {
+      startTime = new Date(data.startTime)
+    } else {
+      // Get ceremony date as fallback
+      const ceremony = await prisma.ceremony.findUnique({
+        where: { id: ceremonyId },
+        select: { date: true },
+      })
+      startTime = ceremony?.date ? new Date(ceremony.date) : new Date()
+    }
+
     return prisma.scheduleItem.create({
       data: {
         ceremonyId,
         title: data.title,
         description: data.description || null,
-        startTime: new Date(data.startTime),
+        startTime,
         endTime: data.endTime ? new Date(data.endTime) : null,
         order: data.order,
         // Type and location are ceremony-level, not item-level, so they should be null

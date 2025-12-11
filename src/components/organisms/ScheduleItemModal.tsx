@@ -41,17 +41,33 @@ export function ScheduleItemModal({
     order: '',
   })
 
-  const [hasTime, setHasTime] = useState(false)
+  const [hasTime, setHasTime] = useState(false) // Checkbox state - controls visibility of time fields
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [ceremonyDate, setCeremonyDate] = useState<string | null>(null)
 
-  // If editing, fetch the item data
+  // Fetch ceremony date and item data if editing
   useEffect(() => {
+    fetchCeremonyDate()
     if (itemId) {
       fetchItem()
     }
   }, [itemId, ceremonyId])
+
+  const fetchCeremonyDate = async () => {
+    try {
+      const response = await fetch(`/api/ceremonies/${ceremonyId}`)
+      if (response.ok) {
+        const ceremony = await response.json()
+        if (ceremony.date) {
+          setCeremonyDate(ceremony.date)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching ceremony date:', err)
+    }
+  }
 
   const fetchItem = async () => {
     try {
@@ -92,18 +108,53 @@ export function ScheduleItemModal({
     setIsSubmitting(true)
 
     try {
-      if (!formData.title || !formData.startTime) {
-        setError('Title and start time are required')
+      if (!formData.title) {
+        setError('Title is required')
         setIsSubmitting(false)
         return
       }
 
+      // If hasTime is checked, validate that startTime is provided
+      if (hasTime && !formData.startTime) {
+        setError('Start time is required when time is enabled')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Build payload
       const payload: any = {
         title: formData.title,
-        description: formData.description || null,
-        startTime: new Date(formData.startTime).toISOString(),
-        endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
-        notes: formData.notes || null,
+        description: formData.description || undefined,
+        notes: formData.notes || undefined,
+      }
+
+      // Only include times if hasTime is checked and times are provided
+      if (hasTime && formData.startTime && ceremonyDate) {
+        // Combine ceremony date with time (HH:mm format)
+        const [hours, minutes] = formData.startTime.split(':')
+        const startDateTime = new Date(ceremonyDate)
+        startDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
+        payload.startTime = startDateTime.toISOString()
+
+        if (formData.endTime) {
+          const [endHours, endMinutes] = formData.endTime.split(':')
+          const endDateTime = new Date(ceremonyDate)
+          endDateTime.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0)
+          payload.endTime = endDateTime.toISOString()
+        }
+      } else if (hasTime && formData.startTime) {
+        // Fallback: if no ceremony date, use current date
+        const [hours, minutes] = formData.startTime.split(':')
+        const startDateTime = new Date()
+        startDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
+        payload.startTime = startDateTime.toISOString()
+
+        if (formData.endTime) {
+          const [endHours, endMinutes] = formData.endTime.split(':')
+          const endDateTime = new Date()
+          endDateTime.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0)
+          payload.endTime = endDateTime.toISOString()
+        }
       }
 
       // Only include order if provided (for new items, it will be auto-assigned)
@@ -205,32 +256,55 @@ export function ScheduleItemModal({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Time <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="startTime"
-                  type="datetime-local"
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
-                  End Time
-                </label>
-                <Input
-                  id="endTime"
-                  type="datetime-local"
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                />
-              </div>
+            {/* Checkbox to toggle time fields */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="hasTime"
+                checked={hasTime}
+                onChange={(e) => {
+                  setHasTime(e.target.checked)
+                  if (!e.target.checked) {
+                    // Clear time fields when unchecked
+                    setFormData({ ...formData, startTime: '', endTime: '' })
+                  }
+                }}
+                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+              />
+              <label htmlFor="hasTime" className="ml-2 block text-sm font-medium text-gray-700">
+                Add time for this item
+              </label>
             </div>
+
+            {/* Time fields - only shown when checkbox is checked */}
+            {hasTime && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Time <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    required={hasTime}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
+                    End Time
+                  </label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
 
             {!itemId && (
               <div>
