@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import Image from 'next/image'
 import Link from 'next/link'
+import { getGalleryThumbnailUrl, getOptimizedImageUrl } from '@/lib/cloudinary-utils'
 
 interface Photo {
   id: string
@@ -107,20 +108,30 @@ export default function PhotosPage() {
 
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-        {photoList.map((photo) => (
-          <div
-            key={photo.id}
-            className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => setSelectedPhoto(photo)}
-          >
-            <Image
-              src={photo.thumbnailUrl || photo.url}
-              alt={photo.caption || 'Photo'}
-              fill
-              className="object-cover"
-            />
-          </div>
-        ))}
+        {photoList.map((photo, index) => {
+          // Use optimized thumbnail URL for faster loading
+          const thumbnailUrl = photo.thumbnailUrl 
+            ? getGalleryThumbnailUrl(photo.thumbnailUrl)
+            : getGalleryThumbnailUrl(photo.url)
+          
+          return (
+            <div
+              key={photo.id}
+              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => setSelectedPhoto(photo)}
+            >
+              <Image
+                src={thumbnailUrl}
+                alt={photo.caption || 'Photo'}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                className="object-cover"
+                loading={index < 12 ? 'eager' : 'lazy'} // Load first 12 eagerly, rest lazily
+                quality={80}
+              />
+            </div>
+          )
+        })}
       </div>
     )
   }
@@ -237,22 +248,29 @@ export default function PhotosPage() {
             <div className="relative max-w-4xl max-h-full">
               <button
                 onClick={() => setSelectedPhoto(null)}
-                className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+                className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
               >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
               <Image
-                src={selectedPhoto.url}
+                src={getOptimizedImageUrl(selectedPhoto.url, 1200)}
                 alt={selectedPhoto.caption || 'Photo'}
                 width={1200}
                 height={800}
                 className="max-w-full max-h-[90vh] object-contain"
+                quality={90}
+                priority
               />
-              {selectedPhoto.caption && (
+              {(selectedPhoto.caption || selectedPhoto.uploadedBy) && (
                 <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-4">
-                  <p>{selectedPhoto.caption}</p>
+                  {selectedPhoto.caption && <p>{selectedPhoto.caption}</p>}
+                  {selectedPhoto.uploadedBy && (
+                    <p className="text-sm text-gray-300 mt-1">
+                      By {selectedPhoto.uploadedBy.name}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
