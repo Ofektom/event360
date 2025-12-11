@@ -12,6 +12,7 @@ import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { OrderOfEventsList } from '@/components/organisms/OrderOfEventsList'
 import { EventVendorsList } from '@/components/organisms/EventVendorsList'
 import { ScheduleItemModal } from '@/components/organisms/ScheduleItemModal'
+import { BackButton } from '@/components/shared/BackButton'
 
 interface Ceremony {
   id: string
@@ -135,15 +136,14 @@ export default function CeremonyDetailPage() {
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-6">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton href={`/events/${eventId}`} label={`Back to ${event.title}`} />
+        </div>
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <Link
-              href={`/events/${eventId}`}
-              className="text-sm text-gray-600 hover:text-gray-900 mb-2 inline-block"
-            >
-              ← Back to {event.title}
-            </Link>
             <h1 className="text-3xl font-bold text-gray-900">{ceremony.name}</h1>
             {ceremony.description && (
               <p className="text-gray-600 mt-2">{ceremony.description}</p>

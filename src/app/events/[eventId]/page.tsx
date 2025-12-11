@@ -11,6 +11,7 @@ import { EventHeader } from '@/components/organisms/EventHeader'
 import { ShareEventModal } from '@/components/organisms/ShareEventModal'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
+import { BackButton } from '@/components/shared/BackButton'
 
 interface Event {
   id: string
@@ -193,11 +194,7 @@ export default function EventDetailPage() {
       <div className="space-y-6">
         {/* Back Button */}
         <div className="mb-2">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm">
-              ← Back to Dashboard
-            </Button>
-          </Link>
+          <BackButton href="/events" label="Back to Events" />
         </div>
 
         {/* Event Header */}

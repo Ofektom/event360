@@ -10,6 +10,7 @@ import { canAccessEvent, canAccessCeremony } from '@/lib/access-control'
 import { ThemeConfig, defaultTheme } from '@/types/theme.types'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { BackButton } from '@/components/shared/BackButton'
 
 const eventService = new EventService()
 
@@ -113,14 +114,13 @@ export default async function PublicCeremonyPage({ params }: PublicCeremonyPageP
     return (
       <PublicEventLayout theme={theme}>
         <div className="container mx-auto px-4 py-8 space-y-6">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton href={`/e/${slug}`} label={`Back to ${eventData.title}`} />
+          </div>
+          
           {/* Header */}
           <div>
-            <Link
-              href={`/e/${slug}`}
-              className="text-sm text-gray-600 hover:text-gray-900 mb-2 inline-block"
-            >
-              ← Back to {eventData.title}
-            </Link>
             <h1 className="text-3xl font-bold text-gray-900">{ceremony.name}</h1>
             {ceremony.description && (
               <p className="text-gray-600 mt-2">{ceremony.description}</p>

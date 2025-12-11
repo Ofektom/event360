@@ -8,6 +8,7 @@ import { Card } from "@/components/atoms/Card";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { BackButton } from "@/components/shared/BackButton";
 
 export default function NewCeremonyPage() {
   const params = useParams();
@@ -118,6 +119,10 @@ export default function NewCeremonyPage() {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton href={`/events/${eventId}`} label="Back to Event" />
+        </div>
         <Card className="p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
             Add Ceremony

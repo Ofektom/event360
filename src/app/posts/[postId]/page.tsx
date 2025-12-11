@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { PostDetail } from '@/components/organisms/PostDetail'
+import { BackButton } from '@/components/shared/BackButton'
 
 // This page uses getCurrentUser() which accesses headers, so it must be dynamic
 export const dynamic = 'force-dynamic'
@@ -25,11 +26,7 @@ export default async function PostDetailPage({
     <DashboardLayout>
       <div className="max-w-4xl mx-auto">
         <div className="mb-4">
-          <Link href="/timeline">
-            <Button variant="outline" size="sm">
-              ← Back to Timeline
-            </Button>
-          </Link>
+          <BackButton href="/timeline" label="Back to Timeline" />
         </div>
         <PostDetail postId={postId} />
       </div>

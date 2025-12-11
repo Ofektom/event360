@@ -14,6 +14,7 @@ import { canAccessEvent, canAccessCeremony } from '@/lib/access-control'
 import { ThemeConfig, defaultTheme } from '@/types/theme.types'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { BackButton } from '@/components/shared/BackButton'
 
 const eventService = new EventService()
 
@@ -178,6 +179,10 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
       <PublicEventLayout theme={theme}>
         <OAuthEventJoinHandler />
         <div className="space-y-8">
+          {/* Back Button */}
+          <div className="container mx-auto px-4 pt-8">
+            <BackButton href="/timeline" label="Back to Timeline" />
+          </div>
           {/* Event Header */}
           <EventHeader
             title={event.title}

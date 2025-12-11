@@ -9,6 +9,7 @@ import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
+import { BackButton } from '@/components/shared/BackButton'
 
 interface Event {
   id: string
@@ -184,6 +185,10 @@ export default function EditEventPage() {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton href={`/events/${eventId}`} label="Back to Event" />
+        </div>
         <Card className="p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Edit Event</h1>
 
