@@ -33,18 +33,17 @@ export async function sendVerificationEmail(
     expiresAt.setHours(expiresAt.getHours() + 24) // Token expires in 24 hours
 
     // Store verification token in database
-    // We'll use a VerificationToken model or store it in the User model
-    // For now, we'll create a simple verification record
-    await prisma.verificationToken.upsert({
+    // First, delete any existing tokens for this identifier
+    await prisma.verificationToken.deleteMany({
       where: {
         identifier: email,
       },
-      create: {
+    })
+
+    // Create new verification token
+    await prisma.verificationToken.create({
+      data: {
         identifier: email,
-        token,
-        expires: expiresAt,
-      },
-      update: {
         token,
         expires: expiresAt,
       },
@@ -108,10 +107,13 @@ export async function verifyEmail(
   email: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Find verification token
+    // Find verification token using the compound unique constraint
     const verificationToken = await prisma.verificationToken.findUnique({
       where: {
-        identifier: email,
+        identifier_token: {
+          identifier: email,
+          token: token,
+        },
       },
     })
 
@@ -149,7 +151,10 @@ export async function verifyEmail(
     // Delete verification token
     await prisma.verificationToken.delete({
       where: {
-        identifier: email,
+        identifier_token: {
+          identifier: email,
+          token: token,
+        },
       },
     })
 
