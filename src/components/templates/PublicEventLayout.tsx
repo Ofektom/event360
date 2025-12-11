@@ -45,8 +45,7 @@ export function PublicEventLayout({ children, theme }: PublicEventLayoutProps) {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Extract eventId from pathname for public event pages (/e/[slug] or /e/[slug]/ceremony/[ceremonyId])
-  const eventId = pathname?.match(/\/e\/[^/]+/)?.[0]?.replace('/e/', '') || null
+  // Extract eventId from pathname if available
   const extractedEventId = pathname?.match(/\/events\/([^/]+)/)?.[1] || null
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev)
@@ -62,12 +61,8 @@ export function PublicEventLayout({ children, theme }: PublicEventLayoutProps) {
 
   return (
     <ThemeProvider theme={theme}>
-      <div className="flex min-h-screen bg-gray-50" style={{ backgroundColor: theme?.colors.background || '#ffffff' }}>
-        {/* Navbar */}
-        <Navbar 
-          variant="public" 
-          onMenuClick={toggleSidebar}
-        />
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme?.colors.background || '#ffffff' }}>
+        <Navbar variant="public" onMenuClick={toggleSidebar} />
         
         {/* Sidebar - Show for public event pages */}
         {shouldShowSidebar && (
@@ -79,18 +74,16 @@ export function PublicEventLayout({ children, theme }: PublicEventLayoutProps) {
           />
         )}
 
-        {/* Main Content Area */}
-        <div
-          className={`flex-1 flex flex-col transition-all duration-300 ${
-            shouldShowSidebar && sidebarOpen ? 'lg:ml-64' : ''
+        {/* Main Content Area - Adjust margin when sidebar is open */}
+        <main 
+          className={`flex-1 transition-all duration-300 ${
+            shouldShowSidebar && sidebarOpen && isDesktop ? 'lg:ml-64' : ''
           }`}
-          style={{ marginTop: isDesktop ? '5rem' : '7.5rem' }}
         >
-          <main className="flex-1 overflow-y-auto min-w-0">
-            {children}
-          </main>
-          <Footer variant="public" />
-        </div>
+          {children}
+        </main>
+        
+        <Footer variant="public" />
       </div>
     </ThemeProvider>
   )
