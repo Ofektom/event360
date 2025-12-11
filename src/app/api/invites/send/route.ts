@@ -394,13 +394,13 @@ export async function POST(request: NextRequest) {
         const invite = invites.find(i => !i.ceremonyId) || invites[0]
 
         // Send invitation via appropriate service
-        // If channel is 'AUTO' or not specified, use notification preferences
+        // If invitee has preferences or userId, use notification service
         // Otherwise, use the specified channel
         console.log(`[${requestId}] [${contactId}] 📤 Sending invitation via ${inviteChannel}...`)
         let sendResult: { success: boolean; error?: string } = { success: false }
 
-        // If channel is AUTO or if invitee has preferences, use notification service
-        const useNotificationService = inviteChannel === 'AUTO' || invitee.userId || invitee.notificationChannels?.length > 0
+        // If invitee has preferences or userId, use notification service
+        const useNotificationService = invitee.userId || (invitee.notificationChannels && invitee.notificationChannels.length > 0)
 
         if (useNotificationService) {
           // Use notification service that respects preferences
