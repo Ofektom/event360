@@ -285,11 +285,9 @@ export async function sendVendorInvitationNotification(
             const result = await sendVendorInvitationEmail({
               to: email,
               vendorName: vendorName || name || 'Vendor',
-              businessName: businessName || '',
               eventTitle: eventTitle || 'Event',
-              eventOwnerName: eventOwnerName,
-              invitationLink: invitationLink || '',
-              eventLink: eventLink || '',
+              eventOrganizerName: eventOwnerName,
+              shareLink: invitationLink || eventLink || '',
             })
             success = result.success
             error = result.error
