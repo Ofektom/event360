@@ -81,10 +81,15 @@ providers.push(
   })
 )
 
+// Ensure secret is available for NextAuth v5
+// NextAuth v5 prefers AUTH_SECRET but supports NEXTAUTH_SECRET for backward compatibility
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+
 export const authConfig = {
   adapter: PrismaAdapter(prisma) as any,
   providers,
   trustHost: true, // Required for Vercel deployment
+  ...(authSecret && { secret: authSecret }), // Only set secret if it exists
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signout",
