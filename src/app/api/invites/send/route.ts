@@ -393,156 +393,199 @@ export async function POST(request: NextRequest) {
         // Use the first invite for tracking (or event-wide invite if exists)
         const invite = invites.find(i => !i.ceremonyId) || invites[0]
 
-        // Send invitation via appropriate service
-        // If invitee has preferences or userId, use notification service
-        // Otherwise, use the specified channel
-        console.log(`[${requestId}] [${contactId}] 📤 Sending invitation via ${inviteChannel}...`)
+        // Send invitation via notification service (respects preferences)
+        // Always try notification service first, which will use preferences if available
+        // or default to email if no preferences are set
+        console.log(`[${requestId}] [${contactId}] 📤 Sending invitation via notification service (respects preferences)...`)
         let sendResult: { success: boolean; error?: string } = { success: false }
 
-        // If invitee has preferences or userId, use notification service
-        const useNotificationService = invitee.userId || (invitee.notificationChannels && invitee.notificationChannels.length > 0)
+        // Always use notification service - it will handle preferences or default to email
+        try {
+          // Prepare contact info based on the specified channel
+          const email = invitee.email || (inviteChannel === 'EMAIL' ? contact.contactInfo : undefined)
+          const phone = invitee.phone || (['WHATSAPP', 'SMS'].includes(inviteChannel) ? contact.contactInfo : undefined)
+          const whatsapp = invitee.whatsapp || (inviteChannel === 'WHATSAPP' ? contact.contactInfo : undefined)
+          const messenger = invitee.messenger || (inviteChannel === 'FACEBOOK_MESSENGER' ? contact.contactInfo : undefined)
+          const instagram = invitee.instagram || (inviteChannel === 'INSTAGRAM_DM' ? contact.contactInfo.replace('@', '') : undefined)
 
-        if (useNotificationService) {
-          // Use notification service that respects preferences
-          try {
-            const notificationResult = await sendGuestInvitationNotification({
-              userId: invitee.userId || undefined,
-              inviteeId: invitee.id,
-              email: invitee.email || (inviteChannel === 'EMAIL' ? contact.contactInfo : undefined),
-              phone: invitee.phone || (inviteChannel === 'WHATSAPP' ? contact.contactInfo : undefined),
-              whatsapp: invitee.whatsapp || undefined,
-              messenger: invitee.messenger || undefined,
-              instagram: invitee.instagram || undefined,
-              name: contact.name,
-              eventId: eventId,
-              eventTitle: event.title,
-              invitationImageUrl,
-              shareLink,
-              token,
+          const notificationResult = await sendGuestInvitationNotification({
+            userId: invitee.userId || undefined,
+            inviteeId: invitee.id,
+            email,
+            phone,
+            whatsapp,
+            messenger,
+            instagram,
+            name: contact.name,
+            eventId: eventId,
+            eventTitle: event.title,
+            invitationImageUrl,
+            shareLink,
+            token,
+          })
+
+          // Check if at least one channel succeeded
+          const successfulChannels = notificationResult.channels.filter(c => c.success)
+          if (successfulChannels.length > 0) {
+            sendResult = { success: true }
+            console.log(`[${requestId}] [${contactId}] ✅ Invitation sent via notification service:`, {
+              successfulChannels: successfulChannels.map(c => c.channel),
+              failedChannels: notificationResult.channels.filter(c => !c.success).map(c => ({ channel: c.channel, error: c.error }))
             })
-
-            // Check if at least one channel succeeded
-            const successfulChannels = notificationResult.channels.filter(c => c.success)
-            if (successfulChannels.length > 0) {
-              sendResult = { success: true }
-              console.log(`[${requestId}] [${contactId}] ✅ Invitation sent via notification service:`, {
-                successfulChannels: successfulChannels.map(c => c.channel),
-                failedChannels: notificationResult.channels.filter(c => !c.success).map(c => ({ channel: c.channel, error: c.error }))
-              })
-            } else {
-              sendResult = {
-                success: false,
-                error: notificationResult.error || 'All notification channels failed'
-              }
-              console.error(`[${requestId}] [${contactId}] ❌ All notification channels failed:`, notificationResult.channels)
-            }
-          } catch (notificationError: any) {
-            console.error(`[${requestId}] [${contactId}] ❌ Notification service error:`, notificationError)
-            sendResult = {
-              success: false,
-              error: notificationError.message || 'Failed to send notification'
-            }
-          }
-        } else {
-          // Use legacy single-channel sending
-          switch (inviteChannel) {
-            case 'WHATSAPP':
-              // For WhatsApp, prefer invitee's whatsapp field, then phone, then contactInfo
-              const whatsappNumber = invitee.whatsapp || invitee.phone || contact.contactInfo
-              console.log(`[${requestId}] [${contactId}] Calling sendWhatsAppInvite with:`, {
-                to: whatsappNumber,
-                inviteeName: contact.name,
-                eventTitle: event.title,
-                hasImage: !!invitationImageUrl,
-                imageUrl: invitationImageUrl?.substring(0, 100),
-                shareLink
-              })
-              
-              if (!whatsappNumber) {
-                console.error(`[${requestId}] [${contactId}] ❌ No WhatsApp number found for contact`)
-                sendResult = { 
-                  success: false, 
-                  error: 'No WhatsApp number found. Please ensure the contact has a phone number or WhatsApp ID.' 
-                }
-              } else {
-                try {
-                  sendResult = await sendWhatsAppInvite({
-                    to: whatsappNumber,
-                    inviteeName: contact.name,
-                    eventTitle: event.title,
-                    invitationImageUrl,
-                    shareLink,
-                    token,
-                  })
-                  console.log(`[${requestId}] [${contactId}] WhatsApp send result:`, sendResult)
-                } catch (whatsappError: any) {
-                  console.error(`[${requestId}] [${contactId}] ❌ WhatsApp send error:`, whatsappError)
-                  sendResult = {
-                    success: false,
-                    error: whatsappError.message || 'Failed to send WhatsApp invitation'
+          } else {
+            // If notification service failed, fall back to the specified channel
+            console.warn(`[${requestId}] [${contactId}] ⚠️ Notification service failed, falling back to specified channel: ${inviteChannel}`)
+            
+            // Fallback to legacy single-channel sending
+            switch (inviteChannel) {
+              case 'WHATSAPP':
+                const whatsappNumber = whatsapp || phone || contact.contactInfo
+                if (whatsappNumber) {
+                  try {
+                    sendResult = await sendWhatsAppInvite({
+                      to: whatsappNumber,
+                      inviteeName: contact.name,
+                      eventTitle: event.title,
+                      invitationImageUrl,
+                      shareLink,
+                      token,
+                    })
+                  } catch (whatsappError: unknown) {
+                    const errorMessage = whatsappError instanceof Error ? whatsappError.message : 'Failed to send WhatsApp invitation'
+                    sendResult = {
+                      success: false,
+                      error: errorMessage
+                    }
+                  }
+                } else {
+                  sendResult = { 
+                    success: false, 
+                    error: 'No WhatsApp number found' 
                   }
                 }
-              }
-              break
-            case 'FACEBOOK_MESSENGER':
-              sendResult = await sendMessengerInvite({
-                to: contact.contactInfo,
-                inviteeName: contact.name,
-                eventTitle: event.title,
-                invitationImageUrl,
-                shareLink,
-                token,
-              })
-              break
-            case 'INSTAGRAM_DM':
-              sendResult = await sendInstagramDMInvite({
-                to: contact.contactInfo.replace('@', ''),
-                inviteeName: contact.name,
-                eventTitle: event.title,
-                invitationImageUrl,
-                shareLink,
-                token,
-              })
-              break
-            case 'EMAIL':
-              sendResult = await sendEmailInvite({
-                to: contact.contactInfo,
-                inviteeName: contact.name,
-                eventTitle: event.title,
-                invitationImageUrl,
-                shareLink,
-                token,
-              })
-              break
-            case 'LINK':
-              // For in-app users, find by email or create user link
-              const user = await prisma.user.findUnique({
-                where: { email: contact.contactInfo },
-              })
-              if (user) {
-                // Link invitee to user if not already linked
-                if (!invitee.userId) {
-                  await prisma.invitee.update({
-                    where: { id: invitee.id },
-                    data: { userId: user.id },
-                  })
+                break
+              case 'EMAIL':
+                if (email) {
+                  try {
+                    sendResult = await sendEmailInvite({
+                      to: email,
+                      inviteeName: contact.name,
+                      eventTitle: event.title,
+                      invitationImageUrl,
+                      shareLink,
+                      token,
+                    })
+                  } catch (emailError: unknown) {
+                    const errorMessage = emailError instanceof Error ? emailError.message : 'Failed to send email invitation'
+                    sendResult = {
+                      success: false,
+                      error: errorMessage
+                    }
+                  }
+                } else {
+                  sendResult = { 
+                    success: false, 
+                    error: 'No email address found' 
+                  }
                 }
-                sendResult = await sendInAppInvite({
-                  userId: user.id,
-                  inviteeName: contact.name,
-                  eventTitle: event.title,
-                  invitationImageUrl,
-                  shareLink,
-                  token,
-                  inviteId: invite.id,
+                break
+              case 'FACEBOOK_MESSENGER':
+                if (messenger) {
+                  try {
+                    sendResult = await sendMessengerInvite({
+                      to: messenger,
+                      inviteeName: contact.name,
+                      eventTitle: event.title,
+                      invitationImageUrl,
+                      shareLink,
+                      token,
+                    })
+                  } catch (messengerError: unknown) {
+                    const errorMessage = messengerError instanceof Error ? messengerError.message : 'Failed to send Messenger invitation'
+                    sendResult = {
+                      success: false,
+                      error: errorMessage
+                    }
+                  }
+                } else {
+                  sendResult = { 
+                    success: false, 
+                    error: 'No Messenger ID found' 
+                  }
+                }
+                break
+              case 'INSTAGRAM_DM':
+                if (instagram) {
+                  try {
+                    sendResult = await sendInstagramDMInvite({
+                      to: instagram,
+                      inviteeName: contact.name,
+                      eventTitle: event.title,
+                      invitationImageUrl,
+                      shareLink,
+                      token,
+                    })
+                  } catch (instagramError: unknown) {
+                    const errorMessage = instagramError instanceof Error ? instagramError.message : 'Failed to send Instagram DM invitation'
+                    sendResult = {
+                      success: false,
+                      error: errorMessage
+                    }
+                  }
+                } else {
+                  sendResult = { 
+                    success: false, 
+                    error: 'No Instagram handle found' 
+                  }
+                }
+                break
+              case 'LINK':
+                // For in-app users, find by email or create user link
+                const user = await prisma.user.findUnique({
+                  where: { email: contact.contactInfo },
                 })
-              } else {
-                sendResult = { success: false, error: 'User not found' }
-              }
-              break
-            default:
-              console.error(`[${requestId}] [${contactId}] ❌ Unsupported channel: ${inviteChannel}`)
-              sendResult = { success: false, error: 'Unsupported channel' }
+                if (user) {
+                  // Link invitee to user if not already linked
+                  if (!invitee.userId) {
+                    await prisma.invitee.update({
+                      where: { id: invitee.id },
+                      data: { userId: user.id },
+                    })
+                  }
+                  try {
+                    sendResult = await sendInAppInvite({
+                      userId: user.id,
+                      inviteeName: contact.name,
+                      eventTitle: event.title,
+                      invitationImageUrl,
+                      shareLink,
+                      token,
+                      inviteId: invite.id,
+                    })
+                  } catch (inAppError: unknown) {
+                    const errorMessage = inAppError instanceof Error ? inAppError.message : 'Failed to send in-app invitation'
+                    sendResult = {
+                      success: false,
+                      error: errorMessage
+                    }
+                  }
+                } else {
+                  sendResult = { success: false, error: 'User not found' }
+                }
+                break
+              default:
+                sendResult = {
+                  success: false,
+                  error: notificationResult.error || 'All notification channels failed and no fallback available'
+                }
+            }
+          }
+        } catch (notificationError: unknown) {
+          console.error(`[${requestId}] [${contactId}] ❌ Notification service error:`, notificationError)
+          const errorMessage = notificationError instanceof Error ? notificationError.message : 'Failed to send notification'
+          sendResult = {
+            success: false,
+            error: errorMessage
           }
         }
 

@@ -104,15 +104,14 @@ export async function sendVendorInvitation(
       baseUrl,
     })
 
-    // Send vendor invitation using notification service (respects preferences)
-    // If vendor has a userId, use notification service; otherwise, fall back to WhatsApp
+    // Always use notification service - it will handle preferences or default to email + WhatsApp
+    // For vendors without user accounts, the notification service will try email first, then WhatsApp
+    console.log(`[${requestId}] 📤 Using notification service (respects preferences if vendor has user account)...`)
     let result: { success: boolean; error?: string }
 
-    if (vendor.userId) {
-      // Use notification service that respects user preferences
-      console.log(`[${requestId}] 📤 Using notification service (vendor has user account)...`)
+    try {
       const notificationResult = await sendVendorInvitationNotification({
-        userId: vendor.userId,
+        userId: vendor.userId || undefined,
         vendorId: vendor.id,
         email: vendor.email || undefined,
         phone: vendor.phone || undefined,
@@ -131,41 +130,72 @@ export async function sendVendorInvitation(
         result = { success: true }
         console.log(`[${requestId}] ✅ Vendor invitation sent via notification service:`, {
           successfulChannels: successfulChannels.map(c => c.channel),
+          failedChannels: notificationResult.channels.filter(c => !c.success).map(c => ({ channel: c.channel, error: c.error }))
         })
       } else {
+        // If notification service failed, try fallback to WhatsApp if available
+        console.warn(`[${requestId}] ⚠️ Notification service failed, trying WhatsApp fallback...`)
+        const whatsappNumber = vendor.whatsapp || vendor.phone
+        if (whatsappNumber) {
+          try {
+            result = await sendWhatsAppVendorInvite({
+              to: whatsappNumber,
+              vendorName: vendor.ownerName || vendor.businessName || 'Vendor',
+              businessName: vendor.businessName || 'Vendor Service',
+              eventTitle,
+              eventOwnerName: eventOwnerName || 'Event Organizer',
+              invitationLink,
+              eventLink,
+            })
+            console.log(`[${requestId}] 📥 WhatsApp fallback result:`, {
+              success: result.success,
+              error: result.error,
+            })
+          } catch (whatsappError: unknown) {
+            const errorMessage = whatsappError instanceof Error ? whatsappError.message : 'Unknown error'
+            result = {
+              success: false,
+              error: notificationResult.error || errorMessage || 'All notification channels failed'
+            }
+          }
+        } else {
+          result = {
+            success: false,
+            error: notificationResult.error || 'All notification channels failed and no WhatsApp number available'
+          }
+          console.error(`[${requestId}] ❌ All notification channels failed:`, notificationResult.channels)
+        }
+      }
+    } catch (notificationError: unknown) {
+      console.error(`[${requestId}] ❌ Notification service error, trying WhatsApp fallback:`, notificationError)
+      // Fallback to WhatsApp if notification service throws an error
+      const whatsappNumber = vendor.whatsapp || vendor.phone
+      if (whatsappNumber) {
+        try {
+          result = await sendWhatsAppVendorInvite({
+            to: whatsappNumber,
+            vendorName: vendor.ownerName || vendor.businessName || 'Vendor',
+            businessName: vendor.businessName || 'Vendor Service',
+            eventTitle,
+            eventOwnerName: eventOwnerName || 'Event Organizer',
+            invitationLink,
+            eventLink,
+          })
+        } catch (whatsappError: unknown) {
+          const notificationErrorMessage = notificationError instanceof Error ? notificationError.message : 'Unknown error'
+          const whatsappErrorMessage = whatsappError instanceof Error ? whatsappError.message : 'Unknown error'
+          result = {
+            success: false,
+            error: notificationErrorMessage || whatsappErrorMessage || 'Failed to send vendor invitation'
+          }
+        }
+      } else {
+        const notificationErrorMessage = notificationError instanceof Error ? notificationError.message : 'Unknown error'
         result = {
           success: false,
-          error: notificationResult.error || 'All notification channels failed'
-        }
-        console.error(`[${requestId}] ❌ All notification channels failed:`, notificationResult.channels)
-      }
-    } else {
-      // Fall back to WhatsApp for vendors without user accounts
-      const whatsappNumber = vendor.whatsapp || vendor.phone
-      if (!whatsappNumber) {
-        console.error(`[${requestId}] ❌ Vendor phone number not found`)
-        return {
-          success: false,
-          error: 'Vendor phone number not found',
+          error: notificationErrorMessage || 'Failed to send vendor invitation and no WhatsApp number available'
         }
       }
-
-      console.log(`[${requestId}] 📱 Preparing to send WhatsApp invitation to: ${whatsappNumber}`)
-      console.log(`[${requestId}] 📤 Calling sendWhatsAppVendorInvite...`)
-      result = await sendWhatsAppVendorInvite({
-        to: whatsappNumber,
-        vendorName: vendor.ownerName || vendor.businessName || 'Vendor',
-        businessName: vendor.businessName || 'Vendor Service',
-        eventTitle,
-        eventOwnerName: eventOwnerName || 'Event Organizer',
-        invitationLink,
-        eventLink,
-      })
-
-      console.log(`[${requestId}] 📥 WhatsApp invitation result:`, {
-        success: result.success,
-        error: result.error,
-      })
     }
 
     // Update vendor invitation status

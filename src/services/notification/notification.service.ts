@@ -268,9 +268,16 @@ export async function sendVendorInvitationNotification(
     eventLink,
   } = options
 
-  // Get user preferences
-  const preferredChannels = await getUserNotificationPreferences(userId)
+  // Get user preferences, or default to email + WhatsApp for vendors without preferences
+  let preferredChannels = await getUserNotificationPreferences(userId)
   const whatsappAccepted = await hasAcceptedWhatsAppCharges(userId)
+
+  // If no preferences set (defaults to EMAIL only), try both email and WhatsApp for vendors
+  // This ensures vendors get invitations even if they haven't set preferences
+  if (preferredChannels.length === 1 && preferredChannels[0] === NotificationChannel.EMAIL && !userId) {
+    // Vendor without user account - try email first, then WhatsApp
+    preferredChannels = [NotificationChannel.EMAIL, NotificationChannel.WHATSAPP]
+  }
 
   const results: NotificationResult['channels'] = []
 
