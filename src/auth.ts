@@ -55,6 +55,14 @@ providers.push(
 
       const user = await prisma.user.findUnique({
         where: { email },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          role: true,
+          passwordHash: true,
+        },
       })
 
       if (!user || !user.passwordHash) {
@@ -132,14 +140,24 @@ export const authOptions: NextAuthOptions = {
           // ALWAYS check if user exists with this email first
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
-            include: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              emailVerified: true,
               accounts: {
                 where: {
                   provider: account.provider,
                   providerAccountId: account.providerAccountId,
-                }
-              }
-            }
+                },
+                select: {
+                  id: true,
+                  provider: true,
+                  providerAccountId: true,
+                },
+              },
+            },
           })
           
           if (existingUser) {
@@ -189,6 +207,12 @@ export const authOptions: NextAuthOptions = {
             try {
               const targetUser = await prisma.user.findUnique({
                 where: { id: linkUserId },
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                  image: true,
+                },
               })
               
               if (targetUser) {
