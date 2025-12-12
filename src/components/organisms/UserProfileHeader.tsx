@@ -30,6 +30,14 @@ interface UserProfileHeaderProps {
 }
 
 export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
+  if (!user) {
+    return (
+      <Card className="p-8">
+        <p className="text-gray-600">User data not available</p>
+      </Card>
+    )
+  }
+
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -38,7 +46,7 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
     phone: user.phone || '',
     image: user.image || '',
   })
-  const [previewImage, setPreviewImage] = useState<string | null>(user.image)
+  const [previewImage, setPreviewImage] = useState<string | null>(user.image || null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -133,14 +141,19 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
   }
 
   const handleCancel = () => {
-    setFormData({
-      name: user.name || '',
-      phone: user.phone || '',
-      image: user.image || '',
-    })
-    setPreviewImage(user.image)
-    setIsEditing(false)
-    setMessage(null)
+    try {
+      setFormData({
+        name: user?.name || '',
+        phone: user?.phone || '',
+        image: user?.image || '',
+      })
+      setPreviewImage(user?.image || null)
+      setIsEditing(false)
+      setMessage(null)
+    } catch (error) {
+      console.error('Error canceling edit:', error)
+      setIsEditing(false)
+    }
   }
 
   return (
@@ -150,16 +163,31 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
         <div className="flex-shrink-0">
           <div className="relative">
             <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
-              {previewImage ? (
-                <Image
-                  src={previewImage}
-                  alt={formData.name || user.email}
-                  fill
-                  className="object-cover"
-                />
+              {previewImage && previewImage.trim() !== '' && previewImage !== 'null' ? (
+                previewImage.startsWith('data:') ? (
+                  // Use regular img tag for data URLs
+                  <img
+                    src={previewImage}
+                    alt={formData.name || user.email || 'Profile'}
+                    className="w-full h-full object-cover"
+                    onError={() => {
+                      setPreviewImage(null)
+                    }}
+                  />
+                ) : (
+                  <Image
+                    src={previewImage}
+                    alt={formData.name || user.email || 'Profile'}
+                    fill
+                    className="object-cover"
+                    onError={() => {
+                      setPreviewImage(null)
+                    }}
+                  />
+                )
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
-                  {(formData.name || user.email).charAt(0).toUpperCase()}
+                  {(formData.name || user.email || 'U').charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
@@ -260,7 +288,16 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                     Member since {new Date(user.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setIsEditing(true)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    try {
+                      setIsEditing(true)
+                    } catch (error) {
+                      console.error('Error entering edit mode:', error)
+                    }
+                  }}
+                >
                   Edit Profile
                 </Button>
               </div>
