@@ -47,11 +47,22 @@ export default async function ProfilePage() {
 
     // Fetch user-related data using userId as foreign key
     // Profile should only fetch user data, events are separate entities
-    const [createdEvents, invitedEvents, mediaAssets, interactions, stats] = await Promise.all([
-      // Fetch events where user is owner (using userId foreign key)
-      // Use select to explicitly avoid visibility column
-      prisma.event.findMany({
-        where: { ownerId: user.id }, // userId is the foreign key in Event
+    // Use individual try-catch blocks to handle errors gracefully
+    let createdEvents: any[] = []
+    let invitedEvents: any[] = []
+    let mediaAssets: any[] = []
+    let interactions: any[] = []
+    let stats = {
+      eventsCreated: 0,
+      eventsInvited: 0,
+      mediaUploaded: 0,
+      interactionsMade: 0,
+    }
+
+    try {
+      // Fetch events where user is owner
+      createdEvents = await prisma.event.findMany({
+        where: { ownerId: user.id },
         select: {
           id: true,
           title: true,
@@ -82,43 +93,22 @@ export default async function ProfilePage() {
           createdAt: 'desc',
         },
       }).catch((error: any) => {
-        // If ceremonies orderBy or visibility fails, try without orderBy
-        if (error?.code === 'P2022' || error?.message?.includes('visibility') || error?.message?.includes('order')) {
-          return prisma.event.findMany({
-            where: { ownerId: user.id },
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              slug: true,
-              type: true,
-              status: true,
-              ownerId: true,
-              startDate: true,
-              endDate: true,
-              location: true,
-              createdAt: true,
-              updatedAt: true,
-              theme: true,
-              ceremonies: true,
-              _count: {
-                select: {
-                  invitees: true,
-                  mediaAssets: true,
-                  ceremonies: true,
-                  interactions: true,
-                },
-              },
-            },
-            orderBy: {
-              createdAt: 'desc',
-            },
-          })
-        }
-        throw error
-      }),
-      getUserInvitedEvents(user.id),
-      prisma.mediaAsset.findMany({
+        console.error('Error fetching created events:', error)
+        // Return empty array if query fails
+        return []
+      })
+    } catch (error) {
+      console.error('Error fetching created events:', error)
+    }
+
+    try {
+      invitedEvents = await getUserInvitedEvents(user.id)
+    } catch (error) {
+      console.error('Error fetching invited events:', error)
+    }
+
+    try {
+      mediaAssets = await prisma.mediaAsset.findMany({
         where: {
           uploadedById: user.id,
         },
@@ -135,8 +125,13 @@ export default async function ProfilePage() {
           createdAt: 'desc',
         },
         take: 20,
-      }),
-      prisma.interaction.findMany({
+      })
+    } catch (error) {
+      console.error('Error fetching media assets:', error)
+    }
+
+    try {
+      interactions = await prisma.interaction.findMany({
         where: {
           userId: user.id,
         },
@@ -153,14 +148,27 @@ export default async function ProfilePage() {
           createdAt: 'desc',
         },
         take: 20,
-      }),
-      Promise.all([
-        prisma.event.count({ where: { ownerId: user.id } }),
-        prisma.invitee.count({ where: { userId: user.id } }),
-        prisma.mediaAsset.count({ where: { uploadedById: user.id } }),
-        prisma.interaction.count({ where: { userId: user.id } }),
-      ]),
-    ])
+      })
+    } catch (error) {
+      console.error('Error fetching interactions:', error)
+    }
+
+    try {
+      const [eventsCount, inviteesCount, mediaCount, interactionsCount] = await Promise.all([
+        prisma.event.count({ where: { ownerId: user.id } }).catch(() => 0),
+        prisma.invitee.count({ where: { userId: user.id } }).catch(() => 0),
+        prisma.mediaAsset.count({ where: { uploadedById: user.id } }).catch(() => 0),
+        prisma.interaction.count({ where: { userId: user.id } }).catch(() => 0),
+      ])
+      stats = {
+        eventsCreated: eventsCount,
+        eventsInvited: inviteesCount,
+        mediaUploaded: mediaCount,
+        interactionsMade: interactionsCount,
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
 
     const profileData = {
       user: {
@@ -172,14 +180,9 @@ export default async function ProfilePage() {
         role: user.role,
         createdAt: user.createdAt.toISOString(),
       },
-      stats: {
-        eventsCreated: stats[0],
-        eventsInvited: stats[1],
-        mediaUploaded: stats[2],
-        interactionsMade: stats[3],
-      },
+      stats,
       createdEvents,
-      invitedEvents: invitedEvents.map((invitee: any) => ({
+      invitedEvents: (invitedEvents || []).map((invitee: any) => ({
         ...invitee.event,
         rsvpStatus: invitee.rsvpStatus,
       })),
@@ -233,13 +236,24 @@ export default async function ProfilePage() {
         </div>
       </DashboardLayout>
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error loading profile:', error)
+    const errorMessage = error?.message || 'Unknown error'
+    const errorDetails = process.env.NODE_ENV === 'development' ? errorMessage : undefined
+    
     return (
       <DashboardLayout>
         <Card className="p-8 text-center">
           <h1 className="text-2xl font-bold mb-4">Error Loading Profile</h1>
-          <p className="text-gray-600">Failed to load your profile data. Please try again later.</p>
+          <p className="text-gray-600 mb-2">Failed to load your profile data. Please try again later.</p>
+          {errorDetails && (
+            <p className="text-sm text-red-600 mt-2">Error: {errorDetails}</p>
+          )}
+          {error?.code === 'P2021' && (
+            <p className="text-sm text-orange-600 mt-2">
+              Database migration may be required. Please contact support.
+            </p>
+          )}
         </Card>
       </DashboardLayout>
     )
