@@ -37,7 +37,12 @@ export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps)
       })
 
       if (result?.error) {
-        setError(result.error)
+        // Provide user-friendly error messages
+        if (result.error === 'Configuration') {
+          setError('Server configuration error. Please contact support or try again later.')
+        } else {
+          setError(result.error)
+        }
       } else if (result?.ok) {
         // If eventId is provided, join the event
         if (eventId) {
