@@ -104,7 +104,7 @@ export const authConfig = {
   adapter: PrismaAdapter(prisma) as any,
   providers,
   trustHost: true, // Required for Vercel deployment
-  ...(authSecret ? { secret: authSecret } : {}), // Explicitly set secret if it exists
+  secret: authSecret || undefined, // Always set secret (even if undefined, NextAuth will handle it)
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signout",

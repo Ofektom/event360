@@ -37,6 +37,14 @@ export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps)
       })
 
       if (result?.error) {
+        // Log the full result for debugging
+        console.error('[LOGIN] SignIn result:', {
+          error: result.error,
+          status: result.status,
+          ok: result.ok,
+          url: result.url,
+        })
+        
         // Provide user-friendly error messages
         if (result.error === 'Configuration') {
           setError('Server configuration error. Please contact support or try again later.')
