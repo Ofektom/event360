@@ -12,20 +12,21 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, eventId: propEventId }: DashboardLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth >= 1024
-    }
-    return false
-  })
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth >= 1024
-    }
-    return false
-  })
+  // Always start with false to avoid hydration mismatch
+  // Will be set correctly after mount on client
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [activeMenuType, setActiveMenuType] = useState<'events' | 'invitations' | 'order-of-events' | 'gallery' | 'reels'>('events')
   const pathname = usePathname()
+
+  // Set initial state after mount to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+    const desktop = window.innerWidth >= 1024
+    setIsDesktop(desktop)
+    setSidebarOpen(desktop) // Open sidebar on desktop by default
+  }, [])
 
   // Determine which pages should show sidebar
   const shouldShowSidebar = 
@@ -41,8 +42,10 @@ export function DashboardLayout({ children, eventId: propEventId }: DashboardLay
     pathname?.startsWith('/reels') ||
     pathname?.startsWith('/posts/')
 
-  // Handle window resize
+  // Handle window resize (only after mount)
   useEffect(() => {
+    if (!mounted) return
+    
     const handleResize = () => {
       const desktop = window.innerWidth >= 1024
       setIsDesktop(desktop)
@@ -56,7 +59,7 @@ export function DashboardLayout({ children, eventId: propEventId }: DashboardLay
     window.addEventListener('resize', handleResize)
     handleResize()
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [mounted])
 
   // Determine menu type based on pathname
   // Check for specific sections first (invitations, order-of-events, etc.) before checking events

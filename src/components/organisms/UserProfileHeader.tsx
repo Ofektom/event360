@@ -225,29 +225,28 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
         <div className="flex-1">
           {isEditing ? (
             <div className="space-y-4">
-              <FormField label="Name">
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Your name"
-                />
-              </FormField>
-              <FormField label="Email">
-                <Input
+              <FormField
+                label="Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Your name"
+              />
+              <div>
+                <FormField
+                  label="Email"
                   value={user.email}
                   disabled
                   className="bg-gray-100 cursor-not-allowed"
                   title="Email cannot be changed"
                 />
                 <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-              </FormField>
-              <FormField label="Phone">
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Your phone number"
-                />
-              </FormField>
+              </div>
+              <FormField
+                label="Phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Your phone number"
+              />
               {message && (
                 <div
                   className={`p-3 rounded ${
@@ -285,7 +284,11 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                     <p className="text-gray-600 text-sm mt-1">{user.phone}</p>
                   )}
                   <p className="text-gray-500 text-sm mt-2">
-                    Member since {new Date(user.createdAt).toLocaleDateString()}
+                    Member since {new Date(user.createdAt).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
                   </p>
                 </div>
                 <Button 

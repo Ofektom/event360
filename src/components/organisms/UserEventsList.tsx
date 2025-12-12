@@ -66,7 +66,11 @@ export function UserEventsList({ events, type }: UserEventsListProps) {
                 <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                   {event.startDate && (
                     <span>
-                      📅 {new Date(event.startDate).toLocaleDateString()}
+                      📅 {new Date(event.startDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
                     </span>
                   )}
                   {event.location && <span>📍 {event.location}</span>}
