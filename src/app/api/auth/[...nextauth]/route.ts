@@ -1,4 +1,6 @@
-import { handlers } from "@/auth"
+import NextAuth from "@/auth"
+import type { NextRequest } from "next/server"
 
-export const { GET, POST } = handlers
+const handler = NextAuth
 
+export { handler as GET, handler as POST }

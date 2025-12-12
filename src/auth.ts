@@ -1,16 +1,16 @@
-import NextAuth from "next-auth"
+import NextAuth, { NextAuthOptions } from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import FacebookProvider from "next-auth/providers/facebook"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
-import type { NextAuthConfig } from "next-auth"
 import { UserRole } from "@/types/enums"
 import { linkUserToInvitees } from "@/lib/invitee-linking"
+import { getBaseUrl } from "@/lib/utils"
 
 // Build providers array conditionally
-const providers = []
+const providers: any[] = []
 
 // Add Google provider if credentials are available
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -30,7 +30,7 @@ if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
       authorization: {
         params: {
-          scope: "public_profile,user_friends", // Removed 'email' as it's deprecated. Facebook provides email via public_profile
+          scope: "public_profile,user_friends",
         },
       },
     })
@@ -81,30 +81,24 @@ providers.push(
   })
 )
 
-// Ensure secret is available for NextAuth v5
-// NextAuth v5 prefers AUTH_SECRET but supports NEXTAUTH_SECRET for backward compatibility
+// Ensure secret is available
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
 
-// Log secret availability (without exposing the actual secret) - this will show in Vercel logs
-// Using console.error to ensure it shows up in Vercel logs
-if (!authSecret) {
-  console.error('[AUTH CONFIG] ❌ AUTH_SECRET or NEXTAUTH_SECRET is not set!')
-  console.error('[AUTH CONFIG] Environment check:', {
-    hasAUTH_SECRET: !!process.env.AUTH_SECRET,
-    hasNEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
-    nodeEnv: process.env.NODE_ENV,
-    allEnvKeys: Object.keys(process.env).filter(key => key.includes('AUTH') || key.includes('NEXTAUTH')),
-  })
-} else {
-  console.error('[AUTH CONFIG] ✅ Auth secret is configured (length:', authSecret.length, 'chars)')
-  console.error('[AUTH CONFIG] Secret source:', process.env.AUTH_SECRET ? 'AUTH_SECRET' : 'NEXTAUTH_SECRET')
+// Validate secret before creating config
+if (!authSecret || authSecret.length < 32) {
+  const error = new Error('AUTH_SECRET or NEXTAUTH_SECRET must be set and at least 32 characters')
+  console.error('[AUTH CONFIG] ❌', error.message)
+  throw error
 }
 
-export const authConfig = {
+console.error('[AUTH CONFIG] ✅ Auth secret is configured (length:', authSecret.length, 'chars)')
+console.error('[AUTH CONFIG] Secret source:', process.env.AUTH_SECRET ? 'AUTH_SECRET' : 'NEXTAUTH_SECRET')
+
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers,
-  trustHost: true, // Required for Vercel deployment
-  secret: authSecret || undefined, // Always set secret (even if undefined, NextAuth will handle it)
+  secret: authSecret,
+  // Remove trustHost for v4 - it's not needed
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signout",
@@ -119,7 +113,6 @@ export const authConfig = {
       if (account?.provider !== 'credentials' && user?.email && account) {
         try {
           // Check if this is a linking request (from the link API)
-          // Facebook passes state in the account object
           const state = (account as any).state
           let linkUserId: string | null = null
           let redirectPath: string | null = null
@@ -137,9 +130,8 @@ export const authConfig = {
           }
 
           // ALWAYS check if user exists with this email first
-          // This prevents duplicate accounts when user signs in with different OAuth providers
           const existingUser = await prisma.user.findUnique({
-            where: { email: user.email },
+            where: { email: user.email! },
             include: {
               accounts: {
                 where: {
@@ -151,12 +143,9 @@ export const authConfig = {
           })
           
           if (existingUser) {
-            // User exists with this email - check if this OAuth account is already linked
             const isAccountLinked = existingUser.accounts.length > 0
             
             if (!isAccountLinked) {
-              // Link the OAuth account to existing user
-              // This prevents OAuthAccountNotLinked error and duplicate accounts
               try {
                 await prisma.account.create({
                   data: {
@@ -174,7 +163,6 @@ export const authConfig = {
                   }
                 })
                 
-                // Update user info if needed
                 await prisma.user.update({
                   where: { id: existingUser.id },
                   data: {
@@ -186,21 +174,17 @@ export const authConfig = {
                 
                 console.log(`✅ Linked ${account.provider} account to existing user ${existingUser.email}`)
               } catch (linkError: any) {
-                // If account already exists (race condition), that's fine
                 if (linkError.code !== 'P2002') {
                   console.error('Error linking account:', linkError)
                 }
               }
             }
             
-            // Update user object to use existing user ID
-            // This tells NextAuth to use the existing user instead of creating a new one
             user.id = existingUser.id
             return true
           }
           
-          // If linkUserId is provided (from linking flow), link to that user instead of creating new
-          // This allows linking even when emails don't match (user's Facebook email may differ)
+          // If linkUserId is provided (from linking flow)
           if (linkUserId) {
             try {
               const targetUser = await prisma.user.findUnique({
@@ -208,7 +192,6 @@ export const authConfig = {
               })
               
               if (targetUser) {
-                // Check if account already linked
                 const existingAccount = await prisma.account.findFirst({
                   where: {
                     userId: linkUserId,
@@ -218,8 +201,6 @@ export const authConfig = {
                 })
                 
                 if (!existingAccount) {
-                  // Link account to target user (even if emails don't match)
-                  // This is intentional - user explicitly requested linking via "Connect Facebook" button
                   await prisma.account.create({
                     data: {
                       userId: linkUserId,
@@ -236,8 +217,6 @@ export const authConfig = {
                     }
                   })
                   
-                  // Update user info if Facebook email is different but user wants to keep it
-                  // We don't change the primary email, but we note the Facebook email
                   await prisma.user.update({
                     where: { id: linkUserId },
                     data: {
@@ -246,15 +225,12 @@ export const authConfig = {
                     }
                   })
                   
-                  console.log(`✅ Linked ${account.provider} account (${user.email}) to user ${linkUserId} (${targetUser.email}) via linking flow - emails differ but linking requested`)
+                  console.log(`✅ Linked ${account.provider} account (${user.email}) to user ${linkUserId} (${targetUser.email}) via linking flow`)
                   
-                  // Update user object to use target user ID
                   user.id = linkUserId
-                  // Store redirect path for later use
                   ;(user as any).redirectPath = redirectPath
                   return true
                 } else {
-                  // Account already linked
                   user.id = linkUserId
                   ;(user as any).redirectPath = redirectPath
                   return true
@@ -262,12 +238,10 @@ export const authConfig = {
               }
             } catch (linkError: any) {
               console.error('Error linking account to user:', linkError)
-              // Fall through to normal flow
             }
           }
           
-          // If no existing user found by email, check if this Facebook account is already linked to another user
-          // This prevents the same Facebook account from being linked to multiple users
+          // Check if this OAuth account is already linked to another user
           const existingAccount = await prisma.account.findFirst({
             where: {
               provider: account.provider,
@@ -279,20 +253,15 @@ export const authConfig = {
           })
           
           if (existingAccount) {
-            // This Facebook account is already linked to a different user
-            // Use that user's account instead of creating a new one
             console.log(`ℹ️  ${account.provider} account already linked to user ${existingAccount.userId} (${existingAccount.user.email}), using existing account`)
             user.id = existingAccount.userId
             return true
           }
           
-          // User doesn't exist - adapter will create user and account
-          // This is the first time this user is signing in with this OAuth provider
           console.log(`🆕 Creating new user account for ${user.email} via ${account.provider}`)
           return true
         } catch (error) {
           console.error('Error in signIn callback:', error)
-          // Allow sign in - adapter will handle user creation
           return true
         }
       }
@@ -315,7 +284,6 @@ export const authConfig = {
               try {
                 await linkUserToInvitees(user.id, user.email, dbUser.phone || undefined)
               } catch (linkError) {
-                // Non-critical error, log but don't fail auth
                 console.error('Error auto-linking invitees:', linkError)
               }
             }
@@ -348,21 +316,16 @@ export const authConfig = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as UserRole
+        (session.user as any).id = token.id as string
+        ;(session.user as any).role = token.role as UserRole
       }
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Use getBaseUrl utility for consistent base URL handling
-      // This ensures production URLs are used even if baseUrl defaults to localhost
-      const { getBaseUrl } = await import('@/lib/utils')
       const normalizedBaseUrl = getBaseUrl()
       
       // Handle send-invitations redirects (from account linking flow)
-      // The redirect path is passed in the URL itself from the linking flow
       if (url.includes('send-invitations')) {
-        // Add success parameter for linking
         const separator = url.includes('?') ? '&' : '?'
         return url.startsWith("/") ? `${normalizedBaseUrl}${url}${separator}facebook_linked=true` : `${url}${separator}facebook_linked=true`
       }
@@ -374,6 +337,6 @@ export const authConfig = {
       return normalizedBaseUrl
     },
   },
-} satisfies NextAuthConfig
+}
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)
+export default NextAuth(authOptions)

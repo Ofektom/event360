@@ -1,8 +1,9 @@
-import { auth } from "@/auth"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/auth"
 
 export async function getCurrentUser() {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
     return session?.user || null
   } catch (error: any) {
     console.error('Error getting current user:', error)
@@ -22,4 +23,3 @@ export async function requireAuth() {
     throw error
   }
 }
-
