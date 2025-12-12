@@ -60,14 +60,16 @@ export async function POST(request: NextRequest) {
       resourceType: 'image',
       publicId,
       overwrite: true, // Allow overwriting previous profile picture
-      transformation: {
-        width: 400,
-        height: 400,
-        crop: 'fill',
-        gravity: 'face',
-        quality: 'auto',
-        format: 'auto',
-      },
+      transformation: [
+        {
+          width: 400,
+          height: 400,
+          crop: 'fill',
+          gravity: 'face',
+          quality: 'auto',
+          format: 'auto',
+        },
+      ],
     })
 
     return NextResponse.json({
