@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
@@ -32,11 +32,70 @@ interface UserProfileHeaderProps {
 export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [formData, setFormData] = useState({
     name: user.name || '',
     phone: user.phone || '',
+    image: user.image || '',
   })
+  const [previewImage, setPreviewImage] = useState<string | null>(user.image)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Please select an image file' })
+      return
+    }
+
+    // Validate file size (max 5MB for profile pictures)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Image size must be less than 5MB' })
+      return
+    }
+
+    setUploadingImage(true)
+    setMessage(null)
+
+    try {
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // Upload to server
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', file)
+
+      const uploadResponse = await fetch('/api/user/profile/picture', {
+        method: 'POST',
+        body: uploadFormData,
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to upload profile picture')
+      }
+
+      const uploadResult = await uploadResponse.json()
+
+      // Update form data with new image URL
+      setFormData({ ...formData, image: uploadResult.url })
+      setMessage({ type: 'success', text: 'Profile picture uploaded successfully!' })
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      setMessage({ type: 'error', text: error.message || 'Failed to upload profile picture' })
+      setPreviewImage(user.image)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
 
   const handleSave = async () => {
     setLoading(true)
@@ -48,11 +107,16 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          image: formData.image || null,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update profile')
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to update profile')
       }
 
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
@@ -61,8 +125,8 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
       setTimeout(() => {
         window.location.reload()
       }, 1000)
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' })
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Failed to update profile. Please try again.' })
     } finally {
       setLoading(false)
     }
@@ -72,7 +136,9 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
     setFormData({
       name: user.name || '',
       phone: user.phone || '',
+      image: user.image || '',
     })
+    setPreviewImage(user.image)
     setIsEditing(false)
     setMessage(null)
   }
@@ -82,18 +148,47 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
       <div className="flex flex-col md:flex-row gap-6">
         {/* Profile Picture */}
         <div className="flex-shrink-0">
-          <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
-            {user.image ? (
-              <Image
-                src={user.image}
-                alt={user.name || user.email}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
-                {(user.name || user.email).charAt(0).toUpperCase()}
-              </div>
+          <div className="relative">
+            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
+              {previewImage ? (
+                <Image
+                  src={previewImage}
+                  alt={formData.name || user.email}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
+                  {(formData.name || user.email).charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            {isEditing && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="absolute bottom-0 right-0 w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Change profile picture"
+                >
+                  {uploadingImage ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  )}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -108,6 +203,15 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Your name"
                 />
+              </FormField>
+              <FormField label="Email">
+                <Input
+                  value={user.email}
+                  disabled
+                  className="bg-gray-100 cursor-not-allowed"
+                  title="Email cannot be changed"
+                />
+                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
               </FormField>
               <FormField label="Phone">
                 <Input
