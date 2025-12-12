@@ -86,15 +86,18 @@ providers.push(
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
 
 // Log secret availability (without exposing the actual secret) - this will show in Vercel logs
+// Using console.error to ensure it shows up in Vercel logs
 if (!authSecret) {
-  console.error('❌ AUTH_SECRET or NEXTAUTH_SECRET is not set!')
-  console.error('Environment check:', {
+  console.error('[AUTH CONFIG] ❌ AUTH_SECRET or NEXTAUTH_SECRET is not set!')
+  console.error('[AUTH CONFIG] Environment check:', {
     hasAUTH_SECRET: !!process.env.AUTH_SECRET,
     hasNEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
     nodeEnv: process.env.NODE_ENV,
+    allEnvKeys: Object.keys(process.env).filter(key => key.includes('AUTH') || key.includes('NEXTAUTH')),
   })
 } else {
-  console.log('✅ Auth secret is configured (length:', authSecret.length, 'chars)')
+  console.error('[AUTH CONFIG] ✅ Auth secret is configured (length:', authSecret.length, 'chars)')
+  console.error('[AUTH CONFIG] Secret source:', process.env.AUTH_SECRET ? 'AUTH_SECRET' : 'NEXTAUTH_SECRET')
 }
 
 export const authConfig = {
