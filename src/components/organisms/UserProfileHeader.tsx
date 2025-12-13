@@ -59,14 +59,16 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
   // Update form data when user prop changes
   useEffect(() => {
     if (user) {
+      const newImage = user.image || null
       setFormData({
         name: user.name || '',
         phone: user.phone || '',
         image: user.image || '',
       })
-      setPreviewImage(user.image || null)
+      // Always update preview image when user prop changes
+      setPreviewImage(newImage)
     }
-  }, [user])
+  }, [user?.id, user?.image, user?.name, user?.phone])
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -116,12 +118,16 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
       setFormData({ ...formData, image: newImageUrl })
       setPreviewImage(newImageUrl)
       
-      // Update cache with new image
+      // Update form data and preview immediately with the new Cloudinary URL
+      setFormData(prev => ({ ...prev, image: newImageUrl }))
+      setPreviewImage(newImageUrl)
+      
+      // Update cache with new image URL (Cloudinary URL stored in database)
       updateCachedUserProfile({
         image: newImageUrl,
       })
       
-      // Update NextAuth session with new image
+      // Update NextAuth session with new image URL
       await updateSession({
         ...user,
         image: newImageUrl,
@@ -131,7 +137,7 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
       setMessage({ type: 'success', text: 'Profile picture uploaded successfully! Refreshing...' })
       setTimeout(() => {
         router.refresh()
-      }, 500)
+      }, 1500)
     } catch (error: any) {
       console.error('Error uploading image:', error)
       setMessage({ type: 'error', text: error.message || 'Failed to upload profile picture' })

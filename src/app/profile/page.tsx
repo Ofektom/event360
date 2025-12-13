@@ -198,6 +198,7 @@ export default async function ProfilePage() {
         <div className="space-y-8">
           {/* Profile Header */}
           <UserProfileHeader
+            key={profileData.user.image || profileData.user.id} // Force re-render when image changes
             user={profileData.user}
             stats={profileData.stats}
           />

@@ -75,7 +75,9 @@ export async function POST(request: NextRequest) {
 
     const imageUrl = result.secureUrl || result.url
 
-    // Immediately save the image URL to the user's profile in the database
+    // Save the Cloudinary URL to the user's profile in the database
+    // Note: We store the URL string in the database, not the image binary data
+    // The actual image is stored and managed in Cloudinary
     await prisma.user.update({
       where: { id: user.id },
       data: { image: imageUrl },
