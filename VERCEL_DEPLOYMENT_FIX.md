@@ -26,7 +26,7 @@ Make sure these are set in Vercel:
 **Required:**
 - `DATABASE_URL` - Your PostgreSQL connection string
 - `NEXTAUTH_SECRET` - Generate with: `openssl rand -base64 32`
-- `NEXTAUTH_URL` - Your production URL: `https://event360-three.vercel.app`
+- `NEXTAUTH_URL` - Your production URL: `https://gbedoo.vercel.app`
 
 **Optional (for OAuth):**
 - `GOOGLE_CLIENT_ID`
@@ -63,8 +63,8 @@ Make sure these are set in Vercel:
 
 ### Issue: "Invalid redirect URI"
 **Solution**: 
-- For Google: Add `https://event360-three.vercel.app/api/auth/callback/google` to authorized redirect URIs
-- For Facebook: Add `https://event360-three.vercel.app/api/auth/callback/facebook` to valid OAuth redirect URIs
+- For Google: Add `https://gbedoo.vercel.app/api/auth/callback/google` to authorized redirect URIs
+- For Facebook: Add `https://gbedoo.vercel.app/api/auth/callback/facebook` to valid OAuth redirect URIs
 
 ### Issue: Database connection timeout
 **Solution**: 

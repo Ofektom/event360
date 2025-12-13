@@ -28,20 +28,20 @@ There are **TWO separate settings** you need to configure. Both are required:
 
 1. Go to **Products** → **Facebook Login** → **Settings**
 2. Under **Valid OAuth Redirect URIs**, you should already have:
-   - `https://event360-three.vercel.app/api/auth/callback/facebook` ✅
+   - `https://gbedoo.vercel.app/api/auth/callback/facebook` ✅
 3. Make sure **Client OAuth Login** and **Web OAuth Login** are **Enabled** (toggle them ON)
 4. Click **Save Changes**
 
 ### Step 3: Verify Site URL (Optional but Recommended)
 
 1. In **Settings** → **Basic**, scroll to **Site URL**
-2. Add: `https://event360-three.vercel.app`
+2. Add: `https://gbedoo.vercel.app`
 3. Click **Save Changes**
 
 ## Common Confusion
 
-- **App Domains** (Settings > Basic): The root domain of your app (`event360-three.vercel.app`)
-- **Valid OAuth Redirect URIs** (Products > Facebook Login > Settings): The full callback URL (`https://event360-three.vercel.app/api/auth/callback/facebook`)
+- **App Domains** (Settings > Basic): The root domain of your app (`gbedoo.vercel.app`)
+- **Valid OAuth Redirect URIs** (Products > Facebook Login > Settings): The full callback URL (`https://gbedoo.vercel.app/api/auth/callback/facebook`)
 
 Both are required! The redirect URI you added is correct, but you also need to add the domain itself to App Domains.
 

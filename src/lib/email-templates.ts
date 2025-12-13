@@ -164,7 +164,7 @@ export function getUserVerificationTemplate(props: EmailTemplateProps): string {
       ` : ''}
       
       <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-        If you didn't create an account with Event360, you can safely ignore this email.
+        If you didn't create an account with Gbedoo, you can safely ignore this email.
       </p>
       
       <p style="margin: 15px 0 0 0; color: #9ca3af; font-size: 12px; line-height: 1.6;">

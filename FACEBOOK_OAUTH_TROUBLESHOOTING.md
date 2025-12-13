@@ -16,35 +16,35 @@ Facebook caches configuration changes. After updating settings:
 The redirect URI must match **exactly** what's in Facebook settings:
 
 **In Facebook App Settings:**
-- ✅ Correct: `https://event360-three.vercel.app/api/auth/callback/facebook`
-- ❌ Wrong: `https://event360-three.vercel.app/api/auth/callback/facebook/` (trailing slash)
+- ✅ Correct: `https://gbedoo.vercel.app/api/auth/callback/facebook`
+- ❌ Wrong: `https://gbedoo.vercel.app/api/auth/callback/facebook/` (trailing slash)
 
 **Check your Vercel Environment Variables:**
 1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
 2. Check `NEXTAUTH_URL`:
-   - ✅ Should be: `https://event360-three.vercel.app` (no trailing slash)
-   - ❌ Should NOT be: `https://event360-three.vercel.app/` (with trailing slash)
+   - ✅ Should be: `https://gbedoo.vercel.app` (no trailing slash)
+   - ❌ Should NOT be: `https://gbedoo.vercel.app/` (with trailing slash)
 
 ### ✅ Solution 3: Verify Exact Match in Facebook Settings
 
 1. Go to **Products** → **Facebook Login** → **Settings**
 2. Check the **Valid OAuth Redirect URIs** field
-3. It should be **exactly**: `https://event360-three.vercel.app/api/auth/callback/facebook`
+3. It should be **exactly**: `https://gbedoo.vercel.app/api/auth/callback/facebook`
 4. No trailing slash, no extra spaces
 
 ### ✅ Solution 4: Check App Domains Format
 
 In **Settings** → **Basic** → **App Domains**:
-- ✅ Correct: `event360-three.vercel.app` (no `https://`, no trailing slash)
-- ❌ Wrong: `https://event360-three.vercel.app` (with protocol)
-- ❌ Wrong: `event360-three.vercel.app/` (with trailing slash)
+- ✅ Correct: `gbedoo.vercel.app` (no `https://`, no trailing slash)
+- ❌ Wrong: `https://gbedoo.vercel.app` (with protocol)
+- ❌ Wrong: `gbedoo.vercel.app/` (with trailing slash)
 
 ### ✅ Solution 5: Verify Environment Variables in Vercel
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your project: `event360-three`
+2. Select your project: `gbedoo`
 3. Go to **Settings** → **Environment Variables**
-4. Ensure `NEXTAUTH_URL` is set to: `https://event360-three.vercel.app` (no trailing slash)
+4. Ensure `NEXTAUTH_URL` is set to: `https://gbedoo.vercel.app` (no trailing slash)
 5. If it's missing or incorrect, add/update it
 6. **Redeploy** your application after updating environment variables
 
@@ -84,12 +84,12 @@ Sometimes Facebook needs you to explicitly save changes:
 
 Before testing, verify:
 
-- [ ] App Domains contains: `event360-three.vercel.app` (no protocol, no trailing slash)
-- [ ] Valid OAuth Redirect URIs contains: `https://event360-three.vercel.app/api/auth/callback/facebook` (with protocol, no trailing slash)
-- [ ] Site URL is set to: `https://event360-three.vercel.app` (with protocol, trailing slash OK here)
+- [ ] App Domains contains: `gbedoo.vercel.app` (no protocol, no trailing slash)
+- [ ] Valid OAuth Redirect URIs contains: `https://gbedoo.vercel.app/api/auth/callback/facebook` (with protocol, no trailing slash)
+- [ ] Site URL is set to: `https://gbedoo.vercel.app` (with protocol, trailing slash OK here)
 - [ ] Client OAuth Login is **Enabled**
 - [ ] Web OAuth Login is **Enabled**
-- [ ] `NEXTAUTH_URL` in Vercel is set to: `https://event360-three.vercel.app` (no trailing slash)
+- [ ] `NEXTAUTH_URL` in Vercel is set to: `https://gbedoo.vercel.app` (no trailing slash)
 - [ ] Waited 5-10 minutes after making changes
 - [ ] Cleared browser cache or using incognito mode
 
