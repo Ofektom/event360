@@ -39,7 +39,7 @@ Click the link below to:
 
 1. `{{1}}` - Vendor Name (e.g., "John Doe" or "Elegant Events Co.")
 2. `{{2}}` - Event Title (e.g., "John & Jane's Wedding")
-3. `{{3}}` - Vendor Invitation Link (e.g., "https://event360.com/vendor/invite/abc123...")
+3. `{{3}}` - Vendor Invitation Link (e.g., "https://gbedoo.com/vendor/invite/abc123...")
 
 ## Setup Instructions
 

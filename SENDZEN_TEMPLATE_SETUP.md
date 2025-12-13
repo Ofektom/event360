@@ -32,7 +32,7 @@ Your template `event_invitation` uses these variables:
 
 - `{{1}}` = Event Title (e.g., "John & Sarah's Wedding")
 - `{{2}}` = Invitee Name (e.g., "Sarah")
-- `{{3}}` = Share Link (e.g., "https://event360-three.vercel.app/invite/abc123")
+- `{{3}}` = Share Link (e.g., "https://gbedoo.vercel.app/invite/abc123")
 
 ## How It Works
 

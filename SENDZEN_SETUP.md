@@ -46,7 +46,7 @@ SENDZEN_PHONE_NUMBER_ID=your_phone_number_id_here
 ### Vercel Production
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your project: `event360-three`
+2. Select your project: `gbedoo`
 3. Go to **Settings** → **Environment Variables**
 4. Add these variables:
 

@@ -94,7 +94,7 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center py-4">
             <Link href="/" className="text-2xl font-bold text-[var(--theme-primary)]">
-              Event360
+              Gbedoo
             </Link>
             <div className="flex items-center gap-4">
               <Link
@@ -150,7 +150,7 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
               </svg>
             </button>
             <Link href="/timeline" className="text-2xl font-bold text-purple-600">
-              Event360
+              Gbedoo
             </Link>
           </div>
 

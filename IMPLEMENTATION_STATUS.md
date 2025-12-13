@@ -1,4 +1,4 @@
-# Event360 Implementation Status
+# Gbedoo Implementation Status
 
 ## ✅ Completed
 

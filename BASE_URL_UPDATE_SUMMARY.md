@@ -11,7 +11,7 @@ Updated the application to use a centralized base URL utility function instead o
 Added `getBaseUrl()` function that:
 - Checks `NEXT_PUBLIC_APP_URL` first (highest priority)
 - Falls back to `NEXTAUTH_URL` if `NEXT_PUBLIC_APP_URL` is not set
-- Falls back to production URL `https://event360-three.vercel.app` as final fallback
+- Falls back to production URL `https://gbedoo.vercel.app` as final fallback
 - Removes trailing slashes for consistency
 
 ```typescript
@@ -19,7 +19,7 @@ export function getBaseUrl(): string {
   const baseUrl = 
     process.env.NEXT_PUBLIC_APP_URL || 
     process.env.NEXTAUTH_URL || 
-    'https://event360-three.vercel.app'
+    'https://gbedoo.vercel.app'
   
   return baseUrl.replace(/\/$/, '')
 }
@@ -70,7 +70,7 @@ export function getBaseUrl(): string {
 Add to your `.env` file (and Vercel environment variables):
 
 ```env
-NEXT_PUBLIC_APP_URL=https://event360-three.vercel.app
+NEXT_PUBLIC_APP_URL=https://gbedoo.vercel.app
 ```
 
 **Note**: Do NOT include a trailing slash.
@@ -79,7 +79,7 @@ NEXT_PUBLIC_APP_URL=https://event360-three.vercel.app
 The `getBaseUrl()` function uses the following priority:
 1. `NEXT_PUBLIC_APP_URL` (highest priority)
 2. `NEXTAUTH_URL` (fallback)
-3. `https://event360-three.vercel.app` (final fallback)
+3. `https://gbedoo.vercel.app` (final fallback)
 
 ### 4. Documentation Updates
 
@@ -110,7 +110,7 @@ The `getBaseUrl()` function uses the following priority:
 
 1. **Set Environment Variable in Vercel**:
    - Go to Vercel Dashboard → Settings → Environment Variables
-   - Add `NEXT_PUBLIC_APP_URL` = `https://event360-three.vercel.app` (no trailing slash)
+   - Add `NEXT_PUBLIC_APP_URL` = `https://gbedoo.vercel.app` (no trailing slash)
    - Apply to Production, Preview, and Development environments
    - Redeploy the application
 

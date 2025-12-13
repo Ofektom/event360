@@ -94,9 +94,9 @@ export async function POST(request: NextRequest) {
         ? 'image' as const
         : 'auto' as const
 
-      // Upload to Cloudinary with folder structure: event360/{uploadType}/{eventId}
+      // Upload to Cloudinary with folder structure: gbedoo/{uploadType}/{eventId}
       const uploadType = formData.get('type') as string || 'media'
-      const folder = `event360/${uploadType}/${eventId}`
+      const folder = `gbedoo/${uploadType}/${eventId}`
       
       const result = await uploadToCloudinary(buffer, {
         folder,

@@ -14,7 +14,7 @@ export function getBaseUrl(): string {
   const baseUrl = 
     process.env.NEXT_PUBLIC_APP_URL || 
     process.env.NEXTAUTH_URL || 
-    'https://event360-three.vercel.app'
+    'https://gbedoo.vercel.app'
   
   // Remove trailing slash for consistency
   return baseUrl.replace(/\/$/, '')

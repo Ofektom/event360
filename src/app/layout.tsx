@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Event360 - Your Complete Event Management Platform",
+  title: "Gbedoo - Your Complete Event Management Platform",
   description: "Create, manage, and share your events with multiple ceremonies, photo galleries, live streaming, and social media integration",
 };
 

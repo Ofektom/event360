@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Event360 invitation template system uses a **hybrid approach** combining:
+The Gbedoo invitation template system uses a **hybrid approach** combining:
 1. **Programmatic Template Rendering** - React components that render templates
 2. **Free Template Sources** - Unsplash integration for preview images
 3. **Template Rendering Engine** - html2canvas for generating preview images

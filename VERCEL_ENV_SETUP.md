@@ -11,12 +11,12 @@ If Facebook OAuth is redirecting to `localhost:3000` instead of your production 
 **This is the most important fix for the localhost redirect issue!**
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your project: `event360-three`
+2. Select your project: `gbedoo`
 3. Go to **Settings** → **Environment Variables**
 4. Click **Add New**
 5. Add:
    - **Key**: `NEXTAUTH_URL`
-   - **Value**: `https://event360-three.vercel.app` (NO trailing slash)
+   - **Value**: `https://gbedoo.vercel.app` (NO trailing slash)
    - **Environment**: Select **Production**, **Preview**, and **Development** (or just Production if you only want it for production)
 6. Click **Save**
 7. **Redeploy** your application (Vercel will automatically redeploy, or you can trigger a redeploy manually)
@@ -28,8 +28,8 @@ Make sure these are all set in Vercel:
 **Required:**
 - ✅ `DATABASE_URL` - Your PostgreSQL connection string
 - ✅ `NEXTAUTH_SECRET` - Generate with: `openssl rand -base64 32`
-- ✅ `NEXTAUTH_URL` - **`https://event360-three.vercel.app`** (NO trailing slash) ⚠️ **THIS IS THE FIX**
-- ✅ `NEXT_PUBLIC_APP_URL` - **`https://event360-three.vercel.app`** (NO trailing slash) - Used for generating share links, invitation links, and other absolute URLs
+- ✅ `NEXTAUTH_URL` - **`https://gbedoo.vercel.app`** (NO trailing slash) ⚠️ **THIS IS THE FIX**
+- ✅ `NEXT_PUBLIC_APP_URL` - **`https://gbedoo.vercel.app`** (NO trailing slash) - Used for generating share links, invitation links, and other absolute URLs
 
 **OAuth Providers:**
 - ✅ `FACEBOOK_CLIENT_ID` - Your Facebook App ID
@@ -44,7 +44,7 @@ Make sure these are all set in Vercel:
 3. **Clear your browser cache** or use incognito mode
 4. **Test the Facebook OAuth flow again**
 
-The redirect should now go to `https://event360-three.vercel.app` instead of `localhost:3000`.
+The redirect should now go to `https://gbedoo.vercel.app` instead of `localhost:3000`.
 
 ## How to Verify It's Working
 

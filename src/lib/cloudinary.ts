@@ -37,7 +37,7 @@ export async function uploadToCloudinary(
   options: UploadOptions = {}
 ): Promise<{ url: string; publicId: string; secureUrl: string }> {
   const {
-    folder = 'event360',
+    folder = 'gbedoo',
     resourceType = 'auto',
     publicId,
     overwrite = true,

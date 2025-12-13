@@ -132,7 +132,7 @@ async function migrateMediaToCloudinary() {
       console.log(`☁️  Uploading ${media.filename} to Cloudinary...`)
 
       const resourceType = media.type === 'VIDEO' ? 'video' : 'image'
-      const folder = `event360/media/${media.eventId}`
+      const folder = `gbedoo/media/${media.eventId}`
       const timestamp = Date.now()
       const sanitizedName = media.filename.replace(/[^a-zA-Z0-9.-]/g, '_')
       const publicId = `${timestamp}-${sanitizedName.replace(/\.[^/.]+$/, '')}`

@@ -1,4 +1,4 @@
-# Event360 Setup Guide
+# Gbedoo Setup Guide
 
 ## Prerequisites
 
@@ -20,8 +20,8 @@
 
 ### Option 3: Local PostgreSQL
 1. Install PostgreSQL locally
-2. Create a database: `createdb event360`
-3. Connection string: `postgresql://user:password@localhost:5432/event360?schema=public`
+2. Create a database: `createdb gbedoo`
+3. Connection string: `postgresql://user:password@localhost:5432/gbedoo?schema=public`
 
 ## Environment Variables
 
@@ -45,7 +45,7 @@ FACEBOOK_ACCESS_TOKEN=""
 
 # Email Service
 EMAIL_API_KEY=""
-EMAIL_FROM="noreply@event360.com"
+EMAIL_FROM="noreply@gbedoo.com"
 
 # SMS Service
 TWILIO_ACCOUNT_SID=""
@@ -108,7 +108,7 @@ FACEBOOK_CLIENT_SECRET=""
 ## Project Structure
 
 ```
-event360/
+gbedoo/
 ├── prisma/
 │   └── schema.prisma          # Database schema
 ├── src/

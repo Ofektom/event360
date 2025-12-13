@@ -1,4 +1,4 @@
-# Event360 Architecture Documentation
+# Gbedoo Architecture Documentation
 
 ## Overview
 

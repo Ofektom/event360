@@ -2,7 +2,7 @@
 
 ## Overview
 
-Event360 now supports OAuth authentication with Google and Facebook in addition to email/password authentication.
+Gbedoo now supports OAuth authentication with Google and Facebook in addition to email/password authentication.
 
 ## Setup Instructions
 

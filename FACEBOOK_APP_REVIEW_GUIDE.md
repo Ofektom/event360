@@ -17,9 +17,9 @@ Before submitting for review, ensure your app details are complete:
 
 1. Go to [Facebook Developers](https://developers.facebook.com/apps/387945120557219/settings/basic/)
 2. Verify these fields are filled:
-   - ✅ **Display Name**: `event360`
-   - ✅ **App Domains**: `event360-three.vercel.app`
-   - ✅ **Site URL**: `https://event360-three.vercel.app`
+   - ✅ **Display Name**: `gbedoo`
+   - ✅ **App Domains**: `gbedoo.vercel.app`
+   - ✅ **Site URL**: `https://gbedoo.vercel.app`
    - ✅ **Contact Email**: Your email (already set: `okpoho_t@yahoo.com`)
    - ⚠️ **Privacy Policy URL**: **REQUIRED** - Add your privacy policy URL
    - ⚠️ **Terms of Service URL**: **REQUIRED** - Add your terms of service URL
@@ -34,8 +34,8 @@ Facebook requires these URLs for App Review. You can:
 **Option A: Create Simple Pages on Your Site**
 - Create `/privacy` and `/terms` pages on your Vercel app
 - Add the URLs: 
-  - Privacy Policy: `https://event360-three.vercel.app/privacy`
-  - Terms of Service: `https://event360-three.vercel.app/terms`
+  - Privacy Policy: `https://gbedoo.vercel.app/privacy`
+  - Terms of Service: `https://gbedoo.vercel.app/terms`
 
 **Option B: Use a Privacy Policy Generator**
 - Use a service like [Privacy Policy Generator](https://www.privacypolicygenerator.info/)
@@ -57,7 +57,7 @@ Facebook will ask for:
 
 1. **Use Case Description:**
    ```
-   Event360 allows users to create and manage events. Users can invite 
+   Gbedoo allows users to create and manage events. Users can invite 
    their Facebook friends to events through Facebook Messenger. The 
    user_friends permission is used to:
    - Display a list of the user's Facebook friends
@@ -71,7 +71,7 @@ Facebook will ask for:
 2. **Instructions for Reviewers:**
    ```
    To test this feature:
-   1. Log in to Event360 with a Facebook account
+   1. Log in to Gbedoo with a Facebook account
    2. Create an event or go to an existing event
    3. Navigate to "Send Invitations"
    4. Click "Import Facebook Friends"

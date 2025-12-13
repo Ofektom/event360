@@ -19,7 +19,7 @@ However, the most common issue is that **the deployment hasn't been redeployed**
 Even though `NEXTAUTH_SECRET` and `NEXTAUTH_URL` should work, NextAuth v5 prefers the new names:
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your project: `event360-three`
+2. Select your project: `gbedoo`
 3. Go to **Settings** → **Environment Variables**
 4. Add these additional variables (use the same values):
 
@@ -28,7 +28,7 @@ Even though `NEXTAUTH_SECRET` and `NEXTAUTH_URL` should work, NextAuth v5 prefer
    - **Environment**: Production, Preview, Development
 
    - **Key**: `AUTH_URL`
-   - **Value**: `https://event360-three.vercel.app` (no trailing slash)
+   - **Value**: `https://gbedoo.vercel.app` (no trailing slash)
    - **Environment**: Production, Preview, Development
 
 5. Click **Save**

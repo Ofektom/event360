@@ -18,7 +18,7 @@ There are **TWO separate settings** you need to configure. Both are required:
 3. Scroll down to find the **"App Domains"** section
 4. Click **+ Add Domain** button
 5. Add the domain **without** `https://` or trailing slash:
-   - `event360-three.vercel.app` (for production)
+   - `gbedoo.vercel.app` (for production)
    - `localhost` (for development - optional)
 6. Click **Save Changes** at the bottom of the page
 

@@ -19,14 +19,14 @@ The "Configuration" error in NextAuth typically means one of these environment v
 ### Step 1: Check Required Environment Variables
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your project: `event360-three`
+2. Select your project: `gbedoo`
 3. Go to **Settings** → **Environment Variables**
 4. Verify these are set:
 
 **Required:**
 - ✅ `DATABASE_URL` - Your PostgreSQL connection string
 - ✅ `NEXTAUTH_SECRET` - **MUST BE SET** (generate with: `openssl rand -base64 32`)
-- ✅ `NEXTAUTH_URL` - `https://event360-three.vercel.app` (no trailing slash)
+- ✅ `NEXTAUTH_URL` - `https://gbedoo.vercel.app` (no trailing slash)
 
 **OAuth (if using):**
 - ✅ `FACEBOOK_CLIENT_ID` - Your Facebook App ID
@@ -98,7 +98,7 @@ After adding/updating environment variables:
 ### Issue: "Invalid NEXTAUTH_URL"
 
 **Solution**: 
-- Ensure `NEXTAUTH_URL` is set to `https://event360-three.vercel.app` (no trailing slash)
+- Ensure `NEXTAUTH_URL` is set to `https://gbedoo.vercel.app` (no trailing slash)
 - Make sure it's set for the correct environment (Production)
 
 ### Issue: "OAuth provider configuration error"
@@ -112,7 +112,7 @@ After adding/updating environment variables:
 Before testing, ensure:
 
 - [ ] `NEXTAUTH_SECRET` is set in Vercel
-- [ ] `NEXTAUTH_URL` is set to `https://event360-three.vercel.app` (no trailing slash)
+- [ ] `NEXTAUTH_URL` is set to `https://gbedoo.vercel.app` (no trailing slash)
 - [ ] `DATABASE_URL` is set correctly
 - [ ] `FACEBOOK_CLIENT_ID` is set (if using Facebook OAuth)
 - [ ] `FACEBOOK_CLIENT_SECRET` is set (if using Facebook OAuth)
