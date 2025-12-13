@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { FormField } from '@/components/molecules/FormField'
+import { updateCachedUserProfile } from '@/lib/user-cache'
 
 interface User {
   id: string
@@ -30,6 +32,8 @@ interface UserProfileHeaderProps {
 }
 
 export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
+  const router = useRouter()
+  
   if (!user) {
     return (
       <Card className="p-8">
@@ -49,6 +53,18 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(user.image || null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Update form data when user prop changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        phone: user.phone || '',
+        image: user.image || '',
+      })
+      setPreviewImage(user.image || null)
+    }
+  }, [user])
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -94,8 +110,16 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
       const uploadResult = await uploadResponse.json()
 
       // Update form data with new image URL
-      setFormData({ ...formData, image: uploadResult.url })
-      setMessage({ type: 'success', text: 'Profile picture uploaded successfully!' })
+      const newImageUrl = uploadResult.url
+      setFormData({ ...formData, image: newImageUrl })
+      setPreviewImage(newImageUrl)
+      
+      // Update cache with new image
+      updateCachedUserProfile({
+        image: newImageUrl,
+      })
+      
+      setMessage({ type: 'success', text: 'Profile picture uploaded successfully! Please save to update your profile.' })
     } catch (error: any) {
       console.error('Error uploading image:', error)
       setMessage({ type: 'error', text: error.message || 'Failed to upload profile picture' })
@@ -127,13 +151,27 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
         throw new Error(data.error || 'Failed to update profile')
       }
 
+      const result = await response.json()
+      
+      // Update cache with new profile data
+      if (result.user) {
+        updateCachedUserProfile({
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+          image: result.user.image,
+          phone: result.user.phone,
+          role: result.user.role,
+        })
+      }
+
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
       setIsEditing(false)
-      // Refresh the page after a short delay
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
+      
+      // Refresh the page data using Next.js router
+      router.refresh()
     } catch (error: any) {
+      console.error('Error updating profile:', error)
       setMessage({ type: 'error', text: error.message || 'Failed to update profile. Please try again.' })
     } finally {
       setLoading(false)
@@ -232,12 +270,15 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                 placeholder="Your name"
               />
               <div>
-                <FormField
-                  label="Email"
-                  value={user.email}
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  value={user.email || ''}
                   disabled
                   className="bg-gray-100 cursor-not-allowed"
-                  title="Email cannot be changed"
+                  readOnly
                 />
                 <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
               </div>
