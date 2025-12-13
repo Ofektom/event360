@@ -72,7 +72,7 @@ export async function sendVerificationEmail(
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: [email],
-      subject: 'Verify your Event360 email address',
+      subject: 'Verify your Gbedoo email address',
       html,
     })
 

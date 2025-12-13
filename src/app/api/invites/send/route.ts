@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         try {
           // Upload data URL to Cloudinary
           const uploadType = 'invitation'
-          const folder = `event360/${uploadType}/${eventId}`
+          const folder = `gbedoo/${uploadType}/${eventId}`
           
           const result = await uploadDataUrlToCloudinary(invitationImageUrl, {
             folder,
