@@ -8,44 +8,61 @@ export function Footer({ variant = 'dashboard' }: FooterProps) {
   if (variant === 'public') {
     return (
       <footer className="bg-gray-900 text-white py-12 mt-20">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+            {/* About Section */}
+            <div className="min-w-0">
               <h3 className="text-xl font-bold mb-4">Gbedoo</h3>
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm leading-relaxed break-words">
                 Your complete event management platform for celebrations and special moments.
               </p>
             </div>
-            <div>
+            
+            {/* Quick Links Section */}
+            <div className="min-w-0">
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
                 <li>
-                  <Link href="#programme" className="hover:text-white transition-colors">
+                  <Link 
+                    href="#ceremonies" 
+                    className="hover:text-white transition-colors text-sm inline-block"
+                    scroll={true}
+                  >
                     Programme
                   </Link>
                 </li>
                 <li>
-                  <Link href="#gallery" className="hover:text-white transition-colors">
+                  <Link 
+                    href="#gallery" 
+                    className="hover:text-white transition-colors text-sm inline-block"
+                    scroll={true}
+                  >
                     Gallery
                   </Link>
                 </li>
                 <li>
-                  <Link href="#vendors" className="hover:text-white transition-colors">
+                  <Link 
+                    href="#vendors" 
+                    className="hover:text-white transition-colors text-sm inline-block"
+                    scroll={true}
+                  >
                     Vendors
                   </Link>
                 </li>
               </ul>
             </div>
-            <div>
+            
+            {/* Contact Section */}
+            <div className="min-w-0">
               <h4 className="font-semibold mb-4">Contact</h4>
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm leading-relaxed">
                 Questions about this event?<br />
                 Contact the event organizer.
               </p>
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Gbedoo. All rights reserved.</p>
+            <p className="text-sm">&copy; {new Date().getFullYear()} Gbedoo. All rights reserved.</p>
           </div>
         </div>
       </footer>
