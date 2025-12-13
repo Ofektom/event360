@@ -10,8 +10,7 @@ import { MediaUploadModal } from '@/components/organisms/MediaUploadModal'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { BackButton } from '@/components/shared/BackButton'
-import Image from 'next/image'
-import { getGalleryThumbnailUrl, getOptimizedImageUrl } from '@/lib/cloudinary-utils'
+import { getGalleryThumbnailUrl } from '@/lib/cloudinary-utils'
 
 interface MediaAsset {
   id: string
@@ -173,14 +172,18 @@ export default function EventGalleryPage() {
                   className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group cursor-pointer"
                 >
                   {media.type === 'IMAGE' ? (
-                    <Image
+                    <img
                       src={thumbnailUrl}
                       alt={media.caption || media.filename}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                      className="object-cover"
+                      className="w-full h-full object-cover"
                       loading={index < 12 ? 'eager' : 'lazy'}
-                      quality={80}
+                      onError={(e) => {
+                        // Fallback to original URL if thumbnail fails
+                        const target = e.target as HTMLImageElement
+                        if (target.src !== media.url) {
+                          target.src = media.url
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-900 relative">
