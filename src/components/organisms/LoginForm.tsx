@@ -208,18 +208,6 @@ export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps)
             Sign In
           </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-700 sm:text-gray-600">
-            Don't have an account?{' '}
-            <a
-              href="/auth/signup"
-              className="text-purple-600 hover:text-purple-800 hover:underline font-semibold sm:font-medium"
-            >
-              Sign up
-            </a>
-          </p>
-        </div>
       </div>
     </Card>
   )
