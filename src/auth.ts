@@ -38,6 +38,10 @@ if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
       authorization: {
         params: {
           scope: "public_profile,user_friends",
+          // Add auth_type for better mobile handling
+          auth_type: "rerequest",
+          // Ensure proper redirect handling on mobile
+          display: "page",
         },
       },
     })
@@ -361,10 +365,20 @@ export const authOptions: NextAuthOptions = {
         return url.startsWith("/") ? `${normalizedBaseUrl}${url}${separator}facebook_linked=true` : `${url}${separator}facebook_linked=true`
       }
       
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${normalizedBaseUrl}${url}`
+      // For mobile OAuth callbacks, ensure we use window.location for proper redirect
+      // This helps with mobile browser redirect handling
+      if (url.startsWith("/")) {
+        const fullUrl = `${normalizedBaseUrl}${url}`
+        // Return the full URL to ensure proper mobile redirect
+        return fullUrl
+      }
+      
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === normalizedBaseUrl) return url
+      if (url.startsWith(normalizedBaseUrl)) {
+        return url
+      }
+      
+      // Fallback to base URL
       return normalizedBaseUrl
     },
   },

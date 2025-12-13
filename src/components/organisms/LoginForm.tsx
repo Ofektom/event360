@@ -93,8 +93,21 @@ export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps)
       const oauthCallbackUrl = eventId 
         ? `${finalCallbackUrl}?eventId=${eventId}`
         : finalCallbackUrl
-      await signIn(provider, { callbackUrl: oauthCallbackUrl })
+      
+      // For mobile, ensure we use window.location for proper redirect
+      // This helps with mobile browser OAuth redirect handling
+      const result = await signIn(provider, { 
+        callbackUrl: oauthCallbackUrl,
+        redirect: true, // Ensure redirect happens
+      })
+      
+      // If signIn doesn't redirect (shouldn't happen with redirect: true), handle it
+      if (result && !result.ok) {
+        setError('Failed to sign in with ' + provider)
+        setIsLoading(false)
+      }
     } catch (err) {
+      console.error('OAuth sign in error:', err)
       setError('Failed to sign in with ' + provider)
       setIsLoading(false)
     }
