@@ -57,6 +57,7 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
     phone: user.phone || '',
     image: currentImage || '',
   })
+  // Initialize previewImage with currentImage, but always use currentImage as source of truth
   const [previewImage, setPreviewImage] = useState<string | null>(currentImage)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -72,8 +73,13 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
       image: latestImage || '',
     })
     // Always update preview image when user prop or session changes
+    // Use the latest image from session (most up-to-date) or user prop
     setPreviewImage(latestImage)
   }, [user?.id, user?.image, user?.name, user?.phone, session?.user?.image, session?.user?.name])
+  
+  // Use currentImage directly for display (always up-to-date from session or user prop)
+  // This ensures we always show the latest image even if state hasn't updated yet
+  const displayImage = currentImage || previewImage
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -230,28 +236,18 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
         <div className="flex-shrink-0">
           <div className="relative">
             <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
-              {previewImage && previewImage.trim() !== '' && previewImage !== 'null' ? (
-                previewImage.startsWith('data:') ? (
-                  // Use regular img tag for data URLs
-                  <img
-                    src={previewImage}
-                    alt={currentName || currentEmail || 'Profile'}
-                    className="w-full h-full object-cover"
-                    onError={() => {
-                      setPreviewImage(null)
-                    }}
-                  />
-                ) : (
-                  <Image
-                    src={previewImage}
-                    alt={currentName || currentEmail || 'Profile'}
-                    fill
-                    className="object-cover"
-                    onError={() => {
-                      setPreviewImage(null)
-                    }}
-                  />
-                )
+              {displayImage && displayImage.trim() !== '' && displayImage !== 'null' ? (
+                // Use regular img tag for all image URLs (works better with Cloudinary and data URLs)
+                <img
+                  src={displayImage}
+                  alt={currentName || currentEmail || 'Profile'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Error loading profile image:', displayImage)
+                    // Don't clear the image on error, just log it
+                    // The image might be temporarily unavailable
+                  }}
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
                   {(currentName || currentEmail || 'U').charAt(0).toUpperCase()}

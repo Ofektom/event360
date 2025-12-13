@@ -34,17 +34,26 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
         role: session.user.role || 'USER',
       })
 
-      // Also try to load from cache for faster display
+      // Always re-read from cache when session updates to get latest data
       const cached = getCachedUserProfile()
       if (cached) {
         setCachedProfile(cached)
+      } else {
+        // If no cache, use session data directly
+        setCachedProfile({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.name || null,
+          image: session.user.image || null,
+          role: session.user.role || 'USER',
+        })
       }
     } else {
       // Clear cache when user logs out
       clearUserProfileCache()
       setCachedProfile(null)
     }
-  }, [session])
+  }, [session, session?.user?.image, session?.user?.name])
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
@@ -101,9 +110,10 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
     await signOut({ callbackUrl: '/' })
   }
 
-  // Use cached profile image if available, otherwise use session
-  const displayImage = cachedProfile?.image || session?.user?.image
-  const displayName = cachedProfile?.name || session?.user?.name
+  // Prioritize session data (most up-to-date), then cached data
+  // Session data is always the source of truth after updates
+  const displayImage = session?.user?.image || cachedProfile?.image || null
+  const displayName = session?.user?.name || cachedProfile?.name || null
   const displayInitial = displayName?.charAt(0).toUpperCase() || session?.user?.email?.charAt(0).toUpperCase() || 'U'
 
   // Close user menu when clicking outside
