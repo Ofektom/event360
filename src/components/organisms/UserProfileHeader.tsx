@@ -34,7 +34,7 @@ interface UserProfileHeaderProps {
 
 export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
   const router = useRouter()
-  const { update: updateSession } = useSession()
+  const { data: session, update: updateSession } = useSession()
   
   if (!user) {
     return (
@@ -44,31 +44,36 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
     )
   }
 
+  // Use session image if available (most up-to-date), otherwise fall back to user prop
+  const currentImage = session?.user?.image || user.image || null
+  const currentName = session?.user?.name || user.name || ''
+  const currentEmail = session?.user?.email || user.email || ''
+
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [formData, setFormData] = useState({
-    name: user.name || '',
+    name: currentName,
     phone: user.phone || '',
-    image: user.image || '',
+    image: currentImage || '',
   })
-  const [previewImage, setPreviewImage] = useState<string | null>(user.image || null)
+  const [previewImage, setPreviewImage] = useState<string | null>(currentImage)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Update form data when user prop changes
+  // Update form data when user prop or session changes
   useEffect(() => {
-    if (user) {
-      const newImage = user.image || null
-      setFormData({
-        name: user.name || '',
-        phone: user.phone || '',
-        image: user.image || '',
-      })
-      // Always update preview image when user prop changes
-      setPreviewImage(newImage)
-    }
-  }, [user?.id, user?.image, user?.name, user?.phone])
+    const latestImage = session?.user?.image || user.image || null
+    const latestName = session?.user?.name || user.name || ''
+    
+    setFormData({
+      name: latestName,
+      phone: user.phone || '',
+      image: latestImage || '',
+    })
+    // Always update preview image when user prop or session changes
+    setPreviewImage(latestImage)
+  }, [user?.id, user?.image, user?.name, user?.phone, session?.user?.image, session?.user?.name])
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -113,10 +118,8 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
 
       const uploadResult = await uploadResponse.json()
 
-      // Update form data with new image URL
+      // Get the new Cloudinary URL
       const newImageUrl = uploadResult.url
-      setFormData({ ...formData, image: newImageUrl })
-      setPreviewImage(newImageUrl)
       
       // Update form data and preview immediately with the new Cloudinary URL
       setFormData(prev => ({ ...prev, image: newImageUrl }))
@@ -127,21 +130,21 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
         image: newImageUrl,
       })
       
-      // Update NextAuth session with new image URL
+      // Update NextAuth session with new image URL - this will trigger a re-render
       await updateSession({
-        ...user,
         image: newImageUrl,
       })
       
-      // Refresh the page to update all components with new image
+      // Small delay to ensure session update propagates, then refresh
       setMessage({ type: 'success', text: 'Profile picture uploaded successfully! Refreshing...' })
       setTimeout(() => {
         router.refresh()
-      }, 1500)
+      }, 1000)
     } catch (error: any) {
       console.error('Error uploading image:', error)
       setMessage({ type: 'error', text: error.message || 'Failed to upload profile picture' })
-      setPreviewImage(user.image)
+      // Reset to current image (from session or user prop)
+      setPreviewImage(currentImage)
     } finally {
       setUploadingImage(false)
     }
@@ -203,12 +206,15 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
 
   const handleCancel = () => {
     try {
+      const latestImage = session?.user?.image || user?.image || null
+      const latestName = session?.user?.name || user?.name || ''
+      
       setFormData({
-        name: user?.name || '',
+        name: latestName,
         phone: user?.phone || '',
-        image: user?.image || '',
+        image: latestImage || '',
       })
-      setPreviewImage(user?.image || null)
+      setPreviewImage(latestImage)
       setIsEditing(false)
       setMessage(null)
     } catch (error) {
@@ -229,7 +235,7 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                   // Use regular img tag for data URLs
                   <img
                     src={previewImage}
-                    alt={formData.name || user.email || 'Profile'}
+                    alt={currentName || currentEmail || 'Profile'}
                     className="w-full h-full object-cover"
                     onError={() => {
                       setPreviewImage(null)
@@ -238,7 +244,7 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                 ) : (
                   <Image
                     src={previewImage}
-                    alt={formData.name || user.email || 'Profile'}
+                    alt={currentName || currentEmail || 'Profile'}
                     fill
                     className="object-cover"
                     onError={() => {
@@ -248,7 +254,7 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                 )
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
-                  {(formData.name || user.email || 'U').charAt(0).toUpperCase()}
+                  {(currentName || currentEmail || 'U').charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
@@ -298,7 +304,7 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
                 </label>
                 <Input
                   type="email"
-                  value={user.email || ''}
+                  value={currentEmail}
                   disabled
                   className="bg-gray-100 cursor-not-allowed"
                   readOnly
@@ -341,9 +347,9 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {user.name || 'User'}
+                    {currentName || 'User'}
                   </h1>
-                  <p className="text-gray-600">{user.email}</p>
+                  <p className="text-gray-600">{currentEmail}</p>
                   {user.phone && (
                     <p className="text-gray-600 text-sm mt-1">{user.phone}</p>
                   )}
