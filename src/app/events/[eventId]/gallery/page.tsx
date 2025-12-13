@@ -161,28 +161,32 @@ export default function EventGalleryPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {mediaAssets.map((media, index) => {
-              // Use optimized thumbnail URL for faster loading
-              const thumbnailUrl = media.thumbnailUrl 
-                ? getGalleryThumbnailUrl(media.thumbnailUrl)
-                : getGalleryThumbnailUrl(media.url)
+              // Use thumbnail if available, otherwise use original URL
+              const imageUrl = media.thumbnailUrl || media.url
               
               return (
                 <div
                   key={media.id}
-                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group cursor-pointer"
+                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group"
                 >
                   {media.type === 'IMAGE' ? (
                     <img
-                      src={thumbnailUrl}
+                      src={imageUrl}
                       alt={media.caption || media.filename}
                       className="w-full h-full object-cover"
                       loading={index < 12 ? 'eager' : 'lazy'}
                       onError={(e) => {
-                        // Fallback to original URL if thumbnail fails
+                        // Fallback to original URL if image fails to load
                         const target = e.target as HTMLImageElement
-                        if (target.src !== media.url) {
+                        if (target.src !== media.url && media.url) {
+                          console.log('Image failed to load, trying original URL:', media.url)
                           target.src = media.url
+                        } else {
+                          console.error('Image failed to load:', imageUrl, media.url)
                         }
+                      }}
+                      onLoad={() => {
+                        console.log('Image loaded successfully:', imageUrl)
                       }}
                     />
                   ) : (
@@ -200,15 +204,15 @@ export default function EventGalleryPage() {
                     </div>
                   )}
                   
-                  {/* Overlay with delete button */}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
+                  {/* Overlay with delete button - only visible on hover */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDelete(media.id)
                       }}
                       disabled={deletingId === media.id}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white p-2 rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white p-2 rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
                       title="Delete media"
                     >
                       {deletingId === media.id ? (
@@ -223,7 +227,7 @@ export default function EventGalleryPage() {
                   
                   {/* Caption overlay */}
                   {media.caption && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                       <p className="text-sm truncate">{media.caption}</p>
                     </div>
                   )}
