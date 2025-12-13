@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Button } from '@/components/atoms/Button'
 
 interface NavbarProps {
   variant?: 'dashboard' | 'public'
@@ -14,10 +13,13 @@ interface NavbarProps {
 
 export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }: NavbarProps) {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [cachedProfile, setCachedProfile] = useState<any>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  
+  // Don't render user menu while session is loading
+  const isLoadingSession = status === 'loading'
 
   // Load cached profile data on mount and when session changes
   useEffect(() => {
@@ -242,8 +244,8 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
             </Link>
           </div>
 
-          {/* Right: User Menu - Only show if user is logged in */}
-          {session && (
+          {/* Right: User Menu - Only show if user is logged in, hide while loading */}
+          {!isLoadingSession && session?.user ? (
             <div className="flex items-center gap-4">
               <div className="relative" ref={userMenuRef}>
                 <button
@@ -325,7 +327,7 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
                 )}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Mobile Navigation Links */}
