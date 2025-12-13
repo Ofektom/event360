@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
+import { cacheUserProfile, getCachedUserProfile, clearUserProfileCache } from '@/lib/user-cache'
 
 interface NavbarProps {
   variant?: 'dashboard' | 'public'
