@@ -28,7 +28,7 @@ function getBaseTemplate(content: string, title?: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title || 'gbadoo'}</title>
+  <title>${title || 'gbedoo'}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -38,7 +38,7 @@ function getBaseTemplate(content: string, title?: string): string {
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%); padding: 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">gbadoo</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">gbedoo</h1>
             </td>
           </tr>
           
@@ -53,10 +53,10 @@ function getBaseTemplate(content: string, title?: string): string {
           <tr>
             <td style="padding: 30px; background-color: #f9fafb; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                © ${new Date().getFullYear()} gbadoo. All rights reserved.
+                © ${new Date().getFullYear()} gbedoo. All rights reserved.
               </p>
               <p style="margin: 10px 0 0 0; color: #9ca3af; font-size: 12px;">
-                This email was sent by gbadoo. If you have any questions, please contact support.
+                This email was sent by gbedoo. If you have any questions, please contact support.
               </p>
             </td>
           </tr>
@@ -149,7 +149,7 @@ export function getUserVerificationTemplate(props: EmailTemplateProps): string {
       </p>
       
       <p style="margin: 0 0 30px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-        Thank you for signing up for gbadoo! Please verify your email address to complete your registration.
+        Thank you for signing up for gbedoo! Please verify your email address to complete your registration.
       </p>
       
       ${verificationLink ? `
@@ -164,7 +164,7 @@ export function getUserVerificationTemplate(props: EmailTemplateProps): string {
       ` : ''}
       
       <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-        If you didn't create an account with gbadoo, you can safely ignore this email.
+        If you didn't create an account with gbedoo, you can safely ignore this email.
       </p>
       
       <p style="margin: 15px 0 0 0; color: #9ca3af; font-size: 12px; line-height: 1.6;">

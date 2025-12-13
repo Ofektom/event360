@@ -29,6 +29,6 @@ export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY
 }
 
-export const FROM_EMAIL = process.env.FROM_EMAIL || 'gbadoo <onboarding@resend.dev>'
-export const FROM_NAME = process.env.FROM_NAME || 'gbadoo'
+export const FROM_EMAIL = process.env.FROM_EMAIL || 'gbedoo <onboarding@resend.dev>'
+export const FROM_NAME = process.env.FROM_NAME || 'gbedoo'
 

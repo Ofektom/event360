@@ -130,7 +130,7 @@ export function VendorInviteAcceptance({ vendor, token }: VendorInviteAcceptance
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold mb-2">Welcome, {vendor.businessName}!</h2>
           <p className="text-gray-600">
-            You've been invited to join gbadoo as a vendor
+            You've been invited to join gbedoo as a vendor
           </p>
         </div>
 
@@ -240,7 +240,7 @@ export function VendorInviteAcceptance({ vendor, token }: VendorInviteAcceptance
 
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-            By continuing, you agree to manage your vendor profile and events on gbadoo
+            By continuing, you agree to manage your vendor profile and events on gbedoo
           </p>
         </div>
       </div>

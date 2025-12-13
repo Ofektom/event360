@@ -9,19 +9,19 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
             <p className="mb-4">
-              By accessing and using gbadoo ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using gbedoo ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">2. Use License</h2>
             <p className="mb-4">
-              Permission is granted to temporarily use gbadoo for personal, non-commercial event management purposes. This is the grant of a license, not a transfer of title, and under this license you may not:
+              Permission is granted to temporarily use gbedoo for personal, non-commercial event management purposes. This is the grant of a license, not a transfer of title, and under this license you may not:
             </p>
             <ul className="list-disc pl-6 mb-4">
               <li>Modify or copy the materials</li>
               <li>Use the materials for any commercial purpose or for any public display</li>
-              <li>Attempt to reverse engineer any software contained in gbadoo</li>
+              <li>Attempt to reverse engineer any software contained in gbedoo</li>
               <li>Remove any copyright or other proprietary notations from the materials</li>
             </ul>
           </section>
@@ -42,7 +42,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">4. User Content</h2>
             <p className="mb-4">
-              You retain ownership of all content you create, upload, or share on gbadoo. By using the Service, you grant us a license to:
+              You retain ownership of all content you create, upload, or share on gbedoo. By using the Service, you grant us a license to:
             </p>
             <ul className="list-disc pl-6 mb-4">
               <li>Store, display, and process your content to provide the Service</li>
@@ -57,7 +57,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">5. Third-Party Services</h2>
             <p className="mb-4">
-              gbadoo integrates with third-party services (e.g., Facebook, WhatsApp, Instagram) to provide certain features. Your use of these services is subject to their respective terms of service and privacy policies.
+              gbedoo integrates with third-party services (e.g., Facebook, WhatsApp, Instagram) to provide certain features. Your use of these services is subject to their respective terms of service and privacy policies.
             </p>
             <p className="mb-4">
               When you connect your Facebook account:
@@ -72,7 +72,7 @@ export default function TermsPage() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">6. Prohibited Uses</h2>
-            <p className="mb-4">You agree not to use gbadoo to:</p>
+            <p className="mb-4">You agree not to use gbedoo to:</p>
             <ul className="list-disc pl-6 mb-4">
               <li>Violate any laws or regulations</li>
               <li>Infringe on the rights of others</li>
@@ -93,7 +93,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">8. Limitation of Liability</h2>
             <p className="mb-4">
-              gbadoo is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the Service, including but not limited to data loss, service interruptions, or third-party actions.
+              gbedoo is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the Service, including but not limited to data loss, service interruptions, or third-party actions.
             </p>
           </section>
 

@@ -18,7 +18,7 @@ export default async function Home() {
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <header className="mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">gbadoo</h1>
+          <h1 className="text-5xl font-bold text-gray-900 mb-4">gbedoo</h1>
           <p className="text-xl text-gray-600">
             Your complete event management platform for celebrations, weddings,
             and special moments

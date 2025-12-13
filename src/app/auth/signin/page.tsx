@@ -22,7 +22,7 @@ export default async function SignInPage({
       <div className="w-full max-w-md space-y-4">
         {/* Brand Name */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-purple-600">gbadoo</h1>
+          <h1 className="text-3xl font-bold text-purple-600">gbedoo</h1>
         </div>
         
         {registered && (
