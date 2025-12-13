@@ -24,14 +24,15 @@ export default async function PublicCeremonyPage({ params }: PublicCeremonyPageP
   const { slug, ceremonyId } = await params
   const user = await getCurrentUser()
 
+  // If user is not authenticated, redirect to signin with callback to signup
+  // This allows users to either login or signup
+  if (!user) {
+    redirect(`/auth/signin?callbackUrl=/e/${slug}/ceremony/${ceremonyId}&redirectToSignup=true`)
+  }
+
   try {
     // Get event by slug
     const eventData = await eventService.getEventBySlug(slug)
-
-    // If user is not authenticated, redirect to signup
-    if (!user) {
-      redirect(`/auth/signup?callbackUrl=/e/${slug}/ceremony/${ceremonyId}&eventId=${eventData.id}`)
-    }
 
     // Check access
     const access = await canAccessEvent(user.id, eventData.id)
@@ -227,12 +228,23 @@ export default async function PublicCeremonyPage({ params }: PublicCeremonyPageP
     )
   } catch (error: any) {
     console.error('Error loading ceremony:', error)
+    
+    // If user is not authenticated and there's an error, redirect to signin
+    // This handles cases where the event fetch fails before the redirect happens
+    if (!user) {
+      redirect(`/auth/signin?callbackUrl=/e/${slug}/ceremony/${ceremonyId}&redirectToSignup=true`)
+    }
+    
+    // For authenticated users, show error message
     return (
       <PublicEventLayout>
         <div className="container mx-auto px-4 py-12">
           <Card className="p-8 text-center">
             <h1 className="text-2xl font-bold mb-4">Ceremony Not Found</h1>
-            <p className="text-gray-600">This ceremony could not be loaded.</p>
+            <p className="text-gray-600 mb-4">This ceremony could not be loaded.</p>
+            <p className="text-sm text-gray-500 mb-4">
+              The ceremony may not exist, or you may not have permission to view it.
+            </p>
             <Link href={`/e/${slug}`}>
               <Button variant="primary" className="mt-4">
                 ← Back to Event

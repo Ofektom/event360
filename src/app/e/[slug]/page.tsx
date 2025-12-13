@@ -29,14 +29,15 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
   const { slug } = await params
   const user = await getCurrentUser()
 
+  // If user is not authenticated, redirect to signin with callback to signup
+  // This allows users to either login or signup
+  if (!user) {
+    redirect(`/auth/signin?callbackUrl=/e/${slug}&redirectToSignup=true`)
+  }
+
   try {
     // Get event by slug
     const event = await eventService.getEventBySlug(slug)
-
-    // If user is not authenticated, redirect to signup with event info
-    if (!user) {
-      redirect(`/auth/signup?callbackUrl=/e/${slug}&eventId=${event.id}`)
-    }
 
     // Check access
     const access = await canAccessEvent(user.id, event.id)
@@ -415,12 +416,23 @@ export default async function PublicEventPage({ params }: PublicEventPageProps) 
     )
   } catch (error: any) {
     console.error('Error loading public event:', error)
+    
+    // If user is not authenticated and there's an error, redirect to signin
+    // This handles cases where the event fetch fails before the redirect happens
+    if (!user) {
+      redirect(`/auth/signin?callbackUrl=/e/${slug}&redirectToSignup=true`)
+    }
+    
+    // For authenticated users, show error message
     return (
       <PublicEventLayout>
         <div className="container mx-auto px-4 py-12">
           <Card className="p-8 text-center">
             <h1 className="text-2xl font-bold mb-4">Event Not Found</h1>
-            <p className="text-gray-600">This event could not be loaded.</p>
+            <p className="text-gray-600 mb-4">This event could not be loaded.</p>
+            <p className="text-sm text-gray-500">
+              The event may not exist, or you may not have permission to view it.
+            </p>
           </Card>
         </div>
       </PublicEventLayout>
