@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth'
 import { MediaService } from '@/services/media.service'
 import { CreateMediaAssetDto, GetMediaFilters } from '@/types/media.types'
 import { MediaType, MediaSource } from '@/types/enums'
@@ -41,11 +42,15 @@ export async function POST(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
+    const user = await requireAuth() // Ensure user is authenticated
     const { eventId } = await params
     const body = await request.json()
+    
+    // Use authenticated user's ID if uploadedById is not provided
+    const uploadedById = body.uploadedById || user.id
     const mediaData: CreateMediaAssetDto = {
       ceremonyId: body.ceremonyId,
-      uploadedById: body.uploadedById,
+      uploadedById: uploadedById,
       type: body.type as MediaType,
       url: body.url,
       thumbnailUrl: body.thumbnailUrl,

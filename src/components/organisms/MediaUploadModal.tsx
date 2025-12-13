@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
@@ -13,6 +14,7 @@ interface MediaUploadModalProps {
 }
 
 export function MediaUploadModal({ eventId, onClose, onSuccess }: MediaUploadModalProps) {
+  const { data: session } = useSession()
   const [files, setFiles] = useState<File[]>([])
   const [captions, setCaptions] = useState<Record<string, string>>({})
   const [isUploading, setIsUploading] = useState(false)
@@ -93,6 +95,7 @@ export function MediaUploadModal({ eventId, onClose, onSuccess }: MediaUploadMod
             size: file.size,
             caption: captions[file.name] || null,
             source: 'UPLOAD',
+            uploadedById: (session?.user as any)?.id || null,
           }),
         })
 
