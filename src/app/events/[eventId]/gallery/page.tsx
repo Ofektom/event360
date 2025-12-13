@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { BackButton } from '@/components/shared/BackButton'
 import Image from 'next/image'
+import { getGalleryThumbnailUrl, getOptimizedImageUrl } from '@/lib/cloudinary-utils'
 
 interface MediaAsset {
   id: string
@@ -159,26 +160,36 @@ export default function EventGalleryPage() {
             </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {mediaAssets.map((media) => (
-              <Card key={media.id} className="p-0 overflow-hidden group relative">
-                <div className="relative aspect-square bg-gray-100">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {mediaAssets.map((media, index) => {
+              // Use optimized thumbnail URL for faster loading
+              const thumbnailUrl = media.thumbnailUrl 
+                ? getGalleryThumbnailUrl(media.thumbnailUrl)
+                : getGalleryThumbnailUrl(media.url)
+              
+              return (
+                <div
+                  key={media.id}
+                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group cursor-pointer"
+                >
                   {media.type === 'IMAGE' ? (
                     <Image
-                      src={media.thumbnailUrl || media.url}
+                      src={thumbnailUrl}
                       alt={media.caption || media.filename}
                       fill
-                      className="object-cover"
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                      className="object-cover"
+                      loading={index < 12 ? 'eager' : 'lazy'}
+                      quality={80}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                    <div className="w-full h-full flex items-center justify-center bg-gray-900 relative">
                       <video
                         src={media.url}
                         className="w-full h-full object-cover"
                         controls={false}
                       />
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <svg className="w-12 h-12 text-white opacity-75" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
@@ -189,7 +200,10 @@ export default function EventGalleryPage() {
                   {/* Overlay with delete button */}
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
                     <button
-                      onClick={() => handleDelete(media.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(media.id)
+                      }}
                       disabled={deletingId === media.id}
                       className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white p-2 rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Delete media"
@@ -203,16 +217,16 @@ export default function EventGalleryPage() {
                       )}
                     </button>
                   </div>
+                  
+                  {/* Caption overlay */}
+                  {media.caption && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-sm truncate">{media.caption}</p>
+                    </div>
+                  )}
                 </div>
-                
-                {/* Caption */}
-                {media.caption && (
-                  <div className="p-2">
-                    <p className="text-sm text-gray-600 truncate">{media.caption}</p>
-                  </div>
-                )}
-              </Card>
-            ))}
+              )
+            })}
           </div>
         )}
 
