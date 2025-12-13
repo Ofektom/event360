@@ -149,7 +149,7 @@ export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProp
   return (
     <Card className="max-w-md mx-auto">
       <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6 text-center">Create Account</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">Create Account</h2>
         
         {/* OAuth Buttons */}
         <div className="space-y-3 mb-6">
@@ -268,11 +268,11 @@ export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProp
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-700 sm:text-gray-600">
             Already have an account?{' '}
             <a
               href="/auth/signin"
-              className="text-[var(--theme-primary)] hover:underline font-medium"
+              className="text-purple-600 hover:text-purple-800 hover:underline font-semibold sm:font-medium"
             >
               Sign in
             </a>
