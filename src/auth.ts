@@ -302,17 +302,25 @@ export const authOptions: NextAuthOptions = {
       }
       return true
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.id = user.id
+        // Store image in token if provided (from updateSession)
+        if ((user as any).image !== undefined) {
+          token.image = (user as any).image
+        }
+        
         // Get user role from database for OAuth users
         if (account?.provider !== 'credentials' && user.email) {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { email: user.email },
-              select: { role: true, phone: true }
+              select: { role: true, phone: true, image: true }
             })
             token.role = (dbUser?.role as UserRole) || UserRole.USER
+            if (dbUser?.image) {
+              token.image = dbUser.image
+            }
             
             // Auto-link user to invitees after authentication
             if (dbUser && user.id) {
@@ -333,8 +341,11 @@ export const authOptions: NextAuthOptions = {
             try {
               const dbUser = await prisma.user.findUnique({
                 where: { id: user.id },
-                select: { phone: true }
+                select: { phone: true, image: true }
               })
+              if (dbUser?.image) {
+                token.image = dbUser.image
+              }
               await linkUserToInvitees(user.id, user.email, dbUser?.phone || undefined)
             } catch (linkError) {
               console.error('Error auto-linking invitees:', linkError)
@@ -346,6 +357,19 @@ export const authOptions: NextAuthOptions = {
         if ((user as any).redirectPath) {
           token.redirectPath = (user as any).redirectPath
         }
+      } else if (trigger === 'update' && token.id) {
+        // When session is updated, fetch latest user data from database
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { image: true, name: true }
+          })
+          if (dbUser?.image) {
+            token.image = dbUser.image
+          }
+        } catch (error) {
+          console.error('Error updating token from database:', error)
+        }
       }
       return token
     },
@@ -353,6 +377,23 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id as string
         ;(session.user as any).role = token.role as UserRole
+        // Update image from token if available (updated via updateSession)
+        if (token.image) {
+          session.user.image = token.image as string
+        } else if (token.id) {
+          // Fetch latest image from database if not in token
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { image: true }
+            })
+            if (dbUser?.image) {
+              session.user.image = dbUser.image
+            }
+          } catch (error) {
+            console.error('Error fetching user image in session callback:', error)
+          }
+        }
       }
       return session
     },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { uploadToCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary'
+import { prisma } from '@/lib/prisma'
 
 /**
  * POST /api/user/profile/picture
@@ -72,8 +73,16 @@ export async function POST(request: NextRequest) {
       ],
     })
 
+    const imageUrl = result.secureUrl || result.url
+
+    // Immediately save the image URL to the user's profile in the database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { image: imageUrl },
+    })
+
     return NextResponse.json({
-      url: result.secureUrl || result.url,
+      url: imageUrl,
       publicId: result.publicId,
     })
   } catch (error: any) {

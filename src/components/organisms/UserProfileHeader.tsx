@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Image from 'next/image'
 import { Card } from '@/components/atoms/Card'
 import { Button } from '@/components/atoms/Button'
@@ -33,6 +34,7 @@ interface UserProfileHeaderProps {
 
 export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
   const router = useRouter()
+  const { update: updateSession } = useSession()
   
   if (!user) {
     return (
@@ -119,7 +121,17 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
         image: newImageUrl,
       })
       
-      setMessage({ type: 'success', text: 'Profile picture uploaded successfully! Please save to update your profile.' })
+      // Update NextAuth session with new image
+      await updateSession({
+        ...user,
+        image: newImageUrl,
+      })
+      
+      // Refresh the page to update all components with new image
+      setMessage({ type: 'success', text: 'Profile picture uploaded successfully! Refreshing...' })
+      setTimeout(() => {
+        router.refresh()
+      }, 500)
     } catch (error: any) {
       console.error('Error uploading image:', error)
       setMessage({ type: 'error', text: error.message || 'Failed to upload profile picture' })
@@ -162,6 +174,11 @@ export function UserProfileHeader({ user, stats }: UserProfileHeaderProps) {
           image: result.user.image,
           phone: result.user.phone,
           role: result.user.role,
+        })
+        
+        // Update NextAuth session with new data
+        await updateSession({
+          ...result.user,
         })
       }
 
