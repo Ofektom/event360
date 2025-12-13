@@ -12,7 +12,7 @@ export function Footer({ variant = 'dashboard' }: FooterProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
             {/* About Section */}
             <div className="min-w-0">
-              <h3 className="text-xl font-bold mb-4">Gbedoo</h3>
+              <h3 className="text-xl font-bold mb-4">gbadoo</h3>
               <p className="text-gray-400 text-sm leading-relaxed break-words">
                 Your complete event management platform for celebrations and special moments.
               </p>
@@ -62,7 +62,7 @@ export function Footer({ variant = 'dashboard' }: FooterProps) {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p className="text-sm">&copy; {new Date().getFullYear()} Gbedoo. All rights reserved.</p>
+            <p className="text-sm">&copy; {new Date().getFullYear()} gbadoo. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -75,7 +75,7 @@ export function Footer({ variant = 'dashboard' }: FooterProps) {
       <div className="w-full px-[10px]">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-sm">
-            &copy; {new Date().getFullYear()} Gbedoo. All rights reserved.
+            &copy; {new Date().getFullYear()} gbadoo. All rights reserved.
           </p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <Link href="/about" className="text-sm text-gray-600 hover:text-purple-600">
