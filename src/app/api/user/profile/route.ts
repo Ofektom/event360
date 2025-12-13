@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { getUserInvitedEvents } from '@/lib/invitee-linking'
 import { Prisma } from '@prisma/client'
 
+// Cache duration: 5 minutes
+const CACHE_DURATION = 5 * 60 // 5 minutes in seconds
+
 type EventWithRelations = Prisma.EventGetPayload<{
   include: {
     theme: true
@@ -186,7 +189,7 @@ export async function GET(request: NextRequest) {
       }),
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
@@ -202,6 +205,11 @@ export async function GET(request: NextRequest) {
       mediaAssets,
       interactions,
     })
+
+    // Add cache headers for client-side caching
+    response.headers.set('Cache-Control', `private, max-age=${CACHE_DURATION}, stale-while-revalidate=60`)
+    
+    return response
   } catch (error: any) {
     console.error('Error fetching user profile:', error)
 

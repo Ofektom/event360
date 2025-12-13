@@ -16,7 +16,32 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
   const pathname = usePathname()
   const { data: session } = useSession()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [cachedProfile, setCachedProfile] = useState<any>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Load cached profile data on mount and when session changes
+  useEffect(() => {
+    if (session?.user) {
+      // Cache the session user data
+      cacheUserProfile({
+        id: session.user.id,
+        email: session.user.email || '',
+        name: session.user.name || null,
+        image: session.user.image || null,
+        role: session.user.role || 'USER',
+      })
+
+      // Also try to load from cache for faster display
+      const cached = getCachedUserProfile()
+      if (cached) {
+        setCachedProfile(cached)
+      }
+    } else {
+      // Clear cache when user logs out
+      clearUserProfileCache()
+      setCachedProfile(null)
+    }
+  }, [session])
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/')
@@ -68,8 +93,15 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
   }, [pathname, onActiveTabChange])
 
   const handleSignOut = async () => {
+    // Clear cache on sign out
+    clearUserProfileCache()
     await signOut({ callbackUrl: '/' })
   }
+
+  // Use cached profile image if available, otherwise use session
+  const displayImage = cachedProfile?.image || session?.user?.image
+  const displayName = cachedProfile?.name || session?.user?.name
+  const displayInitial = displayName?.charAt(0).toUpperCase() || session?.user?.email?.charAt(0).toUpperCase() || 'U'
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -210,19 +242,25 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
             </Link>
           </div>
 
-          {/* Right: User Menu */}
-          <div className="flex items-center gap-4">
-            {session ? (
+          {/* Right: User Menu - Only show if user is logged in */}
+          {session && (
+            <div className="flex items-center gap-4">
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-semibold">
-                    {session.user?.name?.charAt(0).toUpperCase() ||
-                      session.user?.email?.charAt(0).toUpperCase() ||
-                      'U'}
-                  </div>
+                  {displayImage ? (
+                    <img
+                      src={displayImage}
+                      alt={displayName || 'User'}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-semibold">
+                      {displayInitial}
+                    </div>
+                  )}
                   <svg
                     className={`w-4 h-4 text-gray-600 transition-transform ${
                       showUserMenu ? 'rotate-180' : ''
@@ -286,21 +324,8 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
                   </div>
                 )}
               </div>
-            ) : (
-              <>
-                <Link href="/auth/signin">
-                  <Button variant="outline" size="sm">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/auth/signup">
-                  <Button variant="primary" size="sm">
-                    Sign Up
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Mobile Navigation Links */}
