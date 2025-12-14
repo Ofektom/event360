@@ -169,8 +169,8 @@ export function Navbar({ variant = 'dashboard', onMenuClick, onActiveTabChange }
 
   // Dashboard navbar
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white shadow-lg border-b border-gray-200 z-50">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="fixed top-0 left-0 right-0 bg-white shadow-lg border-b border-gray-200 z-50 overflow-x-hidden w-full max-w-full">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-hidden">
         <div className="flex justify-between items-center py-3 sm:py-4">
           {/* Left: Logo and Hamburger */}
           <div className="flex items-center gap-4">

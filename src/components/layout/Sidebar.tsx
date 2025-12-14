@@ -270,7 +270,7 @@ export function Sidebar({ isOpen, onClose, menuType = 'events', eventId }: Sideb
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-white shadow-lg z-40 transform transition-transform duration-300 ease-in-out
+          fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-white shadow-lg z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden
           lg:translate-x-0 lg:shadow-none lg:border-r lg:border-gray-200
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}

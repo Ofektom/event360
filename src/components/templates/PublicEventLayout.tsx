@@ -61,7 +61,7 @@ export function PublicEventLayout({ children, theme }: PublicEventLayoutProps) {
 
   return (
     <ThemeProvider theme={theme}>
-      <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme?.colors.background || '#ffffff' }}>
+      <div className="min-h-screen flex flex-col overflow-x-hidden w-full max-w-full" style={{ backgroundColor: theme?.colors.background || '#ffffff' }}>
         <Navbar variant="public" onMenuClick={toggleSidebar} />
         
         {/* Sidebar - Show for public event pages */}
@@ -76,7 +76,7 @@ export function PublicEventLayout({ children, theme }: PublicEventLayoutProps) {
 
         {/* Main Content Area - Adjust margin when sidebar is open */}
         <main 
-          className={`flex-1 transition-all duration-300 ${
+          className={`flex-1 transition-all duration-300 overflow-x-hidden w-full max-w-full ${
             shouldShowSidebar && sidebarOpen && isDesktop ? 'lg:ml-64' : ''
           }`}
         >

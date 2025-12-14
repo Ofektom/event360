@@ -72,13 +72,13 @@ export function VendorDashboardLayout({ children }: VendorDashboardLayoutProps) 
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden w-full max-w-full">
       {/* Navbar - Fixed at top */}
       <Navbar variant="dashboard" onMenuClick={toggleSidebar} />
       
       {/* Sidebar - Vendor-specific menu */}
       <aside
-        className={`fixed left-0 top-0 z-40 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 z-40 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300 overflow-y-auto overflow-x-hidden ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } ${isDesktop ? 'translate-x-0' : ''}`}
         style={{ marginTop: isDesktop ? '5rem' : '7.5rem', height: isDesktop ? 'calc(100vh - 5rem)' : 'calc(100vh - 7.5rem)' }}
@@ -129,20 +129,20 @@ export function VendorDashboardLayout({ children }: VendorDashboardLayoutProps) 
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ${
+        className={`flex-1 flex flex-col transition-all duration-300 overflow-x-hidden w-full max-w-full ${
           sidebarOpen ? 'lg:ml-64' : ''
         }`}
         style={{ marginTop: isDesktop ? '5rem' : '7.5rem' }}
       >
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-w-0">
-          <div className="w-full max-w-full px-[10px] pt-4 pb-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 w-full max-w-full">
+          <div className="w-full max-w-full px-[10px] sm:px-4 pt-4 pb-4">
             {children}
           </div>
         </div>
         
         {/* Footer */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 w-full max-w-full">
           <Footer variant="dashboard" />
         </div>
       </div>
