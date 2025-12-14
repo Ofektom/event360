@@ -162,88 +162,30 @@ export default function EventGalleryPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {mediaAssets.map((media, index) => {
-              // Use optimized thumbnail URL for faster loading (same as working gallery page)
+              // Use optimized thumbnail URL for faster loading (exactly like working gallery page)
               const thumbnailUrl = media.thumbnailUrl 
                 ? getGalleryThumbnailUrl(media.thumbnailUrl)
                 : getGalleryThumbnailUrl(media.url)
               
+              // Only render images for now (same as working gallery page)
+              if (media.type !== 'IMAGE') {
+                return null
+              }
+              
               return (
                 <div
                   key={media.id}
-                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group"
+                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
                 >
-                  {media.type === 'IMAGE' ? (
-                    <>
-                      <Image
-                        src={thumbnailUrl}
-                        alt={media.caption || media.filename}
-                        fill
-                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                        className="object-cover"
-                        loading={index < 12 ? 'eager' : 'lazy'}
-                        quality={80}
-                      />
-                      {/* Overlay with delete button - only visible on hover */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDelete(media.id)
-                          }}
-                          disabled={deletingId === media.id}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white p-2 rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
-                          title="Delete media"
-                        >
-                          {deletingId === media.id ? (
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                      {/* Caption overlay */}
-                      {media.caption && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          <p className="text-sm truncate">{media.caption}</p>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-900 relative">
-                      <video
-                        src={media.url}
-                        className="w-full h-full object-cover"
-                        controls={false}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <svg className="w-12 h-12 text-white opacity-75" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                      {/* Overlay with delete button for videos */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDelete(media.id)
-                          }}
-                          disabled={deletingId === media.id}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white p-2 rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed pointer-events-auto"
-                          title="Delete media"
-                        >
-                          {deletingId === media.id ? (
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <Image
+                    src={thumbnailUrl}
+                    alt={media.caption || media.filename}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                    className="object-cover"
+                    loading={index < 12 ? 'eager' : 'lazy'}
+                    quality={80}
+                  />
                 </div>
               )
             })}
