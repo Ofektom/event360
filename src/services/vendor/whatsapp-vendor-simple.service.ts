@@ -53,13 +53,15 @@ export async function sendWhatsAppVendorInvite(
 
     let message = `🎉 Vendor Invitation!\n\nHi ${vendorName},\n\nYou've been added as a vendor for ${eventTitle}!\n\n`
     
-    // Add image URL if provided (WhatsApp will show a link preview)
-    // Put image URL on its own line for better preview generation
+    // Add invitation link first (WhatsApp will use this for thumbnail/preview)
+    message += `${invitationLink}\n\n`
+    
+    // Add image URL below the link if provided (optional)
     if (invitationImageUrl && invitationImageUrl.trim() !== '' && !invitationImageUrl.startsWith('data:')) {
-      message += `${invitationImageUrl}\n\n`
+      message += `📷 View invitation design:\n${invitationImageUrl}\n\n`
     }
     
-    message += `Click the link below to:\n• Join our platform and manage your events\n• Update your vendor profile\n• Receive event reminders\n• Get rated by clients\n\n${invitationLink}\n\nEvent organized by: ${eventOwnerName}`
+    message += `Click the link above to:\n• Join our platform and manage your events\n• Update your vendor profile\n• Receive event reminders\n• Get rated by clients\n\nEvent organized by: ${eventOwnerName}`
 
     const whatsappLink = `https://wa.me/${formattedPhone.replace('+', '')}?text=${encodeURIComponent(message)}`
 

@@ -203,6 +203,23 @@ export async function POST(request: NextRequest) {
       console.log(`[${requestId}] ✅ Converted relative URL to absolute: ${invitationImageUrl}`)
     }
 
+    // Convert Cloudinary URL to app's base URL for WhatsApp (so thumbnail shows site, not image)
+    // This allows WhatsApp to show the event link as the preview thumbnail
+    let appImageUrl: string | undefined = undefined
+    if (invitationImageUrl && !invitationImageUrl.startsWith('data:')) {
+      const { getBaseUrl } = await import('@/lib/utils')
+      const baseUrl = getBaseUrl()
+      // If it's a Cloudinary URL, proxy it through our app
+      if (invitationImageUrl.includes('cloudinary.com')) {
+        const encodedUrl = encodeURIComponent(invitationImageUrl)
+        appImageUrl = `${baseUrl}/api/invitations/image-proxy?url=${encodedUrl}`
+        console.log(`[${requestId}] 🔗 Converted Cloudinary URL to app URL: ${appImageUrl.substring(0, 100)}...`)
+      } else {
+        // Already an app URL or other URL
+        appImageUrl = invitationImageUrl
+      }
+    }
+
     // Generate share link with full event URL (reuse baseUrl if already imported)
     const baseUrl = (await import('@/lib/utils')).getBaseUrl()
     const shareLink = event.slug
@@ -421,7 +438,7 @@ export async function POST(request: NextRequest) {
             name: contact.name,
             eventId: eventId,
             eventTitle: event.title,
-            invitationImageUrl,
+            invitationImageUrl: appImageUrl || invitationImageUrl, // Use app URL for WhatsApp (so thumbnail shows site)
             shareLink,
             token,
           })
@@ -459,7 +476,7 @@ export async function POST(request: NextRequest) {
                       to: whatsappNumber,
                       inviteeName: contact.name,
                       eventTitle: event.title,
-                      invitationImageUrl,
+                      invitationImageUrl: appImageUrl || invitationImageUrl, // Use app URL for WhatsApp
                       shareLink,
                       token,
                     })
