@@ -7,12 +7,12 @@
 
 import { prisma } from '@/lib/prisma'
 import { NotificationChannel } from '@prisma/client'
-import { sendEmailInvite } from '@/services/invite/email.service'
-import { sendWhatsAppInvite } from '@/services/invite/whatsapp.service'
+import { sendEmailInvite } from '@/services/invite/email-simple.service'
+import { sendWhatsAppInvite } from '@/services/invite/whatsapp-simple.service'
 import { sendMessengerInvite } from '@/services/invite/messenger.service'
 import { sendInstagramDMInvite } from '@/services/invite/instagram.service'
-import { sendVendorInvitationEmail } from '@/services/email/vendor-invitation.service'
-import { sendWhatsAppVendorInvite } from '@/services/vendor/whatsapp-vendor.service'
+import { sendVendorInvitationEmail } from '@/services/email/vendor-invitation-simple.service'
+import { sendWhatsAppVendorInvite } from '@/services/vendor/whatsapp-vendor-simple.service'
 import { sendVerificationEmail } from '@/services/email/verification.service'
 
 export interface NotificationOptions {

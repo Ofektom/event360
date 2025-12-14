@@ -3,7 +3,7 @@
  * Sends WhatsApp invitations to vendors when they're added to events
  */
 
-import { sendWhatsAppVendorInvite } from './whatsapp-vendor.service'
+import { sendWhatsAppVendorInvite } from './whatsapp-vendor-simple.service'
 import { sendVendorInvitationNotification } from '@/services/notification/notification.service'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
