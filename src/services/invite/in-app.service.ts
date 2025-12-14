@@ -13,7 +13,7 @@ interface SendInAppInviteParams {
   userId: string
   inviteeName: string
   eventTitle: string
-  invitationImageUrl: string
+  invitationImageUrl?: string // Optional invitation image
   shareLink: string
   token: string
   inviteId: string

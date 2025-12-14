@@ -17,7 +17,7 @@ interface SendInstagramDMInviteParams {
   to: string // Instagram username or user ID
   inviteeName: string
   eventTitle: string
-  invitationImageUrl: string
+  invitationImageUrl?: string // Optional invitation image
   shareLink: string
   token: string
 }

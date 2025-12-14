@@ -16,7 +16,7 @@ interface SendMessengerInviteParams {
   to: string // Facebook user ID or username
   inviteeName: string
   eventTitle: string
-  invitationImageUrl: string
+  invitationImageUrl?: string // Optional invitation image
   shareLink: string
   token: string
 }
