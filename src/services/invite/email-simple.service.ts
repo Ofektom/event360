@@ -39,17 +39,18 @@ export async function sendEmailInvite(
     const privateKey = process.env.EMAILJS_PRIVATE_KEY?.trim()
     
     // Determine which key to use as user_id
-    // When "Use Private Key" is enabled in EmailJS, use private key as user_id
-    // Otherwise, use public key
-    // Note: Public key is always required to be set, even when using private key
-    const user_id = privateKey || publicKey
+    // When "Use Private Key" is enabled in EmailJS Account > Security settings,
+    // you MUST use the private key as user_id. The public key is still required
+    // to be set and valid, but is not used as user_id in this case.
+    // If private key is not set, use public key (standard mode)
+    const usePrivateKey = !!privateKey
+    const user_id = usePrivateKey ? privateKey : publicKey
 
-    if (!serviceId || !templateId || !publicKey) {
+    if (!serviceId || !templateId) {
       console.warn('📧 EmailJS not configured. Missing environment variables.')
       const missing = []
       if (!serviceId) missing.push('EMAILJS_SERVICE_ID')
       if (!templateId) missing.push('EMAILJS_TEMPLATE_ID')
-      if (!publicKey) missing.push('EMAILJS_PUBLIC_KEY')
       
       return {
         success: false,
@@ -57,10 +58,27 @@ export async function sendEmailInvite(
       }
     }
 
+    // Public key is always required (even when using private key mode)
+    if (!publicKey) {
+      return {
+        success: false,
+        error: 'EMAILJS_PUBLIC_KEY is required. Please set it in your Vercel environment variables. You can find your Public Key at https://dashboard.emailjs.com/admin/account under "API Keys".',
+      }
+    }
+
+    // If private key is set, we assume "Use Private Key" is enabled in EmailJS
+    // In this case, private key must be valid
+    if (usePrivateKey && !privateKey) {
+      return {
+        success: false,
+        error: 'EMAILJS_PRIVATE_KEY is set but empty. Please set a valid private key in Vercel, or remove EMAILJS_PRIVATE_KEY to use public key mode.',
+      }
+    }
+
     if (!user_id) {
       return {
         success: false,
-        error: 'EmailJS API key not found. Please set either EMAILJS_PUBLIC_KEY or EMAILJS_PRIVATE_KEY in your Vercel environment variables.',
+        error: 'EmailJS API key not found. Please set either EMAILJS_PUBLIC_KEY (standard mode) or both EMAILJS_PUBLIC_KEY and EMAILJS_PRIVATE_KEY (private key mode) in your Vercel environment variables.',
       }
     }
 
@@ -146,15 +164,30 @@ export async function sendEmailInvite(
 
     if (!response.ok) {
       const errorText = await response.text()
+      let errorJson: any = null
+      try {
+        errorJson = JSON.parse(errorText)
+      } catch {
+        // Not JSON, use text as is
+      }
+      
       console.error('❌ EmailJS API Error Response:', {
         status: response.status,
         statusText: response.statusText,
-        errorText,
+        errorText: errorText.substring(0, 500), // First 500 chars
+        errorJson,
         requestData: {
           service_id: serviceId,
           template_id: templateId,
-          user_id: user_id.substring(0, 6) + '...' + user_id.substring(user_id.length - 4),
+          usingPrivateKey: usePrivateKey,
+          user_id_length: user_id.length,
+          user_id_prefix: user_id.substring(0, 6) + '...',
+          user_id_suffix: '...' + user_id.substring(user_id.length - 4),
+          public_key_length: publicKey.length,
+          public_key_prefix: publicKey.substring(0, 6) + '...',
+          public_key_suffix: '...' + publicKey.substring(publicKey.length - 4),
         },
+        fullErrorText: errorText, // Log full error for debugging
       })
       
       // Provide helpful error messages for common issues
