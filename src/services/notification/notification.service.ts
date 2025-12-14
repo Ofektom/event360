@@ -293,7 +293,7 @@ export async function sendVendorInvitationNotification(
               to: email,
               vendorName: vendorName || name || 'Vendor',
               eventTitle: eventTitle || 'Event',
-              eventOrganizerName: eventOwnerName,
+              eventOrganizerName: eventOwnerName || 'Event Organizer',
               shareLink: invitationLink || eventLink || '',
             })
             success = result.success
