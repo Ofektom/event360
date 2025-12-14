@@ -60,18 +60,20 @@ export async function sendWhatsAppInvite(
     const formattedPhone = formatPhoneNumber(to)
 
     // Create invitation message
-    // Put event link FIRST so WhatsApp shows it as the thumbnail/preview
     let message = `🎉 You're Invited!\n\nHi ${inviteeName},\n\nYou've been invited to ${eventTitle}!\n\n`
     
-    // Add event link first (WhatsApp will use this for thumbnail/preview)
+    // Add event link benefits message
+    message += `Click the link below to:\n• View your personalized invitation\n• See event details and photos\n• Stream the event live\n• RSVP and share your wishes\n\n`
+    
+    // Add event link (WhatsApp will use this for thumbnail/preview)
     message += `${shareLink}\n\n`
     
-    // Add image URL below the link if provided (optional)
+    // Add design image URL if provided (optional)
     if (invitationImageUrl && invitationImageUrl.trim() !== '' && !invitationImageUrl.startsWith('data:')) {
       message += `📷 View invitation design:\n${invitationImageUrl}\n\n`
     }
     
-    message += `Click the link above to view event details and RSVP.\n\nWe hope to see you there!`
+    message += `We hope to see you there!`
 
     // Generate WhatsApp link
     const whatsappLink = `https://wa.me/${formattedPhone.replace('+', '')}?text=${encodeURIComponent(message)}`
