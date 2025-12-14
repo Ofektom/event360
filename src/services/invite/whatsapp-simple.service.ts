@@ -53,14 +53,22 @@ function formatPhoneNumber(phone: string): string {
 export async function sendWhatsAppInvite(
   params: SendWhatsAppInviteParams
 ): Promise<{ success: boolean; error?: string; whatsappLink?: string }> {
-  const { to, inviteeName, eventTitle, shareLink } = params
+  const { to, inviteeName, eventTitle, shareLink, invitationImageUrl } = params
 
   try {
     // Format phone number
     const formattedPhone = formatPhoneNumber(to)
 
     // Create invitation message
-    const message = `🎉 You're Invited!\n\nHi ${inviteeName},\n\nYou've been invited to ${eventTitle}!\n\nClick the link below to view event details and RSVP:\n${shareLink}\n\nWe hope to see you there!`
+    let message = `🎉 You're Invited!\n\nHi ${inviteeName},\n\nYou've been invited to ${eventTitle}!\n\n`
+    
+    // Add image URL if provided (WhatsApp will show a link preview)
+    // Put image URL on its own line for better preview generation
+    if (invitationImageUrl && invitationImageUrl.trim() !== '' && !invitationImageUrl.startsWith('data:')) {
+      message += `${invitationImageUrl}\n\n`
+    }
+    
+    message += `Click the link below to view event details and RSVP:\n${shareLink}\n\nWe hope to see you there!`
 
     // Generate WhatsApp link
     const whatsappLink = `https://wa.me/${formattedPhone.replace('+', '')}?text=${encodeURIComponent(message)}`

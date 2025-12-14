@@ -273,6 +273,7 @@ export async function sendVendorInvitationNotification(
     eventOwnerName,
     invitationLink,
     eventLink,
+    invitationImageUrl, // Optional invitation image
   } = options
 
   // Get user preferences, or default to email + WhatsApp for vendors without preferences
@@ -322,6 +323,7 @@ export async function sendVendorInvitationNotification(
               eventOwnerName: eventOwnerName || 'Event Organizer',
               invitationLink: invitationLink || '',
               eventLink: eventLink || '',
+              invitationImageUrl: invitationImageUrl || undefined, // Pass image URL if available
             })
             success = result.success
             error = result.error

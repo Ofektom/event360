@@ -13,6 +13,7 @@ interface SendWhatsAppVendorInviteParams {
   eventOwnerName: string
   invitationLink: string
   eventLink?: string
+  invitationImageUrl?: string // Optional invitation image
 }
 
 /**
@@ -45,12 +46,20 @@ function formatPhoneNumber(phone: string): string {
 export async function sendWhatsAppVendorInvite(
   params: SendWhatsAppVendorInviteParams
 ): Promise<{ success: boolean; error?: string; whatsappLink?: string }> {
-  const { to, vendorName, businessName, eventTitle, eventOwnerName, invitationLink } = params
+  const { to, vendorName, businessName, eventTitle, eventOwnerName, invitationLink, invitationImageUrl } = params
 
   try {
     const formattedPhone = formatPhoneNumber(to)
 
-    const message = `🎉 Vendor Invitation!\n\nHi ${vendorName},\n\nYou've been added as a vendor for ${eventTitle}!\n\nClick the link below to:\n• Join our platform and manage your events\n• Update your vendor profile\n• Receive event reminders\n• Get rated by clients\n\n${invitationLink}\n\nEvent organized by: ${eventOwnerName}`
+    let message = `🎉 Vendor Invitation!\n\nHi ${vendorName},\n\nYou've been added as a vendor for ${eventTitle}!\n\n`
+    
+    // Add image URL if provided (WhatsApp will show a link preview)
+    // Put image URL on its own line for better preview generation
+    if (invitationImageUrl && invitationImageUrl.trim() !== '' && !invitationImageUrl.startsWith('data:')) {
+      message += `${invitationImageUrl}\n\n`
+    }
+    
+    message += `Click the link below to:\n• Join our platform and manage your events\n• Update your vendor profile\n• Receive event reminders\n• Get rated by clients\n\n${invitationLink}\n\nEvent organized by: ${eventOwnerName}`
 
     const whatsappLink = `https://wa.me/${formattedPhone.replace('+', '')}?text=${encodeURIComponent(message)}`
 
