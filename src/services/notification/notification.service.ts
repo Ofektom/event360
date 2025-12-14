@@ -46,6 +46,7 @@ export interface NotificationResult {
     channel: NotificationChannel
     success: boolean
     error?: string
+    whatsappLink?: string // For WhatsApp channel, include the link
   }[]
   error?: string
 }
@@ -163,11 +164,8 @@ export async function sendGuestInvitationNotification(
           break
 
         case NotificationChannel.WHATSAPP:
-          // Check if user accepted charges
-          if (!whatsappAccepted) {
-            error = 'WhatsApp charges not accepted by user'
-            break
-          }
+          // WhatsApp links (wa.me) are free, so we don't need to check charges
+          // The link opens WhatsApp with a pre-filled message for the user to send
           if (whatsapp || phone) {
             const result = await sendWhatsAppInvite({
               to: whatsapp || phone || '',
@@ -179,6 +177,15 @@ export async function sendGuestInvitationNotification(
             })
             success = result.success
             error = result.error
+            // Include WhatsApp link in the result
+            const whatsappLink = (result as any).whatsappLink
+            results.push({
+              channel: NotificationChannel.WHATSAPP,
+              success,
+              error,
+              whatsappLink, // Pass through the WhatsApp link
+            })
+            continue // Skip the default push below since we already pushed
           } else {
             error = 'WhatsApp number not provided'
           }
@@ -305,10 +312,7 @@ export async function sendVendorInvitationNotification(
           break
 
         case NotificationChannel.WHATSAPP:
-          if (!whatsappAccepted) {
-            error = 'WhatsApp charges not accepted by user'
-            break
-          }
+          // WhatsApp links (wa.me) are free, so we don't need to check charges
           if (whatsapp || phone) {
             const result = await sendWhatsAppVendorInvite({
               to: whatsapp || phone || '',
@@ -321,6 +325,17 @@ export async function sendVendorInvitationNotification(
             })
             success = result.success
             error = result.error
+            // Include WhatsApp link in the result if available
+            const whatsappLink = (result as any).whatsappLink
+            if (whatsappLink) {
+              results.push({
+                channel: NotificationChannel.WHATSAPP,
+                success,
+                error,
+                whatsappLink, // Pass through the WhatsApp link
+              })
+              continue // Skip the default push below since we already pushed
+            }
           } else {
             error = 'WhatsApp number not provided'
           }

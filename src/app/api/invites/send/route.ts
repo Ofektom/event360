@@ -217,6 +217,7 @@ export async function POST(request: NextRequest) {
     let sent = 0
     let failed = 0
     const errors: string[] = []
+    const whatsappLinks: Array<{ contactName: string; phone: string; link: string }> = [] // Store WhatsApp links
 
     // Send invitations for each contact
     console.log(`[${requestId}] 📋 Processing ${contacts.length} contact(s)...`)
@@ -427,10 +428,21 @@ export async function POST(request: NextRequest) {
           // Check if at least one channel succeeded
           const successfulChannels = notificationResult.channels.filter(c => c.success)
           if (successfulChannels.length > 0) {
-            sendResult = { success: true }
+            // Check if WhatsApp link is in the result
+            const whatsappChannel = notificationResult.channels.find(c => c.channel === 'WHATSAPP' && (c as any).whatsappLink)
+            if (whatsappChannel && (whatsappChannel as any).whatsappLink) {
+              // For WhatsApp, return the link
+              sendResult = { 
+                success: true,
+                whatsappLink: (whatsappChannel as any).whatsappLink,
+              } as any
+            } else {
+              sendResult = { success: true }
+            }
             console.log(`[${requestId}] [${contactId}] ✅ Invitation sent via notification service:`, {
               successfulChannels: successfulChannels.map(c => c.channel),
-              failedChannels: notificationResult.channels.filter(c => !c.success).map(c => ({ channel: c.channel, error: c.error }))
+              failedChannels: notificationResult.channels.filter(c => !c.success).map(c => ({ channel: c.channel, error: c.error })),
+              hasWhatsAppLink: !!(whatsappChannel && (whatsappChannel as any).whatsappLink),
             })
           } else {
             // If notification service failed, fall back to the specified channel
@@ -589,7 +601,24 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (sendResult.success) {
+        // For WhatsApp, collect the link even if "success" - we'll show it to user to click
+        if (inviteChannel === 'WHATSAPP' && sendResult.success && (sendResult as any).whatsappLink) {
+          const whatsappNumber = whatsapp || phone || contact.contactInfo
+          whatsappLinks.push({
+            contactName: contact.name,
+            phone: whatsappNumber || '',
+            link: (sendResult as any).whatsappLink,
+          })
+          // Mark as sent since we generated the link successfully
+          await prisma.invite.update({
+            where: { id: invite.id },
+            data: {
+              status: 'SENT',
+              sentAt: new Date(),
+            },
+          })
+          sent++
+        } else if (sendResult.success) {
           console.log(`[${requestId}] [${contactId}] ✅ Invitation sent successfully`)
           // Update invite status
           await prisma.invite.update({
@@ -628,6 +657,7 @@ export async function POST(request: NextRequest) {
       failed,
       total: sent + failed,
       errors: errors.slice(0, 10), // Limit errors to first 10
+      whatsappLinks: whatsappLinks.length > 0 ? whatsappLinks : undefined, // Include WhatsApp links if any
     })
   } catch (error: any) {
     console.error(`[${requestId}] ❌ Fatal error in send invitations:`, error)

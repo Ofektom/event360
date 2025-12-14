@@ -53,6 +53,7 @@ export default function SendInvitationsPage() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [whatsappLinks, setWhatsappLinks] = useState<Array<{ contactName: string; phone: string; link: string }>>([])
 
   // Step 1: Design selection
   const [selectedDesign, setSelectedDesign] = useState<string | null>(null)
@@ -391,16 +392,26 @@ export default function SendInvitationsPage() {
       }
 
       const result = await response.json()
-      setSuccess(
-        `Successfully sent ${result.sent} invitation(s). ${result.failed > 0 ? `${result.failed} failed.` : ''}`
-      )
-
-      // Clear contacts after successful send
-      setTimeout(() => {
-        setContacts([])
-        setContactName('')
-        setContactInfo('')
-      }, 2000)
+      
+      // Handle WhatsApp links - show them to user to click
+      if (result.whatsappLinks && result.whatsappLinks.length > 0) {
+        setWhatsappLinks(result.whatsappLinks)
+        setSuccess(
+          `WhatsApp links generated for ${result.whatsappLinks.length} contact(s). Click the buttons below to open WhatsApp and send the invitations.`
+        )
+      } else {
+        setSuccess(
+          `Successfully sent ${result.sent} invitation(s). ${result.failed > 0 ? `${result.failed} failed.` : ''}`
+        )
+        // Clear contacts after successful send (only if not WhatsApp)
+        setTimeout(() => {
+          setContacts([])
+          setContactName('')
+          setContactInfo('')
+          setSelectedDesign(null)
+          setSelectedChannel(null)
+        }, 2000)
+      }
     } catch (error: any) {
       setError(error.message || 'Failed to send invitations')
     } finally {
@@ -787,7 +798,49 @@ export default function SendInvitationsPage() {
                 disabled={sending}
                 size="lg"
               >
-                Send {contacts.length} Invitation(s)
+                {selectedChannel === 'WHATSAPP' ? 'Generate WhatsApp Links' : `Send ${contacts.length} Invitation(s)`}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* WhatsApp Links Section */}
+        {whatsappLinks.length > 0 && (
+          <Card className="p-6 bg-green-50 border-green-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              📱 Open WhatsApp to Send Invitations
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Click the buttons below to open WhatsApp with pre-filled messages. You can then send them to each contact.
+            </p>
+            <div className="space-y-3">
+              {whatsappLinks.map((item, index) => (
+                <a
+                  key={index}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors text-center"
+                >
+                  📤 Send to {item.contactName} ({item.phone})
+                </a>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-green-300">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setWhatsappLinks([])
+                  setContacts([])
+                  setContactName('')
+                  setContactInfo('')
+                  setSelectedDesign(null)
+                  setSelectedChannel(null)
+                  setSuccess(null)
+                }}
+                className="w-full"
+              >
+                Done - Clear and Start Over
               </Button>
             </div>
           </Card>

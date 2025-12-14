@@ -38,17 +38,18 @@ export async function sendEmailInvite(
     const publicKey = process.env.EMAILJS_PUBLIC_KEY?.trim()
     const privateKey = process.env.EMAILJS_PRIVATE_KEY?.trim()
     
-    // Use private key if available (for server-side), otherwise use public key
-    // When using private key, we still need public key as user_id
-    const apiKey = privateKey || publicKey
-    const userId = publicKey // Always use public key as user_id
+    // Determine which key to use as user_id
+    // When "Use Private Key" is enabled in EmailJS, use private key as user_id
+    // Otherwise, use public key
+    // Note: Public key is always required to be set, even when using private key
+    const user_id = privateKey || publicKey
 
-    if (!serviceId || !templateId || !userId) {
+    if (!serviceId || !templateId || !publicKey) {
       console.warn('📧 EmailJS not configured. Missing environment variables.')
       const missing = []
       if (!serviceId) missing.push('EMAILJS_SERVICE_ID')
       if (!templateId) missing.push('EMAILJS_TEMPLATE_ID')
-      if (!userId) missing.push('EMAILJS_PUBLIC_KEY')
+      if (!publicKey) missing.push('EMAILJS_PUBLIC_KEY')
       
       return {
         success: false,
@@ -56,17 +57,12 @@ export async function sendEmailInvite(
       }
     }
 
-    if (!apiKey) {
+    if (!user_id) {
       return {
         success: false,
         error: 'EmailJS API key not found. Please set either EMAILJS_PUBLIC_KEY or EMAILJS_PRIVATE_KEY in your Vercel environment variables.',
       }
     }
-
-    // Determine which key to use as user_id
-    // When "Use Private Key" is enabled in EmailJS, use private key as user_id
-    // Otherwise, use public key
-    const user_id = privateKey || publicKey
 
     // Log configuration (without exposing full key)
     console.log('📧 EmailJS Configuration:', {
