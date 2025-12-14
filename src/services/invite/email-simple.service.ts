@@ -33,18 +33,32 @@ export async function sendEmailInvite(
 
   try {
     // Check if EmailJS is configured
-    const serviceId = process.env.EMAILJS_SERVICE_ID
-    const templateId = process.env.EMAILJS_TEMPLATE_ID
+    const serviceId = process.env.EMAILJS_SERVICE_ID?.trim()
+    const templateId = process.env.EMAILJS_TEMPLATE_ID?.trim()
     // Use private key if available (for server-side), otherwise use public key
-    const apiKey = process.env.EMAILJS_PRIVATE_KEY || process.env.EMAILJS_PUBLIC_KEY
+    const apiKey = (process.env.EMAILJS_PRIVATE_KEY || process.env.EMAILJS_PUBLIC_KEY)?.trim()
 
     if (!serviceId || !templateId || !apiKey) {
       console.warn('📧 EmailJS not configured. Missing environment variables.')
+      const missing = []
+      if (!serviceId) missing.push('EMAILJS_SERVICE_ID')
+      if (!templateId) missing.push('EMAILJS_TEMPLATE_ID')
+      if (!apiKey) missing.push('EMAILJS_PUBLIC_KEY or EMAILJS_PRIVATE_KEY')
+      
       return {
         success: false,
-        error: 'Email service not configured. Please set EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, and EMAILJS_PUBLIC_KEY (or EMAILJS_PRIVATE_KEY) environment variables.',
+        error: `Email service not configured. Missing: ${missing.join(', ')}. Please set these environment variables in your Vercel project settings.`,
       }
     }
+
+    // Log configuration (without exposing full key)
+    console.log('📧 EmailJS Configuration:', {
+      serviceId,
+      templateId,
+      apiKeyType: process.env.EMAILJS_PRIVATE_KEY ? 'PRIVATE_KEY' : 'PUBLIC_KEY',
+      apiKeyLength: apiKey.length,
+      apiKeyPrefix: apiKey.substring(0, 4) + '...',
+    })
 
     // For server-side, we'll use EmailJS REST API directly
     const emailData = {
@@ -74,11 +88,18 @@ export async function sendEmailInvite(
       const errorText = await response.text()
       console.error('❌ EmailJS API Error:', errorText)
       
-      // Provide helpful error message if non-browser API is disabled
+      // Provide helpful error messages for common issues
       if (errorText.includes('non-browser') || errorText.includes('disabled')) {
         return {
           success: false,
           error: 'EmailJS API calls are disabled for non-browser applications. Please enable "Allow EmailJS API for non-browser applications" in your EmailJS account settings (Account > Security).',
+        }
+      }
+      
+      if (errorText.includes('Public Key is invalid') || errorText.includes('invalid')) {
+        return {
+          success: false,
+          error: 'EmailJS Public Key is invalid. Please verify your EMAILJS_PUBLIC_KEY environment variable. You can find your Public Key at https://dashboard.emailjs.com/admin/account under "API Keys". Make sure to copy the entire key without any extra spaces.',
         }
       }
       
