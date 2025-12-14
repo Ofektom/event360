@@ -292,6 +292,7 @@ export async function sendVendorInvitationNotification(
             const result = await sendVendorInvitationEmail({
               to: email,
               vendorName: vendorName || name || 'Vendor',
+              businessName: businessName || vendorName || name || 'Vendor Service',
               eventTitle: eventTitle || 'Event',
               eventOrganizerName: eventOwnerName || 'Event Organizer',
               shareLink: invitationLink || eventLink || '',
