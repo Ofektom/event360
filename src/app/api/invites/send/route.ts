@@ -13,7 +13,7 @@ import { uploadDataUrlToCloudinary, isCloudinaryConfigured } from '@/lib/cloudin
 
 interface SendInvitesRequest {
   eventId: string
-  designId: string
+  designId?: string | null // Optional: Design selection is optional
   channel: string
   ceremonyIds?: string[] // Optional: Array of ceremony IDs to invite to (if not provided, invites to all ceremonies)
   contacts: Array<{
@@ -59,10 +59,10 @@ export async function POST(request: NextRequest) {
     console.log(`[${requestId}]   - channel: ${channel ? '✅' : '❌'} ${channel || 'MISSING'}`)
     console.log(`[${requestId}]   - contacts: ${contacts ? '✅' : '❌'} ${contacts?.length || 0} contact(s)`)
     
-    if (!eventId || !designId || !channel || !contacts || contacts.length === 0) {
+    if (!eventId || !channel || !contacts || contacts.length === 0) {
       const missingFields = []
       if (!eventId) missingFields.push('eventId')
-      if (!designId) missingFields.push('designId')
+      // designId is optional - don't require it
       if (!channel) missingFields.push('channel')
       if (!contacts || contacts.length === 0) missingFields.push('contacts')
       
@@ -102,105 +102,102 @@ export async function POST(request: NextRequest) {
 
     console.log(`[${requestId}] ✅ Event verified: ${event.title}`)
 
-    // Verify design exists and belongs to event
-    console.log(`[${requestId}] 🔍 Fetching design: ${designId}`)
-    const design = await prisma.invitationDesign.findUnique({
-      where: { id: designId },
-      select: { eventId: true, imageUrl: true, customImage: true },
-    })
-
-    if (!design) {
-      console.error(`[${requestId}] ❌ Design not found: ${designId}`)
-      return NextResponse.json(
-        { error: 'Invitation design not found' },
-        { status: 404 }
-      )
-    }
-
-    if (design.eventId !== eventId) {
-      console.error(`[${requestId}] ❌ Design event mismatch. Design event: ${design.eventId}, Request event: ${eventId}`)
-      return NextResponse.json(
-        { error: 'Invitation design does not belong to this event' },
-        { status: 400 }
-      )
-    }
-
-    // Get invitation image URL
-    let invitationImageUrl = design.imageUrl || design.customImage
-    console.log(`[${requestId}] 🖼️  Image URL: ${invitationImageUrl ? '✅' : '❌'} ${invitationImageUrl ? (invitationImageUrl.startsWith('data:') ? 'Data URL' : invitationImageUrl.substring(0, 50)) : 'MISSING'}`)
+    // Get invitation image URL (optional - only if design is selected)
+    let invitationImageUrl: string | undefined = undefined
     
-    if (!invitationImageUrl) {
-      console.error(`[${requestId}] ❌ Design has no image. imageUrl: ${design.imageUrl}, customImage: ${design.customImage}`)
-      return NextResponse.json(
-        { 
-          error: 'Invitation design has no image',
-          designId,
-          imageUrl: design.imageUrl,
-          customImage: design.customImage
-        },
-        { status: 400 }
-      )
-    }
+    if (designId) {
+      // Verify design exists and belongs to event
+      console.log(`[${requestId}] 🔍 Fetching design: ${designId}`)
+      const design = await prisma.invitationDesign.findUnique({
+        where: { id: designId },
+        select: { eventId: true, imageUrl: true, customImage: true },
+      })
 
-    // Convert data URL to Cloudinary URL if needed
-    // WhatsApp and other APIs require absolute HTTP/HTTPS URLs, not data URLs
-    if (invitationImageUrl.startsWith('data:')) {
-      console.log(`[${requestId}] 🔄 Converting data URL to Cloudinary URL...`)
+      if (!design) {
+        console.error(`[${requestId}] ❌ Design not found: ${designId}`)
+        return NextResponse.json(
+          { error: 'Invitation design not found' },
+          { status: 404 }
+        )
+      }
+
+      if (design.eventId !== eventId) {
+        console.error(`[${requestId}] ❌ Design event mismatch. Design event: ${design.eventId}, Request event: ${eventId}`)
+        return NextResponse.json(
+          { error: 'Invitation design does not belong to this event' },
+          { status: 400 }
+        )
+      }
+
+      // Get invitation image URL
+      invitationImageUrl = design.imageUrl || design.customImage || undefined
+      console.log(`[${requestId}] 🖼️  Image URL: ${invitationImageUrl ? '✅' : '❌'} ${invitationImageUrl ? (invitationImageUrl.startsWith('data:') ? 'Data URL' : invitationImageUrl.substring(0, 50)) : 'MISSING'}`)
       
-      if (isCloudinaryConfigured()) {
-        try {
-          // Upload data URL to Cloudinary
-          const uploadType = 'invitation'
-          const folder = `gbedoo/${uploadType}/${eventId}`
+      // If design is selected but has no image, that's okay - we'll just send without image
+      if (invitationImageUrl) {
+        // Convert data URL to Cloudinary URL if needed
+        // WhatsApp and other APIs require absolute HTTP/HTTPS URLs, not data URLs
+        if (invitationImageUrl.startsWith('data:')) {
+          console.log(`[${requestId}] 🔄 Converting data URL to Cloudinary URL...`)
           
-          const result = await uploadDataUrlToCloudinary(invitationImageUrl, {
-            folder,
-            publicId: `invitation-${designId}-${Date.now()}`,
-            overwrite: false,
-          })
-          
-          invitationImageUrl = result.secureUrl
-          console.log(`[${requestId}] ✅ Uploaded data URL to Cloudinary: ${invitationImageUrl.substring(0, 100)}...`)
-          
-          // Update the design record with the Cloudinary URL for future use
-          try {
-            await prisma.invitationDesign.update({
-              where: { id: designId },
-              data: {
-                imageUrl: result.secureUrl,
-                customImage: design.customImage?.startsWith('data:') ? result.secureUrl : design.customImage,
-              },
-            })
-            console.log(`[${requestId}] ✅ Updated design record with Cloudinary URL`)
-          } catch (updateError) {
-            // Log but don't fail - the URL is still valid for this send
-            console.warn(`[${requestId}] ⚠️ Failed to update design record:`, updateError)
+          if (isCloudinaryConfigured()) {
+            try {
+              // Upload data URL to Cloudinary
+              const uploadType = 'invitation'
+              const folder = `gbedoo/${uploadType}/${eventId}`
+              
+              const result = await uploadDataUrlToCloudinary(invitationImageUrl, {
+                folder,
+                publicId: `invitation-${designId}-${Date.now()}`,
+                overwrite: false,
+              })
+              
+              invitationImageUrl = result.secureUrl
+              console.log(`[${requestId}] ✅ Uploaded data URL to Cloudinary: ${invitationImageUrl.substring(0, 100)}...`)
+              
+              // Update the design record with the Cloudinary URL for future use
+              try {
+                await prisma.invitationDesign.update({
+                  where: { id: designId },
+                  data: {
+                    imageUrl: result.secureUrl,
+                    customImage: design.customImage?.startsWith('data:') ? result.secureUrl : design.customImage,
+                  },
+                })
+                console.log(`[${requestId}] ✅ Updated design record with Cloudinary URL`)
+              } catch (updateError) {
+                // Log but don't fail - the URL is still valid for this send
+                console.warn(`[${requestId}] ⚠️ Failed to update design record:`, updateError)
+              }
+            } catch (cloudinaryError: any) {
+              console.error(`[${requestId}] ❌ Failed to upload to Cloudinary:`, cloudinaryError.message)
+              // Fallback to API endpoint method (less ideal but works)
+              const { getBaseUrl } = await import('@/lib/utils')
+              const baseUrl = getBaseUrl()
+              const encodedDataUrl = encodeURIComponent(invitationImageUrl)
+              invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
+              console.log(`[${requestId}] ⚠️ Fallback: Using API endpoint URL: ${invitationImageUrl.substring(0, 100)}...`)
+            }
+          } else {
+            // Cloudinary not configured - use API endpoint as fallback
+            console.log(`[${requestId}] ⚠️ Cloudinary not configured, using API endpoint fallback...`)
+            const { getBaseUrl } = await import('@/lib/utils')
+            const baseUrl = getBaseUrl()
+            const encodedDataUrl = encodeURIComponent(invitationImageUrl)
+            invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
+            console.log(`[${requestId}] ⚠️ Using API endpoint URL: ${invitationImageUrl.substring(0, 100)}...`)
+            console.log(`[${requestId}] ⚠️ Note: Configure Cloudinary for better reliability`)
           }
-        } catch (cloudinaryError: any) {
-          console.error(`[${requestId}] ❌ Failed to upload to Cloudinary:`, cloudinaryError.message)
-          // Fallback to API endpoint method (less ideal but works)
+        } else if (invitationImageUrl.startsWith('/')) {
+          // Relative URL - convert to absolute
           const { getBaseUrl } = await import('@/lib/utils')
           const baseUrl = getBaseUrl()
-          const encodedDataUrl = encodeURIComponent(invitationImageUrl)
-          invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
-          console.log(`[${requestId}] ⚠️ Fallback: Using API endpoint URL: ${invitationImageUrl.substring(0, 100)}...`)
+          invitationImageUrl = `${baseUrl}${invitationImageUrl}`
+          console.log(`[${requestId}] ✅ Converted relative URL to absolute: ${invitationImageUrl}`)
         }
-      } else {
-        // Cloudinary not configured - use API endpoint as fallback
-        console.log(`[${requestId}] ⚠️ Cloudinary not configured, using API endpoint fallback...`)
-        const { getBaseUrl } = await import('@/lib/utils')
-        const baseUrl = getBaseUrl()
-        const encodedDataUrl = encodeURIComponent(invitationImageUrl)
-        invitationImageUrl = `${baseUrl}/api/invitations/image?data=${encodedDataUrl}`
-        console.log(`[${requestId}] ⚠️ Using API endpoint URL: ${invitationImageUrl.substring(0, 100)}...`)
-        console.log(`[${requestId}] ⚠️ Note: Configure Cloudinary for better reliability`)
       }
-    } else if (invitationImageUrl.startsWith('/')) {
-      // Relative URL - convert to absolute
-      const { getBaseUrl } = await import('@/lib/utils')
-      const baseUrl = getBaseUrl()
-      invitationImageUrl = `${baseUrl}${invitationImageUrl}`
-      console.log(`[${requestId}] ✅ Converted relative URL to absolute: ${invitationImageUrl}`)
+    } else {
+      console.log(`[${requestId}] ℹ️  No design selected - invitations will be sent without images`)
     }
 
     // Convert Cloudinary URL to app's base URL for WhatsApp (so thumbnail shows site, not image)

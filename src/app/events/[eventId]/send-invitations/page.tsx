@@ -35,8 +35,6 @@ interface Contact {
 
 const CHANNELS = [
   { value: 'WHATSAPP', label: 'WhatsApp', icon: '💬', placeholder: '+1234567890', validation: /^\+?[1-9]\d{1,14}$/ },
-  { value: 'FACEBOOK_MESSENGER', label: 'Messenger', icon: '💌', placeholder: 'username or Facebook ID', validation: /^[a-zA-Z0-9._]+$/ },
-  { value: 'INSTAGRAM_DM', label: 'Instagram DM', icon: '📷', placeholder: '@username or username', validation: /^@?[a-zA-Z0-9._]+$/ },
   { value: 'EMAIL', label: 'Email', icon: '📧', placeholder: 'email@example.com', validation: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
 ]
 
@@ -116,19 +114,13 @@ export default function SendInvitationsPage() {
       setEvent(eventData)
       setDesigns(designsData)
 
-      // Check for designId in URL query params first
+      // Only set design if explicitly provided in URL
+      // Don't auto-select a default design - user must explicitly select one
       const designIdFromUrl = searchParams.get('designId')
       if (designIdFromUrl && designsData.find((d: InvitationDesign) => d.id === designIdFromUrl)) {
         setSelectedDesign(designIdFromUrl)
-      } else {
-        // Set default design if available
-        const defaultDesign = designsData.find((d: InvitationDesign) => d.isDefault)
-        if (defaultDesign) {
-          setSelectedDesign(defaultDesign.id)
-        } else if (designsData.length > 0) {
-          setSelectedDesign(designsData[0].id)
-        }
       }
+      // Design selection is optional - user must explicitly select one if they want to include it
 
       // Check if user has Facebook account linked
       checkFacebookAccount()
@@ -187,10 +179,7 @@ export default function SendInvitationsPage() {
     const channelConfig = CHANNELS.find((c) => c.value === channel)
     if (!channelConfig) return false
 
-    // Remove @ for Instagram validation
-    const cleanedInfo = channel === 'INSTAGRAM_DM' ? info.replace('@', '') : info
-
-    return channelConfig.validation.test(cleanedInfo)
+    return channelConfig.validation.test(info)
   }
 
   const handleAddContact = () => {
@@ -316,23 +305,15 @@ export default function SendInvitationsPage() {
       setContacts([...contacts, ...newContacts])
       setShowPhoneContacts(false)
     } else {
-      setError(`No valid ${selectedChannelConfig?.label} contacts found in selected phone contacts`)
+      const channelConfig = CHANNELS.find((c) => c.value === selectedChannel)
+      setError(`No valid ${channelConfig?.label} contacts found in selected phone contacts`)
     }
   }
 
   const handleSocialContactSelected = (friend: any) => {
     const newContacts: Contact[] = []
     
-    // Auto-detect available channels based on selected channel
-    if (selectedChannel === 'FACEBOOK_MESSENGER' && friend.messengerId) {
-      newContacts.push({
-        id: `fb_${friend.id}`,
-        name: friend.name,
-        contactInfo: friend.messengerId,
-        channel: 'FACEBOOK_MESSENGER',
-      })
-    }
-    
+    // Only support Email channel from Facebook friends (Messenger removed from UI)
     if (selectedChannel === 'EMAIL' && friend.email) {
       newContacts.push({
         id: `fb_email_${friend.id}`,
@@ -345,20 +326,19 @@ export default function SendInvitationsPage() {
     if (newContacts.length > 0) {
       setContacts([...contacts, ...newContacts])
     } else {
-      setError(`Selected friend doesn't have ${selectedChannelConfig?.label} contact info available`)
+      const channelConfig = CHANNELS.find((c) => c.value === selectedChannel)
+      setError(`Selected friend doesn't have ${channelConfig?.label} contact info available`)
     }
   }
 
   const handleSendInvitations = async () => {
-    if (!selectedDesign) {
-      setError('Please select an invitation design')
-      return
-    }
-
     if (!selectedChannel) {
       setError('Please select a delivery channel')
       return
     }
+
+    // Design is optional - only validate if user wants to include it
+    // If no design is selected, invitations will be sent without images
 
     if (contacts.length === 0) {
       setError('Please add at least one contact')
@@ -377,7 +357,7 @@ export default function SendInvitationsPage() {
         },
         body: JSON.stringify({
           eventId,
-          designId: selectedDesign,
+          designId: selectedDesign || null, // Design is optional
           channel: selectedChannel,
           contacts: contacts.map((c) => ({
             name: c.name,
@@ -471,11 +451,14 @@ export default function SendInvitationsPage() {
           </div>
         )}
 
-        {/* Step 1: Design Selection */}
+        {/* Step 1: Design Selection (Optional) */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Step 1: Select Invitation Design
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Step 1: Select Invitation Design (Optional)
           </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            You can optionally select a design to include with your invitations. If no design is selected, invitations will be sent without images.
+          </p>
           {designs.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No invitation designs found.</p>
@@ -541,7 +524,7 @@ export default function SendInvitationsPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-4">
             Step 2: Select Delivery Channel
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {CHANNELS.map((channel) => (
               <button
                 key={channel.value}
@@ -591,45 +574,7 @@ export default function SendInvitationsPage() {
                 >
                   📱 Import from Phone
                 </Button>
-                {hasFacebookAccount ? (
-                  <Button
-                    variant="outline"
-                    onClick={fetchFacebookFriends}
-                    isLoading={loadingSocialContacts}
-                  >
-                    👥 Import Facebook Friends
-                  </Button>
-                ) : (
-                  <div className="w-full">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
-                      <div className="flex items-start gap-3">
-                        <div className="text-2xl">ℹ️</div>
-                        <div className="flex-1">
-                          <p className="font-medium text-blue-900 mb-2">Connect Facebook to Import Friends</p>
-                          <p className="text-sm text-blue-800 mb-3">
-                            To import your Facebook friends, you need to connect your Facebook account. This is required by Facebook's security policies.
-                          </p>
-                          <ul className="list-disc list-inside space-y-1 text-sm text-blue-800 mb-3">
-                            <li>Access your friends list (only friends who also use this app)</li>
-                            <li>Send invitations via Facebook Messenger</li>
-                            <li>Quickly add your social contacts</li>
-                          </ul>
-                          <p className="text-xs text-blue-700 font-medium">
-                            🔒 Your privacy is protected: We only access friends who have connected with this app, and you can revoke access anytime from your Facebook settings.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="primary"
-                      onClick={handleLinkFacebook}
-                      isLoading={linkingFacebook}
-                      className="w-full sm:w-auto"
-                    >
-                      {linkingFacebook ? 'Connecting...' : '🔗 Connect Facebook Account'}
-                    </Button>
-                  </div>
-                )}
+                {/* Facebook import removed from UI - only WhatsApp and Email channels available */}
               </div>
             </div>
 
@@ -643,80 +588,7 @@ export default function SendInvitationsPage() {
               </div>
             )}
 
-            {/* Social Contacts Picker */}
-            {showSocialContacts && (
-              <Card className="p-4 mb-4 bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-gray-900">
-                    Facebook Friends {socialContacts.length > 0 && `(${socialContacts.length})`}
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setShowSocialContacts(false)
-                      setSocialContacts([])
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                    type="button"
-                  >
-                    ×
-                  </button>
-                </div>
-                {socialContacts.length > 0 ? (
-                  <div className="max-h-64 overflow-y-auto space-y-2">
-                    {socialContacts.map((friend) => {
-                      const hasContactInfo = 
-                        (selectedChannel === 'FACEBOOK_MESSENGER' && friend.messengerId) ||
-                        (selectedChannel === 'EMAIL' && friend.email)
-                      
-                      return (
-                        <div
-                          key={friend.id}
-                          onClick={() => hasContactInfo && handleSocialContactSelected(friend)}
-                          className={`p-3 border rounded-lg transition-all ${
-                            hasContactInfo
-                              ? 'cursor-pointer hover:border-purple-500 border-gray-200'
-                              : 'opacity-50 cursor-not-allowed border-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            {friend.picture && (
-                              <img
-                                src={friend.picture}
-                                alt={friend.name}
-                                className="w-10 h-10 rounded-full"
-                              />
-                            )}
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">{friend.name}</div>
-                              {friend.email && (
-                                <div className="text-sm text-gray-600">📧 {friend.email}</div>
-                              )}
-                              {!hasContactInfo && (
-                                <div className="text-xs text-red-500 mt-1">
-                                  No {selectedChannelConfig?.label} contact available
-                                </div>
-                              )}
-                            </div>
-                            {hasContactInfo && (
-                              <div className="text-purple-600 text-sm">+ Add</div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-gray-600 mb-2">
-                      No friends found.
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Make sure you've signed in with Facebook and that your friends have also connected with this app.
-                    </p>
-                  </div>
-                )}
-              </Card>
-            )}
+            {/* Social Contacts Picker - Removed from UI (only WhatsApp and Email channels available) */}
 
             {/* Add Contact Form */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
@@ -780,7 +652,7 @@ export default function SendInvitationsPage() {
         )}
 
         {/* Step 4: Send */}
-        {selectedDesign && selectedChannel && contacts.length > 0 && (
+        {selectedChannel && contacts.length > 0 && (
           <Card className="p-6 bg-purple-50 border-purple-200">
             <div className="flex justify-between items-center">
               <div>
