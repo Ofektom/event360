@@ -400,14 +400,15 @@ export async function POST(request: NextRequest) {
         console.log(`[${requestId}] [${contactId}] 📤 Sending invitation via notification service (respects preferences)...`)
         let sendResult: { success: boolean; error?: string } = { success: false }
 
+        // Prepare contact info based on the specified channel (define outside try block for scope)
+        const email = invitee.email || (inviteChannel === 'EMAIL' ? contact.contactInfo : undefined)
+        const phone = invitee.phone || (['WHATSAPP', 'SMS'].includes(inviteChannel) ? contact.contactInfo : undefined)
+        const whatsapp = invitee.whatsapp || (inviteChannel === 'WHATSAPP' ? contact.contactInfo : undefined)
+        const messenger = invitee.messenger || (inviteChannel === 'FACEBOOK_MESSENGER' ? contact.contactInfo : undefined)
+        const instagram = invitee.instagram || (inviteChannel === 'INSTAGRAM_DM' ? contact.contactInfo.replace('@', '') : undefined)
+
         // Always use notification service - it will handle preferences or default to email
         try {
-          // Prepare contact info based on the specified channel
-          const email = invitee.email || (inviteChannel === 'EMAIL' ? contact.contactInfo : undefined)
-          const phone = invitee.phone || (['WHATSAPP', 'SMS'].includes(inviteChannel) ? contact.contactInfo : undefined)
-          const whatsapp = invitee.whatsapp || (inviteChannel === 'WHATSAPP' ? contact.contactInfo : undefined)
-          const messenger = invitee.messenger || (inviteChannel === 'FACEBOOK_MESSENGER' ? contact.contactInfo : undefined)
-          const instagram = invitee.instagram || (inviteChannel === 'INSTAGRAM_DM' ? contact.contactInfo.replace('@', '') : undefined)
 
           const notificationResult = await sendGuestInvitationNotification({
             userId: invitee.userId || undefined,
