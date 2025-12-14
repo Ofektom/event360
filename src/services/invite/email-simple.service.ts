@@ -64,6 +64,25 @@ export async function sendEmailInvite(
       }
     }
 
+    // Validate public key format (should be alphanumeric, typically 16-20 characters)
+    // EmailJS public keys are usually alphanumeric strings
+    if (publicKey.length < 10 || publicKey.length > 50) {
+      console.error('❌ EmailJS Public Key has invalid length:', publicKey.length)
+      return {
+        success: false,
+        error: `EmailJS Public Key appears to be invalid (length: ${publicKey.length}). Expected length: 10-50 characters. Please verify your EMAILJS_PUBLIC_KEY in Vercel environment variables. Check for extra spaces or incorrect copying.`,
+      }
+    }
+
+    // Check for common issues: extra spaces, newlines, quotes
+    if (publicKey !== publicKey.trim() || publicKey.includes('\n') || publicKey.includes('"') || publicKey.includes("'")) {
+      console.error('❌ EmailJS Public Key contains invalid characters or whitespace')
+      return {
+        success: false,
+        error: 'EmailJS Public Key contains invalid characters (spaces, newlines, or quotes). Please ensure the key is copied exactly from EmailJS dashboard without any extra characters. Remove any quotes if you added them in Vercel.',
+      }
+    }
+
     // Log configuration (without exposing full key)
     console.log('📧 EmailJS Configuration:', {
       serviceId,
@@ -74,8 +93,13 @@ export async function sendEmailInvite(
       userIdLength: user_id.length,
       userIdPrefix: user_id.substring(0, 6) + '...',
       userIdSuffix: '...' + user_id.substring(user_id.length - 4),
+      publicKeyLength: publicKey.length,
       publicKeyPrefix: publicKey ? publicKey.substring(0, 6) + '...' : 'N/A',
       publicKeySuffix: publicKey ? '...' + publicKey.substring(publicKey.length - 4) : 'N/A',
+      publicKeyHasSpaces: publicKey.includes(' '),
+      publicKeyHasNewlines: publicKey.includes('\n'),
+      publicKeyStartsWithQuote: publicKey.startsWith('"') || publicKey.startsWith("'"),
+      publicKeyEndsWithQuote: publicKey.endsWith('"') || publicKey.endsWith("'"),
     })
 
     // For server-side, we'll use EmailJS REST API directly
@@ -141,10 +165,38 @@ export async function sendEmailInvite(
         }
       }
       
-      if (errorText.includes('Public Key is invalid') || errorText.includes('invalid')) {
+      if (errorText.includes('Public Key is invalid') || errorText.includes('invalid') || errorText.includes('Invalid')) {
+        // Try to parse JSON error for more details
+        let detailedError = 'EmailJS Public Key is invalid.'
+        try {
+          const errorJson = JSON.parse(errorText)
+          if (errorJson.text || errorJson.message) {
+            detailedError = errorJson.text || errorJson.message
+          }
+        } catch {
+          // Not JSON, use the text as is
+        }
+        
         return {
           success: false,
-          error: 'EmailJS Public Key is invalid. Please verify your EMAILJS_PUBLIC_KEY environment variable. You can find your Public Key at https://dashboard.emailjs.com/admin/account under "API Keys". Make sure to copy the entire key without any extra spaces.',
+          error: `${detailedError} 
+
+Troubleshooting steps:
+1. Check your configuration: Visit /api/debug/emailjs-config to see what keys are loaded
+2. Verify the Public Key in EmailJS: Go to https://dashboard.emailjs.com/admin/account and copy your Public Key
+3. Update Vercel environment variable:
+   - Go to Vercel project Settings > Environment Variables
+   - Find EMAILJS_PUBLIC_KEY
+   - Update with the exact value (no quotes, no spaces, no newlines)
+   - Make sure it matches exactly what's in EmailJS dashboard
+4. Redeploy your application after updating the variable
+5. If using private key: Ensure "Use Private Key" is enabled in EmailJS Account > Security settings, and set EMAILJS_PRIVATE_KEY in Vercel
+
+Common issues:
+- Key has extra spaces (check beginning/end)
+- Key is wrapped in quotes (remove quotes in Vercel)
+- Key was copied incorrectly (re-copy from EmailJS dashboard)
+- Wrong key type (make sure it's the Public Key, not Private Key, unless using private key mode)`,
         }
       }
       
