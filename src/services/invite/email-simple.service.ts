@@ -20,7 +20,7 @@ interface SendEmailInviteParams {
 export async function sendEmailInvite(
   params: SendEmailInviteParams
 ): Promise<{ success: boolean; error?: string }> {
-  const { to, inviteeName, eventTitle, shareLink } = params
+  const { to, inviteeName, eventTitle, shareLink, invitationImageUrl } = params
 
   try {
     // Check if EmailJS is configured
@@ -47,6 +47,7 @@ export async function sendEmailInvite(
         to_name: inviteeName,
         event_title: eventTitle,
         invitation_link: shareLink,
+        invitation_image_url: invitationImageUrl || '',
         from_name: 'gbedoo',
       },
     }
