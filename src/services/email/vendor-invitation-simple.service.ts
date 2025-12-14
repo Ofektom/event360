@@ -57,21 +57,26 @@ export async function sendVendorInvitationEmail(
       }
     }
 
+    // Determine which key to use as user_id
+    // When "Use Private Key" is enabled in EmailJS, use private key as user_id
+    const user_id = privateKey || publicKey
+
     // Log configuration (without exposing full key)
     console.log('📧 EmailJS Vendor Configuration:', {
       serviceId,
       templateId,
       hasPublicKey: !!publicKey,
       hasPrivateKey: !!privateKey,
-      apiKeyType: privateKey ? 'PRIVATE_KEY' : 'PUBLIC_KEY',
-      userIdLength: userId.length,
-      userIdPrefix: userId.substring(0, 4) + '...',
+      usingKeyType: privateKey ? 'PRIVATE_KEY' : 'PUBLIC_KEY',
+      userIdLength: user_id.length,
+      userIdPrefix: user_id.substring(0, 6) + '...',
+      userIdSuffix: '...' + user_id.substring(user_id.length - 4),
     })
 
     const emailData = {
       service_id: serviceId,
       template_id: templateId,
-      user_id: privateKey || userId, // Use private key if available, otherwise public key
+      user_id: user_id, // Use private key if available, otherwise public key
       template_params: {
         to_email: to,
         vendor_name: vendorName,
@@ -83,6 +88,14 @@ export async function sendVendorInvitationEmail(
       },
     }
 
+    // Log the request data (without exposing full keys)
+    console.log('📧 EmailJS Vendor Request Data:', {
+      service_id: serviceId,
+      template_id: templateId,
+      user_id: user_id.substring(0, 6) + '...' + user_id.substring(user_id.length - 4),
+      template_params: emailData.template_params,
+    })
+
     const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
       headers: {
@@ -91,9 +104,25 @@ export async function sendVendorInvitationEmail(
       body: JSON.stringify(emailData),
     })
 
+    // Log response details
+    console.log('📧 EmailJS Vendor API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+    })
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ EmailJS API Error:', errorText)
+      console.error('❌ EmailJS Vendor API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        requestData: {
+          service_id: serviceId,
+          template_id: templateId,
+          user_id: user_id.substring(0, 6) + '...' + user_id.substring(user_id.length - 4),
+        },
+      })
       
       // Provide helpful error messages for common issues
       if (errorText.includes('non-browser') || errorText.includes('disabled')) {

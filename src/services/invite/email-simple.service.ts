@@ -63,23 +63,31 @@ export async function sendEmailInvite(
       }
     }
 
+    // Determine which key to use as user_id
+    // When "Use Private Key" is enabled in EmailJS, use private key as user_id
+    // Otherwise, use public key
+    const user_id = privateKey || publicKey
+
     // Log configuration (without exposing full key)
     console.log('📧 EmailJS Configuration:', {
       serviceId,
       templateId,
       hasPublicKey: !!publicKey,
       hasPrivateKey: !!privateKey,
-      apiKeyType: privateKey ? 'PRIVATE_KEY' : 'PUBLIC_KEY',
-      userIdLength: userId.length,
-      userIdPrefix: userId.substring(0, 4) + '...',
+      usingKeyType: privateKey ? 'PRIVATE_KEY' : 'PUBLIC_KEY',
+      userIdLength: user_id.length,
+      userIdPrefix: user_id.substring(0, 6) + '...',
+      userIdSuffix: '...' + user_id.substring(user_id.length - 4),
+      publicKeyPrefix: publicKey ? publicKey.substring(0, 6) + '...' : 'N/A',
+      publicKeySuffix: publicKey ? '...' + publicKey.substring(publicKey.length - 4) : 'N/A',
     })
 
     // For server-side, we'll use EmailJS REST API directly
-    // When using private key, user_id should still be the public key
+    // When "Use Private Key" is enabled in EmailJS settings, use private key as user_id
     const emailData = {
       service_id: serviceId,
       template_id: templateId,
-      user_id: userId, // Always use public key as user_id
+      user_id: user_id, // Use private key if available, otherwise public key
       template_params: {
         to_email: to,
         to_name: inviteeName,
@@ -90,18 +98,17 @@ export async function sendEmailInvite(
       },
     }
 
+    // Log the request data (without exposing full keys)
+    console.log('📧 EmailJS Request Data:', {
+      service_id: serviceId,
+      template_id: templateId,
+      user_id: user_id.substring(0, 6) + '...' + user_id.substring(user_id.length - 4),
+      template_params: emailData.template_params,
+    })
+
     // Send email via EmailJS REST API
-    // If using private key, it should be used for authentication
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-    }
-    
-    // If private key is available, use it for authentication
-    if (privateKey) {
-      // EmailJS private key authentication might require it in a header or as access_token
-      // Based on EmailJS docs, private key is used as user_id when "Use Private Key" is enabled
-      // But we still need public key as user_id in the body
-      emailData.user_id = privateKey // When private key is enabled, use it as user_id
     }
 
     const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -110,9 +117,25 @@ export async function sendEmailInvite(
       body: JSON.stringify(emailData),
     })
 
+    // Log response details
+    console.log('📧 EmailJS API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+    })
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ EmailJS API Error:', errorText)
+      console.error('❌ EmailJS API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        requestData: {
+          service_id: serviceId,
+          template_id: templateId,
+          user_id: user_id.substring(0, 6) + '...' + user_id.substring(user_id.length - 4),
+        },
+      })
       
       // Provide helpful error messages for common issues
       if (errorText.includes('non-browser') || errorText.includes('disabled')) {
