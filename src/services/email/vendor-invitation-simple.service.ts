@@ -29,15 +29,20 @@ export async function sendVendorInvitationEmail(
   try {
     const serviceId = process.env.EMAILJS_SERVICE_ID?.trim()
     const templateId = (process.env.EMAILJS_VENDOR_TEMPLATE_ID || process.env.EMAILJS_TEMPLATE_ID)?.trim()
+    const publicKey = process.env.EMAILJS_PUBLIC_KEY?.trim()
+    const privateKey = process.env.EMAILJS_PRIVATE_KEY?.trim()
+    
     // Use private key if available (for server-side), otherwise use public key
-    const apiKey = (process.env.EMAILJS_PRIVATE_KEY || process.env.EMAILJS_PUBLIC_KEY)?.trim()
+    // When using private key, we still need public key as user_id
+    const apiKey = privateKey || publicKey
+    const userId = publicKey // Always use public key as user_id
 
-    if (!serviceId || !templateId || !apiKey) {
+    if (!serviceId || !templateId || !userId) {
       console.warn('📧 EmailJS not configured for vendor invitations.')
       const missing = []
       if (!serviceId) missing.push('EMAILJS_SERVICE_ID')
       if (!templateId) missing.push('EMAILJS_TEMPLATE_ID or EMAILJS_VENDOR_TEMPLATE_ID')
-      if (!apiKey) missing.push('EMAILJS_PUBLIC_KEY or EMAILJS_PRIVATE_KEY')
+      if (!userId) missing.push('EMAILJS_PUBLIC_KEY')
       
       return {
         success: false,
@@ -45,19 +50,28 @@ export async function sendVendorInvitationEmail(
       }
     }
 
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'EmailJS API key not found. Please set either EMAILJS_PUBLIC_KEY or EMAILJS_PRIVATE_KEY in your Vercel environment variables.',
+      }
+    }
+
     // Log configuration (without exposing full key)
     console.log('📧 EmailJS Vendor Configuration:', {
       serviceId,
       templateId,
-      apiKeyType: process.env.EMAILJS_PRIVATE_KEY ? 'PRIVATE_KEY' : 'PUBLIC_KEY',
-      apiKeyLength: apiKey.length,
-      apiKeyPrefix: apiKey.substring(0, 4) + '...',
+      hasPublicKey: !!publicKey,
+      hasPrivateKey: !!privateKey,
+      apiKeyType: privateKey ? 'PRIVATE_KEY' : 'PUBLIC_KEY',
+      userIdLength: userId.length,
+      userIdPrefix: userId.substring(0, 4) + '...',
     })
 
     const emailData = {
       service_id: serviceId,
       template_id: templateId,
-      user_id: apiKey, // Can be public or private key
+      user_id: privateKey || userId, // Use private key if available, otherwise public key
       template_params: {
         to_email: to,
         vendor_name: vendorName,
@@ -93,6 +107,13 @@ export async function sendVendorInvitationEmail(
         return {
           success: false,
           error: 'EmailJS Public Key is invalid. Please verify your EMAILJS_PUBLIC_KEY environment variable. You can find your Public Key at https://dashboard.emailjs.com/admin/account under "API Keys". Make sure to copy the entire key without any extra spaces.',
+        }
+      }
+      
+      if (errorText.includes('domain') || errorText.includes('Domain') || errorText.includes('origin')) {
+        return {
+          success: false,
+          error: 'EmailJS domain restriction may be blocking requests. The domain restriction feature requires a paid plan. For server-side API calls with private key, domain restriction may not be strictly enforced. If this error persists, try: 1) Upgrade your EmailJS plan to set domain restrictions, or 2) Contact EmailJS support to verify if domain restriction is required for your use case.',
         }
       }
       
