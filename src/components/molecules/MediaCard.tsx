@@ -1,14 +1,14 @@
-import { Card } from '@/components/atoms/Card'
-import Image from 'next/image'
+import { Card } from "@/components/atoms/Card";
+import Image from "next/image";
 
 interface MediaCardProps {
-  src: string
-  alt: string
-  title?: string
-  description?: string
-  onClick?: () => void
-  aspectRatio?: 'square' | 'landscape' | 'portrait'
-  loading?: 'lazy' | 'eager'
+  src: string;
+  alt: string;
+  title?: string;
+  description?: string;
+  onClick?: () => void;
+  aspectRatio?: "square" | "landscape" | "portrait";
+  loading?: "lazy" | "eager";
 }
 
 export function MediaCard({
@@ -17,21 +17,22 @@ export function MediaCard({
   title,
   description,
   onClick,
-  aspectRatio = 'square',
-  loading = 'lazy',
+  aspectRatio = "square",
+  loading = "lazy",
 }: MediaCardProps) {
   const aspectRatios = {
-    square: 'aspect-square',
-    landscape: 'aspect-video',
-    portrait: 'aspect-[3/4]',
-  }
+    square: "aspect-square",
+    landscape: "aspect-video",
+    portrait: "aspect-[3/4]",
+  };
 
-  // Determine sizes based on aspect ratio for better optimization
-  const sizes = aspectRatio === 'square' 
-    ? '(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw'
-    : aspectRatio === 'landscape'
-    ? '(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw'
-    : '(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw'
+  // Determine sizes based on aspect ratio for better optimization.
+  const sizes =
+    aspectRatio === "square"
+      ? "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+      : aspectRatio === "landscape"
+      ? "(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+      : "(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw";
 
   return (
     <Card
@@ -40,7 +41,9 @@ export function MediaCard({
       className="overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
       onClick={onClick}
     >
-      <div className={`relative w-full ${aspectRatios[aspectRatio]} bg-gray-100`}>
+      <div
+        className={`relative w-full ${aspectRatios[aspectRatio]} bg-gray-100`}
+      >
         <Image
           src={src}
           alt={alt}
@@ -62,6 +65,5 @@ export function MediaCard({
         </div>
       )}
     </Card>
-  )
+  );
 }
-
