@@ -1,279 +1,279 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import Link from 'next/link'
-import { DashboardLayout } from '@/components/templates/DashboardLayout'
-import { Card } from '@/components/atoms/Card'
-import { Button } from '@/components/atoms/Button'
-import { Input } from '@/components/atoms/Input'
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { ErrorMessage } from '@/components/shared/ErrorMessage'
-import { RSVPStatus } from '@/types/enums'
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { DashboardLayout } from "@/components/templates/DashboardLayout";
+import { Card } from "@/components/atoms/Card";
+import { Button } from "@/components/atoms/Button";
+import { Input } from "@/components/atoms/Input";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { ErrorMessage } from "@/components/shared/ErrorMessage";
+import { RSVPStatus } from "@/types/enums";
 
 interface Invitee {
-  id: string
-  name: string
-  email: string | null
-  phone: string | null
-  whatsapp: string | null
-  messenger: string | null
-  instagram: string | null
-  userId: string | null
-  role: string | null
-  group: string | null
-  rsvpStatus: RSVPStatus
-  rsvpNotes: string | null
-  preferredChannel: string | null
-  createdAt: string
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  messenger: string | null;
+  instagram: string | null;
+  userId: string | null;
+  role: string | null;
+  group: string | null;
+  rsvpStatus: RSVPStatus;
+  rsvpNotes: string | null;
+  preferredChannel: string | null;
+  createdAt: string;
 }
 
 interface Event {
-  id: string
-  title: string
+  id: string;
+  title: string;
 }
 
 export default function InviteesPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { data: session, status } = useSession()
-  const eventId = params.eventId as string
+  const params = useParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const eventId = params.eventId as string;
 
-  const [event, setEvent] = useState<Event | null>(null)
-  const [invitees, setInvitees] = useState<Invitee[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [showBulkForm, setShowBulkForm] = useState(false)
-  const [rsvpFilter, setRsvpFilter] = useState<string>('all')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [event, setEvent] = useState<Event | null>(null);
+  const [invitees, setInvitees] = useState<Invitee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showBulkForm, setShowBulkForm] = useState(false);
+  const [rsvpFilter, setRsvpFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    whatsapp: '',
-    messenger: '',
-    instagram: '',
-    role: '',
-    group: '',
-    preferredChannel: 'email',
-  })
+    name: "",
+    email: "",
+    phone: "",
+    messenger: "",
+    instagram: "",
+    role: "",
+    group: "",
+    preferredChannel: "email",
+  });
 
   // Bulk import state
-  const [bulkData, setBulkData] = useState('')
+  const [bulkData, setBulkData] = useState("");
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push(`/auth/signin?callbackUrl=/events/${eventId}/invitees`)
-      return
+    if (status === "unauthenticated") {
+      router.push(`/auth/signin?callbackUrl=/events/${eventId}/invitees`);
+      return;
     }
-    if (status === 'authenticated') {
-      fetchEvent()
-      fetchInvitees()
+    if (status === "authenticated") {
+      fetchEvent();
+      fetchInvitees();
     }
-  }, [eventId, status, router, rsvpFilter])
+  }, [eventId, status, router, rsvpFilter]);
 
   const fetchEvent = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}`)
+      const response = await fetch(`/api/events/${eventId}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch event')
+        throw new Error("Failed to fetch event");
       }
-      const data = await response.json()
-      setEvent(data)
+      const data = await response.json();
+      setEvent(data);
     } catch (error) {
-      console.error('Error fetching event:', error)
-      setError('Failed to load event')
+      console.error("Error fetching event:", error);
+      setError("Failed to load event");
     }
-  }
+  };
 
   const fetchInvitees = async () => {
     try {
-      setLoading(true)
-      const url = rsvpFilter === 'all'
-        ? `/api/events/${eventId}/invitees`
-        : `/api/events/${eventId}/invitees?rsvpStatus=${rsvpFilter}`
-      
-      const response = await fetch(url)
+      setLoading(true);
+      const url =
+        rsvpFilter === "all"
+          ? `/api/events/${eventId}/invitees`
+          : `/api/events/${eventId}/invitees?rsvpStatus=${rsvpFilter}`;
+
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('Failed to fetch invitees')
+        throw new Error("Failed to fetch invitees");
       }
-      const data = await response.json()
-      setInvitees(data)
+      const data = await response.json();
+      setInvitees(data);
     } catch (error) {
-      console.error('Error fetching invitees:', error)
-      setError('Failed to load invitees')
+      console.error("Error fetching invitees:", error);
+      setError("Failed to load invitees");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleAddInvitee = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
 
     try {
       const response = await fetch(`/api/events/${eventId}/invitees`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email || undefined,
           phone: formData.phone || undefined,
-          whatsapp: formData.whatsapp || undefined,
           messenger: formData.messenger || undefined,
           instagram: formData.instagram || undefined,
           role: formData.role || undefined,
           group: formData.group || undefined,
           preferredChannel: formData.preferredChannel || undefined,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to add invitee')
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add invitee");
       }
 
       // Reset form and refresh list
       setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        whatsapp: '',
-        messenger: '',
-        instagram: '',
-        role: '',
-        group: '',
-        preferredChannel: 'email',
-      })
-      setShowAddForm(false)
-      fetchInvitees()
+        name: "",
+        email: "",
+        phone: "",
+        messenger: "",
+        instagram: "",
+        role: "",
+        group: "",
+        preferredChannel: "email",
+      });
+      setShowAddForm(false);
+      fetchInvitees();
     } catch (error: any) {
-      setError(error.message || 'Failed to add invitee')
+      setError(error.message || "Failed to add invitee");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleBulkImport = async () => {
     if (!bulkData.trim()) {
-      setError('Please enter invitee data')
-      return
+      setError("Please enter invitee data");
+      return;
     }
 
-    setSaving(true)
-    setError(null)
+    setSaving(true);
+    setError(null);
 
     try {
       // Parse CSV-like data (name,email,phone,whatsapp,messenger,instagram,role,group format)
-      const lines = bulkData.trim().split('\n')
-      const invitees = lines.map(line => {
-        const parts = line.split(',').map(p => p.trim())
-        return {
-          name: parts[0] || '',
-          email: parts[1] || undefined,
-          phone: parts[2] || undefined,
-          whatsapp: parts[3] || undefined,
-          messenger: parts[4] || undefined,
-          instagram: parts[5] || undefined,
-          role: parts[6] || undefined,
-          group: parts[7] || undefined,
-        }
-      }).filter(inv => inv.name) // Filter out empty names
+      const lines = bulkData.trim().split("\n");
+      const invitees = lines
+        .map((line) => {
+          const parts = line.split(",").map((p) => p.trim());
+          return {
+            name: parts[0] || "",
+            email: parts[1] || undefined,
+            phone: parts[2] || undefined,
+            whatsapp: parts[3] || undefined,
+            messenger: parts[4] || undefined,
+            instagram: parts[5] || undefined,
+            role: parts[6] || undefined,
+            group: parts[7] || undefined,
+          };
+        })
+        .filter((inv) => inv.name); // Filter out empty names
 
       if (invitees.length === 0) {
-        throw new Error('No valid invitees found')
+        throw new Error("No valid invitees found");
       }
 
       const response = await fetch(`/api/events/${eventId}/invitees`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ invitees }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to import invitees')
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to import invitees");
       }
 
-      setBulkData('')
-      setShowBulkForm(false)
-      fetchInvitees()
+      setBulkData("");
+      setShowBulkForm(false);
+      fetchInvitees();
     } catch (error: any) {
-      setError(error.message || 'Failed to import invitees')
+      setError(error.message || "Failed to import invitees");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleDeleteInvitee = async (inviteeId: string) => {
-    if (!confirm('Are you sure you want to delete this invitee?')) {
-      return
+    if (!confirm("Are you sure you want to delete this invitee?")) {
+      return;
     }
 
     try {
       const response = await fetch(`/api/invitees/${inviteeId}`, {
-        method: 'DELETE',
-      })
+        method: "DELETE",
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to delete invitee')
+        throw new Error("Failed to delete invitee");
       }
 
-      fetchInvitees()
+      fetchInvitees();
     } catch (error) {
-      console.error('Error deleting invitee:', error)
-      setError('Failed to delete invitee')
+      console.error("Error deleting invitee:", error);
+      setError("Failed to delete invitee");
     }
-  }
+  };
 
   const getRsvpStatusColor = (status: RSVPStatus) => {
     switch (status) {
-      case 'ACCEPTED':
-        return 'bg-green-100 text-green-800'
-      case 'DECLINED':
-        return 'bg-red-100 text-red-800'
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'MAYBE':
-        return 'bg-blue-100 text-blue-800'
+      case "ACCEPTED":
+        return "bg-green-100 text-green-800";
+      case "DECLINED":
+        return "bg-red-100 text-red-800";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800";
+      case "MAYBE":
+        return "bg-blue-100 text-blue-800";
       default:
-        return 'bg-gray-100 text-gray-800'
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
-  const filteredInvitees = invitees.filter(invitee => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
+  const filteredInvitees = invitees.filter((invitee) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
     return (
       invitee.name.toLowerCase().includes(query) ||
       invitee.email?.toLowerCase().includes(query) ||
       invitee.phone?.includes(query) ||
       invitee.group?.toLowerCase().includes(query)
-    )
-  })
+    );
+  });
 
-  if (status === 'loading' || loading) {
+  if (status === "loading" || loading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <LoadingSpinner />
         </div>
       </DashboardLayout>
-    )
+    );
   }
 
-  if (status === 'unauthenticated') {
-    return null // Will redirect
+  if (status === "unauthenticated") {
+    return null; // Will redirect
   }
 
   if (!event) {
@@ -281,7 +281,7 @@ export default function InviteesPage() {
       <DashboardLayout>
         <ErrorMessage message="Event not found" />
       </DashboardLayout>
-    )
+    );
   }
 
   return (
@@ -295,7 +295,9 @@ export default function InviteesPage() {
                 ← Back to Event
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Guest Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Guest Management
+            </h1>
             <p className="text-gray-600 mt-2">
               Manage invitees for {event.title}
             </p>
@@ -332,27 +334,25 @@ export default function InviteesPage() {
               <option value="MAYBE">Maybe</option>
             </select>
             <Link href={`/events/${eventId}/send-invitations`}>
-              <Button variant="primary">
-                📨 Send Invitations
-              </Button>
+              <Button variant="primary">📨 Send Invitations</Button>
             </Link>
             <Button
               variant="outline"
               onClick={() => {
-                setShowBulkForm(!showBulkForm)
-                setShowAddForm(false)
+                setShowBulkForm(!showBulkForm);
+                setShowAddForm(false);
               }}
             >
-              {showBulkForm ? 'Cancel Bulk' : 'Bulk Import'}
+              {showBulkForm ? "Cancel Bulk" : "Bulk Import"}
             </Button>
             <Button
               variant="outline"
               onClick={() => {
-                setShowAddForm(!showAddForm)
-                setShowBulkForm(false)
+                setShowAddForm(!showAddForm);
+                setShowBulkForm(false);
               }}
             >
-              {showAddForm ? 'Cancel' : '+ Add Guest'}
+              {showAddForm ? "Cancel" : "+ Add Guest"}
             </Button>
           </div>
         </div>
@@ -360,7 +360,9 @@ export default function InviteesPage() {
         {/* Add Invitee Form */}
         {showAddForm && (
           <Card className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Guest</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Add New Guest
+            </h2>
             <form onSubmit={handleAddInvitee} className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
@@ -370,7 +372,9 @@ export default function InviteesPage() {
                   <Input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     required
                     placeholder="John Doe"
                   />
@@ -382,34 +386,24 @@ export default function InviteesPage() {
                   <Input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     placeholder="john@example.com"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone
+                    Phone/WhatsApp Number
                   </label>
                   <Input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+1234567890"
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    placeholder="Phone/WhatsApp Number (preferred for notifications)"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    WhatsApp Number
-                  </label>
-                  <Input
-                    type="tel"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                    placeholder="+1234567890"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Separate WhatsApp number (if different from phone)
-                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -418,7 +412,9 @@ export default function InviteesPage() {
                   <Input
                     type="text"
                     value={formData.messenger}
-                    onChange={(e) => setFormData({ ...formData, messenger: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, messenger: e.target.value })
+                    }
                     placeholder="username or Facebook ID"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -432,7 +428,9 @@ export default function InviteesPage() {
                   <Input
                     type="text"
                     value={formData.instagram}
-                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, instagram: e.target.value })
+                    }
                     placeholder="@username"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -446,7 +444,9 @@ export default function InviteesPage() {
                   <Input
                     type="text"
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, role: e.target.value })
+                    }
                     placeholder="Bridesmaid, Groomsman, etc."
                   />
                 </div>
@@ -457,7 +457,9 @@ export default function InviteesPage() {
                   <Input
                     type="text"
                     value={formData.group}
-                    onChange={(e) => setFormData({ ...formData, group: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, group: e.target.value })
+                    }
                     placeholder="Family, Friends, Colleagues"
                   />
                 </div>
@@ -467,7 +469,12 @@ export default function InviteesPage() {
                   </label>
                   <select
                     value={formData.preferredChannel}
-                    onChange={(e) => setFormData({ ...formData, preferredChannel: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        preferredChannel: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="email">Email</option>
@@ -478,10 +485,19 @@ export default function InviteesPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button type="submit" variant="primary" isLoading={saving} disabled={saving}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  isLoading={saving}
+                  disabled={saving}
+                >
                   Add Guest
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddForm(false)}
+                >
                   Cancel
                 </Button>
               </div>
@@ -492,9 +508,12 @@ export default function InviteesPage() {
         {/* Bulk Import Form */}
         {showBulkForm && (
           <Card className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Bulk Import Guests</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Bulk Import Guests
+            </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Enter guest information in CSV format (one per line):<br />
+              Enter guest information in CSV format (one per line):
+              <br />
               <code className="text-xs bg-gray-100 px-2 py-1 rounded">
                 Name,Email,Phone,WhatsApp,Messenger,Instagram,Role,Group
               </code>
@@ -507,7 +526,12 @@ export default function InviteesPage() {
               placeholder="John Doe,john@example.com,+1234567890,+1234567890,username,@johndoe,Groomsman,Family&#10;Jane Smith,jane@example.com,+0987654321,+0987654321,janesmith,@janesmith,Bridesmaid,Friends"
             />
             <div className="flex gap-3 mt-4">
-              <Button variant="primary" onClick={handleBulkImport} isLoading={saving} disabled={saving}>
+              <Button
+                variant="primary"
+                onClick={handleBulkImport}
+                isLoading={saving}
+                disabled={saving}
+              >
                 Import Guests
               </Button>
               <Button variant="outline" onClick={() => setShowBulkForm(false)}>
@@ -530,11 +554,11 @@ export default function InviteesPage() {
               <div className="text-4xl mb-4">👥</div>
               <p>No invitees found.</p>
               <p className="text-sm mt-2 mb-4">
-                {searchQuery || rsvpFilter !== 'all'
-                  ? 'Try adjusting your filters'
-                  : 'Add your first guest to get started'}
+                {searchQuery || rsvpFilter !== "all"
+                  ? "Try adjusting your filters"
+                  : "Add your first guest to get started"}
               </p>
-              {!searchQuery && rsvpFilter === 'all' && (
+              {!searchQuery && rsvpFilter === "all" && (
                 <Button variant="primary" onClick={() => setShowAddForm(true)}>
                   Add First Guest
                 </Button>
@@ -545,19 +569,36 @@ export default function InviteesPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Contact</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Role</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Group</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">RSVP Status</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Name
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Contact
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Role
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Group
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      RSVP Status
+                    </th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredInvitees.map((invitee) => (
-                    <tr key={invitee.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr
+                      key={invitee.id}
+                      className="border-b border-gray-100 hover:bg-gray-50"
+                    >
                       <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900">{invitee.name}</div>
+                        <div className="font-medium text-gray-900">
+                          {invitee.name}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-sm text-gray-600 space-y-1">
@@ -593,20 +634,39 @@ export default function InviteesPage() {
                           )}
                           {invitee.userId && (
                             <div className="flex items-center gap-1">
-                              <span>📱</span>
-                              <span className="text-purple-600">In-App User</span>
+                              <span className="text-green-600 font-semibold">
+                                ✓ Registered User
+                              </span>
                             </div>
                           )}
-                          {!invitee.email && !invitee.phone && !invitee.whatsapp && !invitee.messenger && !invitee.instagram && !invitee.userId && (
-                            <span className="text-gray-400">No contact info</span>
-                          )}
+                          {!invitee.userId &&
+                            (invitee.email || invitee.phone) && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-yellow-600 text-xs">
+                                  ⚠ Registration Required
+                                </span>
+                              </div>
+                            )}
+                          {!invitee.email &&
+                            !invitee.phone &&
+                            !invitee.messenger &&
+                            !invitee.instagram &&
+                            !invitee.userId && (
+                              <span className="text-gray-400">
+                                No contact info
+                              </span>
+                            )}
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">{invitee.role || '-'}</span>
+                        <span className="text-sm text-gray-600">
+                          {invitee.role || "-"}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">{invitee.group || '-'}</span>
+                        <span className="text-sm text-gray-600">
+                          {invitee.group || "-"}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
                         <span
@@ -619,7 +679,9 @@ export default function InviteesPage() {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <Link href={`/events/${eventId}/invitees/${invitee.id}`}>
+                          <Link
+                            href={`/events/${eventId}/invitees/${invitee.id}`}
+                          >
                             <Button variant="ghost" size="sm">
                               Edit
                             </Button>
@@ -643,6 +705,5 @@ export default function InviteesPage() {
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }
-

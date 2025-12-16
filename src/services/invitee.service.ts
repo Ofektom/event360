@@ -1,5 +1,7 @@
 import { InviteeRepository } from '@/repositories/invitee.repository'
 import { CreateInviteeDto, BulkCreateInviteesDto, UpdateInviteeDto, GetInviteesFilters } from '@/types/invitee.types'
+import { prisma } from '@/lib/prisma'
+import { normalizePhone } from '@/lib/phone-utils'
 
 export class InviteeService {
   private inviteeRepository: InviteeRepository
@@ -26,7 +28,34 @@ export class InviteeService {
       throw new Error('Name is required')
     }
 
-    return this.inviteeRepository.create(eventId, data)
+    // Normalize phone number
+    const normalizedPhone = data.phone ? normalizePhone(data.phone) : null
+    const normalizedEmail = data.email ? data.email.trim().toLowerCase() : null
+
+    // Check if user already exists by email or phone
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+          ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
+        ]
+      },
+      select: { 
+        id: true,
+        email: true,
+        phone: true,
+        name: true,
+      }
+    })
+
+    // Create invitee with user link if found
+    return this.inviteeRepository.create(eventId, {
+      ...data,
+      phone: normalizedPhone || undefined,
+      email: normalizedEmail || undefined,
+      userId: existingUser?.id || null,
+      registeredAt: existingUser ? new Date() : null,
+    })
   }
 
   async bulkCreateInvitees(eventId: string, data: BulkCreateInviteesDto): Promise<{ count: number }> {
@@ -42,8 +71,20 @@ export class InviteeService {
       }
     }
 
-    const result = await this.inviteeRepository.createMany(eventId, data)
-    return { count: result.count }
+    // For bulk operations, we need to check each invitee for existing users
+    // and create them individually to support user linking
+    let createdCount = 0
+    for (const inviteeData of data.invitees) {
+      try {
+        await this.createInvitee(eventId, inviteeData)
+        createdCount++
+      } catch (error: any) {
+        // Skip duplicates or other errors, continue with next invitee
+        console.warn(`Failed to create invitee ${inviteeData.name}:`, error.message)
+      }
+    }
+
+    return { count: createdCount }
   }
 
   async updateInvitee(id: string, data: UpdateInviteeDto) {

@@ -13,10 +13,10 @@ datasource db {
 // User/Account model - for event creators and family members
 model User {
   id            String    @id @default(cuid())
-  email         String    @unique
+  email         String?   @unique  // Optional: can use phone instead
   emailVerified DateTime?
   name          String?
-  phone         String?
+  phone         String?   @unique  // Unique: can be used for login (WhatsApp preferred)
   passwordHash  String?   // For password-based auth
   image         String?   // Profile picture
   role          UserRole  @default(USER)
@@ -42,6 +42,7 @@ model User {
   vendorRatings VendorRating[] // Ratings given by this user to vendors
 
   @@index([email])
+  @@index([phone])
 }
 
 enum UserRole {

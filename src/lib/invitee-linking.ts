@@ -1,11 +1,22 @@
 import { prisma } from '@/lib/prisma'
+import { normalizePhone } from '@/lib/phone-utils'
 
 /**
  * Links a user account to any matching Invitee records based on email/phone
  * This is called after user registration or login
  */
-export async function linkUserToInvitees(userId: string, email: string, phone?: string | null) {
+export async function linkUserToInvitees(
+  userId: string, 
+  email?: string | null, 
+  phone?: string | null
+) {
+  if (!email && !phone) return { linked: 0, invitees: [] }
+
   try {
+    // Normalize phone number for matching
+    const normalizedPhone = phone ? normalizePhone(phone) : null
+    const normalizedEmail = email ? email.trim().toLowerCase() : null
+
     // Find invitees that match the user's email or phone and aren't yet linked
     const matchingInvitees = await prisma.invitee.findMany({
       where: {
@@ -13,8 +24,8 @@ export async function linkUserToInvitees(userId: string, email: string, phone?: 
           { userId: null }, // Not yet linked
           {
             OR: [
-              { email: { equals: email, mode: 'insensitive' } },
-              ...(phone ? [{ phone: phone }] : []),
+              ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' } }] : []),
+              ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
             ],
           },
         ],

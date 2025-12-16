@@ -1,163 +1,186 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { signIn } from 'next-auth/react'
-import { Button } from '@/components/atoms/Button'
-import { Input } from '@/components/atoms/Input'
-import { Card } from '@/components/atoms/Card'
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { Button } from "@/components/atoms/Button";
+import { Input } from "@/components/atoms/Input";
+import { Card } from "@/components/atoms/Card";
 
 interface SignupFormProps {
-  callbackUrl?: string
-  eventId?: string
+  callbackUrl?: string;
+  eventId?: string;
 }
 
-export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export function SignupForm({
+  callbackUrl,
+  eventId: propEventId,
+}: SignupFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Get eventId from props or searchParams
-  const eventId = propEventId || searchParams.get('eventId') || null
-  const finalCallbackUrl = callbackUrl || searchParams.get('callbackUrl') || '/timeline'
+  const eventId = propEventId || searchParams.get("eventId") || null;
+  const finalCallbackUrl =
+    callbackUrl || searchParams.get("callbackUrl") || "/timeline";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    })
-    setError('')
-  }
+    });
+    setError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
-    // Validation
+    // Validation: at least one identifier required
+    if (!formData.email?.trim() && !formData.phone?.trim()) {
+      setError("Please provide either email or phone number");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return
+      setError("Passwords do not match");
+      return;
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return
+      setError("Password must be at least 8 characters long");
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
-          email: formData.email,
+          email: formData.email?.trim() || undefined,
+          phone: formData.phone?.trim() || undefined,
           password: formData.password,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to create account')
-        return
+        setError(data.error || "Failed to create account");
+        return;
       }
 
       // Sign in the user automatically after signup
-      const signInResult = await signIn('credentials', {
-        email: formData.email,
+      // Use email or phone as identifier
+      const identifier = formData.email?.trim() || formData.phone?.trim();
+      const signInResult = await signIn("credentials", {
+        identifier,
         password: formData.password,
         redirect: false,
-      })
+      });
 
       if (signInResult?.error) {
         // If sign in fails, redirect to sign in page
-        router.push(`/auth/signin?registered=true${eventId ? `&eventId=${eventId}&callbackUrl=${encodeURIComponent(finalCallbackUrl)}` : ''}`)
-        return
+        router.push(
+          `/auth/signin?registered=true${
+            eventId
+              ? `&eventId=${eventId}&callbackUrl=${encodeURIComponent(
+                  finalCallbackUrl
+                )}`
+              : ""
+          }`
+        );
+        return;
       }
 
       // If eventId is provided, join the event
       if (eventId) {
         try {
           const joinResponse = await fetch(`/api/events/${eventId}/join`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
-          })
+          });
 
           if (joinResponse.ok) {
             // Successfully joined event, redirect to event page
-            router.push(finalCallbackUrl)
-            router.refresh()
-            return
+            router.push(finalCallbackUrl);
+            router.refresh();
+            return;
           }
         } catch (joinError) {
-          console.error('Error joining event:', joinError)
+          console.error("Error joining event:", joinError);
           // Continue to redirect even if join fails
         }
       }
 
       // Redirect to callback URL or timeline
-      router.push(finalCallbackUrl)
-      router.refresh()
+      router.push(finalCallbackUrl);
+      router.refresh();
     } catch (err) {
-      setError('An unexpected error occurred')
+      setError("An unexpected error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleOAuthSignIn = async (provider: 'google' | 'facebook') => {
-    setError('')
-    setIsLoading(true)
+  const handleOAuthSignIn = async (provider: "google" | "facebook") => {
+    setError("");
+    setIsLoading(true);
     try {
       // Include eventId in callback URL for OAuth
-      const oauthCallbackUrl = eventId 
+      const oauthCallbackUrl = eventId
         ? `${finalCallbackUrl}?eventId=${eventId}`
-        : finalCallbackUrl
-      
+        : finalCallbackUrl;
+
       // For mobile, ensure we use window.location for proper redirect
       // This helps with mobile browser OAuth redirect handling
-      const result = await signIn(provider, { 
+      const result = await signIn(provider, {
         callbackUrl: oauthCallbackUrl,
         redirect: true, // Ensure redirect happens
-      })
-      
+      });
+
       // If signIn doesn't redirect (shouldn't happen with redirect: true), handle it
       if (result && !result.ok) {
-        setError('Failed to sign up with ' + provider)
-        setIsLoading(false)
+        setError("Failed to sign up with " + provider);
+        setIsLoading(false);
       }
     } catch (err) {
-      console.error('OAuth sign up error:', err)
-      setError('Failed to sign up with ' + provider)
-      setIsLoading(false)
+      console.error("OAuth sign up error:", err);
+      setError("Failed to sign up with " + provider);
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="max-w-md mx-auto">
       <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">Create Account</h2>
-        
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">
+          Create Account
+        </h2>
+
         {/* OAuth Buttons */}
         <div className="space-y-3 mb-6">
           <Button
             type="button"
             variant="outline"
             className="w-full flex items-center justify-center gap-3"
-            onClick={() => handleOAuthSignIn('google')}
+            onClick={() => handleOAuthSignIn("google")}
             disabled={isLoading}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -185,7 +208,7 @@ export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProp
             type="button"
             variant="outline"
             className="w-full flex items-center justify-center gap-3"
-            onClick={() => handleOAuthSignIn('facebook')}
+            onClick={() => handleOAuthSignIn("facebook")}
             disabled={isLoading}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -201,10 +224,12 @@ export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProp
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or sign up with email</span>
+            <span className="px-2 bg-white text-gray-500">
+              Or sign up with email
+            </span>
           </div>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Full Name"
@@ -218,14 +243,25 @@ export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProp
           />
 
           <Input
-            label="Email"
+            label="Email (optional)"
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
-            required
             disabled={isLoading}
             autoComplete="email"
+          />
+
+          <Input
+            label="Phone/WhatsApp Number"
+            type="tel"
+            name="phone"
+            placeholder="Phone/WhatsApp Number (preferred for notifications)"
+            value={formData.phone}
+            onChange={handleChange}
+            required={!formData.email?.trim()}
+            disabled={isLoading}
+            autoComplete="tel"
           />
 
           <Input
@@ -269,7 +305,7 @@ export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProp
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-700 sm:text-gray-600">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <a
               href="/auth/signin"
               className="text-purple-600 hover:text-purple-800 hover:underline font-semibold sm:font-medium"
@@ -280,6 +316,5 @@ export function SignupForm({ callbackUrl, eventId: propEventId }: SignupFormProp
         </div>
       </div>
     </Card>
-  )
+  );
 }
-

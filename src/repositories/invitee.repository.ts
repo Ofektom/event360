@@ -37,19 +37,21 @@ export class InviteeRepository {
     })
   }
 
-  async create(eventId: string, data: CreateInviteeDto) {
+  async create(eventId: string, data: CreateInviteeDto & { userId?: string | null, registeredAt?: Date | null }) {
     return prisma.invitee.create({
       data: {
         eventId,
+        userId: data.userId || null, // Link to user if provided
         name: data.name,
-        email: data.email,
-        phone: data.phone,
-        whatsapp: data.whatsapp,
+        email: data.email || null,
+        phone: data.phone || null,
+        whatsapp: data.phone || null, // Store same value in whatsapp field for backward compatibility
         messenger: data.messenger,
         instagram: data.instagram,
         role: data.role,
         group: data.group,
-        notificationChannels: data.notificationChannels,
+        notificationChannels: (data.notificationChannels || ['EMAIL']) as any, // Type assertion until Prisma client is regenerated
+        registeredAt: data.registeredAt || null,
         rsvpStatus: 'PENDING',
       },
     })
@@ -60,14 +62,14 @@ export class InviteeRepository {
       data: data.invitees.map((invitee) => ({
         eventId,
         name: invitee.name,
-        email: invitee.email,
-        phone: invitee.phone,
-        whatsapp: invitee.whatsapp,
+        email: invitee.email || null,
+        phone: invitee.phone || null,
+        whatsapp: invitee.phone || null, // Use phone for whatsapp
         messenger: invitee.messenger,
         instagram: invitee.instagram,
         role: invitee.role,
         group: invitee.group,
-        notificationChannels: invitee.notificationChannels,
+        notificationChannels: (invitee.notificationChannels || ['EMAIL']) as any,
         rsvpStatus: 'PENDING',
       })),
       skipDuplicates: true,
@@ -90,7 +92,7 @@ export class InviteeRepository {
       updateData.rsvpDate = new Date()
     }
     if (data.rsvpNotes !== undefined) updateData.rsvpNotes = data.rsvpNotes
-    if (data.notificationChannels !== undefined) updateData.notificationChannels = data.notificationChannels
+    if (data.notificationChannels !== undefined) (updateData as any).notificationChannels = data.notificationChannels
 
     return prisma.invitee.update({
       where: { id },

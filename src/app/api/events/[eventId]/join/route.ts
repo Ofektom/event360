@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizePhone } from '@/lib/phone-utils'
 
 /**
  * POST /api/events/[eventId]/join
@@ -64,14 +65,18 @@ export async function POST(
       })
     }
 
+    // Normalize phone for matching
+    const normalizedPhone = user.phone ? normalizePhone(user.phone) : null
+    const normalizedEmail = user.email ? user.email.trim().toLowerCase() : null
+
     // Check if there's an invitee record with matching email/phone that's not linked
     const matchingInvitee = await prisma.invitee.findFirst({
       where: {
         eventId,
         userId: null,
         OR: [
-          { email: { equals: user.email, mode: 'insensitive' } },
-          ...(user.phone ? [{ phone: user.phone }] : []),
+          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' } }] : []),
+          ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
         ],
       },
     })

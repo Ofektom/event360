@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs"
 import { UserRole } from "@/types/enums"
 import { linkUserToInvitees } from "@/lib/invitee-linking"
 import { getBaseUrl } from "@/lib/utils"
+import { identifyType, normalizePhone } from "@/lib/phone-utils"
 
 // Build providers array conditionally
 const providers: any[] = []
@@ -53,22 +54,37 @@ providers.push(
   CredentialsProvider({
     name: "Credentials",
     credentials: {
-      email: { label: "Email", type: "email" },
+      identifier: { label: "Email or Phone", type: "text" },
       password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
-      if (!credentials?.email || !credentials?.password) {
-        throw new Error("Email and password required")
+      if (!credentials?.identifier || !credentials?.password) {
+        throw new Error("Email/Phone and password required")
       }
 
-      const email = credentials.email as string
+      const identifier = (credentials.identifier as string).trim()
       const password = credentials.password as string
 
-      const user = await prisma.user.findUnique({
-        where: { email },
+      // Determine if identifier is email or phone
+      const identifierType = identifyType(identifier)
+      if (!identifierType) {
+        throw new Error("Please enter a valid email or phone number")
+      }
+
+      // Normalize phone if it's a phone number
+      const normalizedIdentifier = identifierType === 'phone' 
+        ? normalizePhone(identifier) 
+        : identifier.toLowerCase()
+
+      // Find user by email or phone
+      const user = await prisma.user.findFirst({
+        where: identifierType === 'email'
+          ? { email: normalizedIdentifier as string }
+          : { phone: normalizedIdentifier as string },
         select: {
           id: true,
           email: true,
+          phone: true,
           name: true,
           image: true,
           role: true,
@@ -77,7 +93,7 @@ providers.push(
       })
 
       if (!user || !user.passwordHash) {
-        throw new Error("Invalid email or password")
+        throw new Error("Invalid email/phone or password")
       }
 
       const isValid = await bcrypt.compare(
@@ -86,12 +102,13 @@ providers.push(
       )
 
       if (!isValid) {
-        throw new Error("Invalid email or password")
+        throw new Error("Invalid email/phone or password")
       }
 
       return {
         id: user.id,
         email: user.email,
+        phone: user.phone,
         name: user.name,
         image: user.image,
         role: user.role as UserRole,
@@ -313,9 +330,14 @@ export const authOptions: NextAuthOptions = {
         // Get user role from database for OAuth users
         if (account?.provider !== 'credentials' && user.email) {
           try {
-            const dbUser = await prisma.user.findUnique({
-              where: { email: user.email },
-              select: { role: true, phone: true, image: true }
+            const dbUser = await prisma.user.findFirst({
+              where: {
+                OR: [
+                  { email: user.email },
+                  { id: user.id }
+                ]
+              },
+              select: { role: true, phone: true, image: true, email: true }
             })
             token.role = (dbUser?.role as UserRole) || UserRole.USER
             if (dbUser?.image) {
@@ -325,7 +347,7 @@ export const authOptions: NextAuthOptions = {
             // Auto-link user to invitees after authentication
             if (dbUser && user.id) {
               try {
-                await linkUserToInvitees(user.id, user.email, dbUser.phone || undefined)
+                await linkUserToInvitees(user.id, dbUser.email || undefined, dbUser.phone || undefined)
               } catch (linkError) {
                 console.error('Error auto-linking invitees:', linkError)
               }
@@ -337,16 +359,16 @@ export const authOptions: NextAuthOptions = {
           token.role = (user as any).role as UserRole || UserRole.USER
           
           // Auto-link for credentials provider
-          if (user.id && user.email) {
+          if (user.id) {
             try {
               const dbUser = await prisma.user.findUnique({
                 where: { id: user.id },
-                select: { phone: true, image: true }
+                select: { phone: true, image: true, email: true }
               })
               if (dbUser?.image) {
                 token.image = dbUser.image
               }
-              await linkUserToInvitees(user.id, user.email, dbUser?.phone || undefined)
+              await linkUserToInvitees(user.id, dbUser?.email || undefined, dbUser?.phone || undefined)
             } catch (linkError) {
               console.error('Error auto-linking invitees:', linkError)
             }

@@ -1,130 +1,138 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/atoms/Button'
-import { Input } from '@/components/atoms/Input'
-import { Card } from '@/components/atoms/Card'
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/atoms/Button";
+import { Input } from "@/components/atoms/Input";
+import { Card } from "@/components/atoms/Card";
 
 interface LoginFormProps {
-  callbackUrl?: string
-  eventId?: string
+  callbackUrl?: string;
+  eventId?: string;
 }
 
-export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+export function LoginForm({
+  callbackUrl,
+  eventId: propEventId,
+}: LoginFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Get eventId from props or searchParams
-  const eventId = propEventId || searchParams.get('eventId') || null
-  const finalCallbackUrl = callbackUrl || searchParams.get('callbackUrl') || '/timeline'
+  const eventId = propEventId || searchParams.get("eventId") || null;
+  const finalCallbackUrl =
+    callbackUrl || searchParams.get("callbackUrl") || "/timeline";
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
-      const result = await signIn('credentials', {
-        email,
+      const result = await signIn("credentials", {
+        identifier,
         password,
         redirect: false,
-      })
+      });
 
       if (result?.error) {
         // Log the full result for debugging
-        console.error('[LOGIN] SignIn result:', {
+        console.error("[LOGIN] SignIn result:", {
           error: result.error,
           status: result.status,
           ok: result.ok,
           url: result.url,
-        })
-        
+        });
+
         // Provide user-friendly error messages
-        if (result.error === 'Configuration') {
-          setError('Server configuration error. Please contact support or try again later.')
+        if (result.error === "Configuration") {
+          setError(
+            "Server configuration error. Please contact support or try again later."
+          );
         } else {
-          setError(result.error)
+          setError(result.error);
         }
       } else if (result?.ok) {
         // If eventId is provided, join the event
         if (eventId) {
           try {
             const joinResponse = await fetch(`/api/events/${eventId}/join`, {
-              method: 'POST',
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               },
-            })
+            });
 
             if (joinResponse.ok) {
               // Successfully joined event, redirect to event page
-              router.push(finalCallbackUrl)
-              router.refresh()
-              return
+              router.push(finalCallbackUrl);
+              router.refresh();
+              return;
             }
           } catch (joinError) {
-            console.error('Error joining event:', joinError)
+            console.error("Error joining event:", joinError);
             // Continue to redirect even if join fails
           }
         }
 
         // Redirect to callback URL or timeline
-        router.push(finalCallbackUrl)
-        router.refresh()
+        router.push(finalCallbackUrl);
+        router.refresh();
       }
     } catch (err) {
-      setError('An unexpected error occurred')
+      setError("An unexpected error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleOAuthSignIn = async (provider: 'google' | 'facebook') => {
-    setError('')
-    setIsLoading(true)
+  const handleOAuthSignIn = async (provider: "google" | "facebook") => {
+    setError("");
+    setIsLoading(true);
     try {
       // Include eventId in callback URL for OAuth
-      const oauthCallbackUrl = eventId 
+      const oauthCallbackUrl = eventId
         ? `${finalCallbackUrl}?eventId=${eventId}`
-        : finalCallbackUrl
-      
+        : finalCallbackUrl;
+
       // For mobile, ensure we use window.location for proper redirect
       // This helps with mobile browser OAuth redirect handling
-      const result = await signIn(provider, { 
+      const result = await signIn(provider, {
         callbackUrl: oauthCallbackUrl,
         redirect: true, // Ensure redirect happens
-      })
-      
+      });
+
       // If signIn doesn't redirect (shouldn't happen with redirect: true), handle it
       if (result && !result.ok) {
-        setError('Failed to sign in with ' + provider)
-        setIsLoading(false)
+        setError("Failed to sign in with " + provider);
+        setIsLoading(false);
       }
     } catch (err) {
-      console.error('OAuth sign in error:', err)
-      setError('Failed to sign in with ' + provider)
-      setIsLoading(false)
+      console.error("OAuth sign in error:", err);
+      setError("Failed to sign in with " + provider);
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="max-w-md mx-auto">
       <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">Sign In</h2>
-        
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">
+          Sign In
+        </h2>
+
         {/* OAuth Buttons */}
         <div className="space-y-3 mb-6">
           <Button
             type="button"
             variant="outline"
             className="w-full flex items-center justify-center gap-3"
-            onClick={() => handleOAuthSignIn('google')}
+            onClick={() => handleOAuthSignIn("google")}
             disabled={isLoading}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -152,7 +160,7 @@ export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps)
             type="button"
             variant="outline"
             className="w-full flex items-center justify-center gap-3"
-            onClick={() => handleOAuthSignIn('facebook')}
+            onClick={() => handleOAuthSignIn("facebook")}
             disabled={isLoading}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -168,19 +176,22 @@ export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps)
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+            <span className="px-2 bg-white text-gray-500">
+              Or continue with email or phone
+            </span>
           </div>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            label="Email or Phone Number"
+            type="text"
+            placeholder="Email or Phone/WhatsApp Number"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             required
             disabled={isLoading}
-            autoComplete="email"
+            autoComplete="username"
           />
 
           <Input
@@ -210,6 +221,5 @@ export function LoginForm({ callbackUrl, eventId: propEventId }: LoginFormProps)
         </form>
       </div>
     </Card>
-  )
+  );
 }
-
