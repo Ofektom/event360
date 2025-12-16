@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { normalizePhone } from '@/lib/phone-utils'
+import { Prisma } from '@prisma/client'
 
 /**
  * Links a user account to any matching Invitee records based on email/phone
@@ -24,7 +25,7 @@ export async function linkUserToInvitees(
           { userId: null }, // Not yet linked
           {
             OR: [
-              ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' } }] : []),
+              ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: Prisma.QueryMode.insensitive } }] : []),
               ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
             ],
           },

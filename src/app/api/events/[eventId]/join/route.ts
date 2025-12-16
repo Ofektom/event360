@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizePhone } from '@/lib/phone-utils'
+import { Prisma } from '@prisma/client'
 
 /**
  * POST /api/events/[eventId]/join
@@ -75,7 +76,7 @@ export async function POST(
         eventId,
         userId: null,
         OR: [
-          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' } }] : []),
+          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: Prisma.QueryMode.insensitive } }] : []),
           ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
         ],
       },
