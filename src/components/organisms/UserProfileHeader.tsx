@@ -13,7 +13,7 @@ import { updateCachedUserProfile } from '@/lib/user-cache'
 interface User {
   id: string
   name: string | null
-  email: string
+  email: string | null
   phone: string | null
   image: string | null
   role: string

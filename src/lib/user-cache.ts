@@ -10,7 +10,7 @@ const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
 interface CachedUserProfile {
   id: string
   name: string | null
-  email: string
+  email: string | null
   image: string | null
   phone: string | null
   role: string
