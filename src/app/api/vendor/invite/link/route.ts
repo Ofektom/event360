@@ -36,7 +36,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify email matches
+    // Verify email matches (both must exist for vendor linking)
+    if (!user.email || !vendor.email) {
+      return NextResponse.json(
+        { error: 'Email is required to link vendor account' },
+        { status: 400 }
+      )
+    }
+
     if (vendor.email.toLowerCase() !== user.email.toLowerCase()) {
       return NextResponse.json(
         { error: 'Email does not match vendor invitation' },

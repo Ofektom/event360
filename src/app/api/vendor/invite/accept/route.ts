@@ -43,7 +43,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify email matches vendor email
+    // Verify email matches vendor email (vendor email is required for invitations)
+    if (!vendor.email) {
+      return NextResponse.json(
+        { error: 'Vendor invitation is missing email information' },
+        { status: 400 }
+      )
+    }
+
     if (vendor.email.toLowerCase() !== email.toLowerCase()) {
       return NextResponse.json(
         { error: 'Email does not match vendor invitation' },
