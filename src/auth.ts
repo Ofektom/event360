@@ -105,9 +105,13 @@ providers.push(
         throw new Error("Invalid email/phone or password")
       }
 
+      // NextAuth requires email, so use phone as fallback if email is null
+      // This allows phone-only users to authenticate
+      const emailForAuth = user.email || user.phone || `user-${user.id}@gbedoo.app`
+
       return {
         id: user.id,
-        email: user.email,
+        email: emailForAuth,
         phone: user.phone,
         name: user.name,
         image: user.image,
@@ -146,6 +150,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       // For OAuth providers, handle account linking
+      // OAuth providers (Google, Facebook) always provide email, so this is safe
       if (account?.provider !== 'credentials' && user?.email && account) {
         try {
           // Check if this is a linking request (from the link API)
